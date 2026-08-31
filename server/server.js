@@ -8,6 +8,15 @@ import selfsigned from 'selfsigned';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// GLOBAL PROCESS CRASH PROTECTION
+process.on('uncaughtException', (err) => {
+  console.error('🛡️ [SERVER PROTECT] Uncaught exception intercepted (process maintained):', err?.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('🛡️ [SERVER PROTECT] Unhandled promise rejection intercepted (process maintained):', reason);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -266,267 +275,329 @@ setInterval(() => {
 // ----------------------------------------------------
 // SOCKET.IO EVENT HANDLERS
 // ----------------------------------------------------
+let countdownTimer = null;
+
 io.on('connection', (socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
   // Send immediate initial sync
-  socket.emit('init_sync', {
-    gameState: {
-      ...gameState,
-      connectedCount: Object.keys(gameState.players).length,
-      maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-    },
-    lanIp: LAN_IP,
-    httpPort: HTTP_PORT,
-    httpsPort: HTTPS_PORT,
-    tunnelUrl: publicTunnelUrl,
-  });
+  try {
+    socket.emit('init_sync', {
+      gameState: {
+        ...gameState,
+        connectedCount: Object.keys(gameState.players).length,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      },
+      lanIp: LAN_IP,
+      httpPort: HTTP_PORT,
+      httpsPort: HTTPS_PORT,
+      tunnelUrl: publicTunnelUrl,
+    });
+  } catch (err) {
+    console.warn('init_sync send notice:', err);
+  }
 
   // Stage display (Desktop HUD) connects
   socket.on('join_display', () => {
-    socket.join('stage_display');
-    console.log(`🖥️ Stage Display joined room: stage_display (${socket.id})`);
+    try {
+      socket.join('stage_display');
+      console.log(`🖥️ Stage Display joined room: stage_display (${socket.id})`);
+    } catch (err) {
+      console.warn('join_display notice:', err);
+    }
   });
 
   // Participant joins as mobile controller
-  socket.on('join_controller', ({ playerName } = {}) => {
-    socket.join('mobile_controllers');
-    participantCounter += 1;
-    const operativeNumber = participantCounter;
-    const displayName = playerName?.trim() || `Operative #${operativeNumber}`;
-    const now = Date.now();
-
-    gameState.players[socket.id] = {
-      id: socket.id,
-      number: operativeNumber,
-      name: displayName,
-      shakes: 0,
-      lastShakeTime: 0,
-      intensity: 0,
-      sensorActive: false,
-      lastSeen: now,
-    };
-
-    gameState.connectedCount = Object.keys(gameState.players).length;
-
-    // Track recent joins for live desktop ticker
-    gameState.recentJoins.push({
-      number: operativeNumber,
-      name: displayName,
-      time: now,
-    });
-    if (gameState.recentJoins.length > 20) {
-      gameState.recentJoins.shift();
-    }
-
-    socket.emit('controller_assigned', {
-      operativeNumber,
-      player: gameState.players[socket.id],
-      connectedCount: gameState.connectedCount,
-      maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-    });
-
-    // Notify stage displays and controllers
-    io.emit('participant_joined', {
-      operativeNumber,
-      name: displayName,
-      connectedCount: gameState.connectedCount,
-      maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-    });
-
-    console.log(`Operative #${operativeNumber} joined (${gameState.connectedCount}/${EVENT_CONFIG.MAX_CAPACITY})`);
-  });
-
-  // Controller reports sensor status
-  socket.on('sensor_status', ({ active } = {}) => {
-    if (gameState.players[socket.id]) {
-      gameState.players[socket.id].sensorActive = active;
-      gameState.players[socket.id].lastSeen = Date.now();
-    }
-  });
-
-  // Physical shake impulse received (calibrated for mass crowd scaling)
-  socket.on('shake_pulse', ({ intensity = 1.0, playerName } = {}) => {
-    const now = Date.now();
-    let player = gameState.players[socket.id];
-
-    if (!player) {
+  socket.on('join_controller', (payload = {}) => {
+    try {
+      socket.join('mobile_controllers');
       participantCounter += 1;
+      const operativeNumber = participantCounter;
+      const playerName = typeof payload?.playerName === 'string' ? payload.playerName.trim() : '';
+      const displayName = playerName || `Operative #${operativeNumber}`;
+      const now = Date.now();
+
       gameState.players[socket.id] = {
         id: socket.id,
-        number: participantCounter,
-        name: playerName?.trim() || `Operative #${participantCounter}`,
-        shakes: 0,
-        lastShakeTime: 0,
-        intensity: 0,
-        sensorActive: true,
-        lastSeen: now,
-      };
-      player = gameState.players[socket.id];
-      gameState.connectedCount = Object.keys(gameState.players).length;
-    } else if (playerName && (!player.name || player.name.startsWith('Operative #'))) {
-      player.name = playerName.trim();
-    }
-
-    player.lastSeen = now;
-
-    // Only process shake voltage when the host has officially initiated the game
-    if (gameState.status === 'playing') {
-      gameState.lastActiveShakeTime = now;
-
-      player.shakes += 1;
-      player.lastShakeTime = now;
-      player.intensity = intensity;
-
-      // BALANCED PER-PLAYER DYNAMIC VOLTAGE SCALING:
-      const activeCount = Math.max(1, Object.keys(gameState.players).length);
-      const clampedIntensity = Math.min(2.0, Math.max(0.6, intensity));
-      
-      // Hardened 4-tier electromagnetic resistance curve (demands sustained crowd power)
-      const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
-      let resistanceFactor = 1.0;
-      if (currentVolt > 85) {
-        resistanceFactor = 0.24; // Final 15% requires maximum sustained crowd effort
-      } else if (currentVolt > 70) {
-        resistanceFactor = 0.44;
-      } else if (currentVolt > 50) {
-        resistanceFactor = 0.65;
-      } else if (currentVolt > 25) {
-        resistanceFactor = 0.85;
-      }
-
-      const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
-      
-      gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
-
-      // Broadcast surge event EXCLUSIVELY to stage display screens (avoids O(N^2) mobile network flood)
-      io.to('stage_display').emit('surge_pulse', {
-        operativeNumber: player.number || 1,
-        name: player.name || 'Operative',
-        intensity: clampedIntensity,
-        voltage: gameState.voltage,
-      });
-    }
-  });
-
-  // Boost trigger
-  socket.on('trigger_boost', () => {
-    if (gameState.status === 'playing' && gameState.boostCharges > 0) {
-      gameState.boostCharges -= 1;
-      gameState.voltage = Math.min(100, gameState.voltage + EVENT_CONFIG.BOOST_AMOUNT);
-      gameState.lastActiveShakeTime = Date.now();
-
-      io.emit('boost_activated', {
-        boostCharges: gameState.boostCharges,
-        voltage: gameState.voltage,
-      });
-    }
-  });
-
-  let countdownTimer = null;
-
-  // Start / Countdown game trigger
-  socket.on('start_game', () => {
-    if (gameState.status === 'playing' || gameState.status === 'countdown') return;
-    if (countdownTimer) {
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-    }
-
-    gameState.status = 'countdown';
-    gameState.countdownValue = 3;
-    gameState.voltage = 0.0;
-    gameState.timeRemaining = EVENT_CONFIG.ROUND_TIME_SECONDS;
-    gameState.lastActiveShakeTime = Date.now();
-
-    io.emit('countdown_started', { count: 3 });
-    io.emit('game_state_update', { status: 'countdown', countdownValue: 3, voltage: 0 });
-
-    let currentCount = 3;
-    countdownTimer = setInterval(() => {
-      currentCount -= 1;
-      if (currentCount > 0) {
-        gameState.countdownValue = currentCount;
-        io.emit('countdown_tick', { count: currentCount });
-        io.emit('game_state_update', { status: 'countdown', countdownValue: currentCount });
-      } else {
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-        gameState.countdownValue = 0;
-        resetGame('playing');
-        io.emit('countdown_tick', { count: 'LAUNCH!' });
-        io.emit('game_started');
-      }
-    }, 1000);
-  });
-
-  socket.on('reset_game', () => {
-    if (countdownTimer) {
-      clearInterval(countdownTimer);
-      countdownTimer = null;
-    }
-    resetGame('lobby');
-    io.emit('game_reset');
-  });
-
-  // Heartbeat ping from mobile controller
-  socket.on('ping_heartbeat', () => {
-    const now = Date.now();
-    if (gameState.players[socket.id]) {
-      gameState.players[socket.id].lastSeen = now;
-    } else {
-      participantCounter += 1;
-      gameState.players[socket.id] = {
-        id: socket.id,
-        number: participantCounter,
-        name: `Operative #${participantCounter}`,
+        number: operativeNumber,
+        name: displayName,
         shakes: 0,
         lastShakeTime: 0,
         intensity: 0,
         sensorActive: false,
         lastSeen: now,
       };
+
       gameState.connectedCount = Object.keys(gameState.players).length;
+
+      // Track recent joins for live desktop ticker
+      gameState.recentJoins.push({
+        number: operativeNumber,
+        name: displayName,
+        time: now,
+      });
+      if (gameState.recentJoins.length > 20) {
+        gameState.recentJoins.shift();
+      }
+
+      socket.emit('controller_assigned', {
+        operativeNumber,
+        player: gameState.players[socket.id],
+        connectedCount: gameState.connectedCount,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+
+      // Notify stage displays and controllers
+      io.emit('participant_joined', {
+        operativeNumber,
+        name: displayName,
+        connectedCount: gameState.connectedCount,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+
+      console.log(`Operative #${operativeNumber} joined (${gameState.connectedCount}/${EVENT_CONFIG.MAX_CAPACITY})`);
+    } catch (err) {
+      console.warn('join_controller notice:', err);
+    }
+  });
+
+  // Controller reports sensor status
+  socket.on('sensor_status', (payload = {}) => {
+    try {
+      if (gameState.players[socket.id]) {
+        gameState.players[socket.id].sensorActive = Boolean(payload?.active);
+        gameState.players[socket.id].lastSeen = Date.now();
+      }
+    } catch (err) {
+      console.warn('sensor_status notice:', err);
+    }
+  });
+
+  // Physical shake impulse received (calibrated for mass crowd scaling)
+  socket.on('shake_pulse', (payload = {}) => {
+    try {
+      const intensity = typeof payload?.intensity === 'number' && !isNaN(payload.intensity) ? payload.intensity : 1.0;
+      const playerName = typeof payload?.playerName === 'string' ? payload.playerName.trim() : '';
+      const now = Date.now();
+      let player = gameState.players[socket.id];
+
+      if (!player) {
+        participantCounter += 1;
+        gameState.players[socket.id] = {
+          id: socket.id,
+          number: participantCounter,
+          name: playerName || `Operative #${participantCounter}`,
+          shakes: 0,
+          lastShakeTime: 0,
+          intensity: 0,
+          sensorActive: true,
+          lastSeen: now,
+        };
+        player = gameState.players[socket.id];
+        gameState.connectedCount = Object.keys(gameState.players).length;
+      } else if (playerName && (!player.name || player.name.startsWith('Operative #'))) {
+        player.name = playerName;
+      }
+
+      player.lastSeen = now;
+
+      // Only process shake voltage when the host has officially initiated the game
+      if (gameState.status === 'playing') {
+        gameState.lastActiveShakeTime = now;
+
+        player.shakes += 1;
+        player.lastShakeTime = now;
+        player.intensity = intensity;
+
+        // BALANCED PER-PLAYER DYNAMIC VOLTAGE SCALING:
+        const activeCount = Math.max(1, Object.keys(gameState.players).length);
+        const clampedIntensity = Math.min(2.0, Math.max(0.6, intensity));
+        
+        // Hardened 4-tier electromagnetic resistance curve (demands sustained crowd power)
+        const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
+        let resistanceFactor = 1.0;
+        if (currentVolt > 85) {
+          resistanceFactor = 0.24; // Final 15% requires maximum sustained crowd effort
+        } else if (currentVolt > 70) {
+          resistanceFactor = 0.44;
+        } else if (currentVolt > 50) {
+          resistanceFactor = 0.65;
+        } else if (currentVolt > 25) {
+          resistanceFactor = 0.85;
+        }
+
+        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(Math.max(1, activeCount), 0.92);
+        const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
+        
+        gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
+
+        // Broadcast surge event EXCLUSIVELY to stage display screens (avoids O(N^2) mobile network flood)
+        io.to('stage_display').emit('surge_pulse', {
+          operativeNumber: player.number || 1,
+          name: player.name || 'Operative',
+          intensity: clampedIntensity,
+          voltage: gameState.voltage,
+        });
+      }
+    } catch (err) {
+      console.warn('shake_pulse notice:', err);
+    }
+  });
+
+  // Boost trigger
+  socket.on('trigger_boost', () => {
+    try {
+      if (gameState.status === 'playing' && gameState.boostCharges > 0) {
+        gameState.boostCharges -= 1;
+        gameState.voltage = Math.min(100, gameState.voltage + EVENT_CONFIG.BOOST_AMOUNT);
+        gameState.lastActiveShakeTime = Date.now();
+
+        io.emit('boost_activated', {
+          boostCharges: gameState.boostCharges,
+          voltage: gameState.voltage,
+        });
+      }
+    } catch (err) {
+      console.warn('trigger_boost notice:', err);
+    }
+  });
+
+  // Start / Countdown game trigger
+  socket.on('start_game', () => {
+    try {
+      if (gameState.status === 'playing' || gameState.status === 'countdown') return;
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+      }
+
+      gameState.status = 'countdown';
+      gameState.countdownValue = 3;
+      gameState.voltage = 0.0;
+      gameState.timeRemaining = EVENT_CONFIG.ROUND_TIME_SECONDS;
+      gameState.lastActiveShakeTime = Date.now();
+
+      io.emit('countdown_started', { count: 3 });
+      io.emit('game_state_update', { status: 'countdown', countdownValue: 3, voltage: 0 });
+
+      let currentCount = 3;
+      countdownTimer = setInterval(() => {
+        try {
+          currentCount -= 1;
+          if (currentCount > 0) {
+            gameState.countdownValue = currentCount;
+            io.emit('countdown_tick', { count: currentCount });
+            io.emit('game_state_update', { status: 'countdown', countdownValue: currentCount });
+          } else {
+            clearInterval(countdownTimer);
+            countdownTimer = null;
+            gameState.countdownValue = 0;
+            resetGame('playing');
+            io.emit('countdown_tick', { count: 'LAUNCH!' });
+            io.emit('game_started');
+            io.emit('game_state_update', {
+              status: 'playing',
+              voltage: 0,
+              connectedCount: gameState.connectedCount,
+            });
+          }
+        } catch (timerErr) {
+          console.warn('countdownTimer tick notice:', timerErr);
+        }
+      }, 1000);
+    } catch (err) {
+      console.warn('start_game notice:', err);
+    }
+  });
+
+  socket.on('reset_game', () => {
+    try {
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+      }
+      resetGame('lobby');
+      io.emit('game_reset');
+      io.emit('game_state_update', {
+        status: 'lobby',
+        voltage: 0,
+        connectedCount: gameState.connectedCount,
+      });
+    } catch (err) {
+      console.warn('reset_game notice:', err);
+    }
+  });
+
+  // Heartbeat ping from mobile controller
+  socket.on('ping_heartbeat', () => {
+    try {
+      const now = Date.now();
+      if (gameState.players[socket.id]) {
+        gameState.players[socket.id].lastSeen = now;
+      } else {
+        participantCounter += 1;
+        gameState.players[socket.id] = {
+          id: socket.id,
+          number: participantCounter,
+          name: `Operative #${participantCounter}`,
+          shakes: 0,
+          lastShakeTime: 0,
+          intensity: 0,
+          sensorActive: false,
+          lastSeen: now,
+        };
+        gameState.connectedCount = Object.keys(gameState.players).length;
+      }
+    } catch (err) {
+      console.warn('ping_heartbeat notice:', err);
     }
   });
 
   // Explicit leave from mobile controller (screen turned off or left page)
   socket.on('leave_controller', () => {
-    if (gameState.players[socket.id]) {
-      const p = gameState.players[socket.id];
-      delete gameState.players[socket.id];
-      gameState.connectedCount = Object.keys(gameState.players).length;
-      io.emit('participant_left', {
-        operativeNumber: p.number,
-        connectedCount: gameState.connectedCount,
-        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-      });
-      io.emit('game_state_update', {
-        connectedCount: gameState.connectedCount,
-        status: gameState.status,
-        voltage: Number(gameState.voltage.toFixed(2)),
-      });
+    try {
+      if (gameState.players[socket.id]) {
+        const p = gameState.players[socket.id];
+        delete gameState.players[socket.id];
+        gameState.connectedCount = Object.keys(gameState.players).length;
+        io.emit('participant_left', {
+          operativeNumber: p.number,
+          connectedCount: gameState.connectedCount,
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        });
+        io.emit('game_state_update', {
+          connectedCount: gameState.connectedCount,
+          status: gameState.status,
+          voltage: Number(gameState.voltage.toFixed(2)),
+        });
+      }
+    } catch (err) {
+      console.warn('leave_controller notice:', err);
     }
   });
 
   // Disconnect handler
   socket.on('disconnect', () => {
-    if (gameState.players[socket.id]) {
-      const p = gameState.players[socket.id];
-      delete gameState.players[socket.id];
-      gameState.connectedCount = Object.keys(gameState.players).length;
-      io.emit('participant_left', {
-        operativeNumber: p.number,
-        connectedCount: gameState.connectedCount,
-        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-      });
-      io.emit('game_state_update', {
-        connectedCount: gameState.connectedCount,
-        status: gameState.status,
-        voltage: Number(gameState.voltage.toFixed(2)),
-      });
+    try {
+      if (gameState.players[socket.id]) {
+        const p = gameState.players[socket.id];
+        delete gameState.players[socket.id];
+        gameState.connectedCount = Object.keys(gameState.players).length;
+        io.emit('participant_left', {
+          operativeNumber: p.number,
+          connectedCount: gameState.connectedCount,
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        });
+        io.emit('game_state_update', {
+          connectedCount: gameState.connectedCount,
+          status: gameState.status,
+          voltage: Number(gameState.voltage.toFixed(2)),
+        });
+      }
+      console.log(`Socket disconnected: ${socket.id} (Active: ${Object.keys(gameState.players).length})`);
+    } catch (err) {
+      console.warn('disconnect notice:', err);
     }
-    console.log(`Socket disconnected: ${socket.id} (Active: ${Object.keys(gameState.players).length})`);
   });
 });
 

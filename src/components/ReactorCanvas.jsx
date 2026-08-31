@@ -1,5 +1,13 @@
 import React, { useRef, useEffect } from 'react';
 
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, width, height, radius);
+  } else {
+    ctx.rect(x, y, width, height);
+  }
+}
+
 export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSurging = false }) {
   const canvasRef = useRef(null);
 
@@ -7,6 +15,7 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     let animationFrameId;
 
     // Spark particles system
@@ -43,32 +52,33 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
     let time = 0;
 
     const render = () => {
-      time += 0.04;
-      const width = canvas.width;
-      const height = canvas.height;
+      try {
+        time += 0.04;
+        const width = canvas.width;
+        const height = canvas.height;
 
-      ctx.clearRect(0, 0, width, height);
+        ctx.clearRect(0, 0, width, height);
 
-      // Reactor Chamber Boundaries (Taller & Imposing)
-      const chamberX = width * 0.08;
-      const chamberWidth = width * 0.84;
-      const chamberTop = height * 0.01;
-      const chamberHeight = height * 0.97;
-      const chamberBottom = chamberTop + chamberHeight;
-      const cornerRadius = 26;
+        // Reactor Chamber Boundaries (Taller & Imposing)
+        const chamberX = width * 0.08;
+        const chamberWidth = width * 0.84;
+        const chamberTop = height * 0.01;
+        const chamberHeight = height * 0.97;
+        const chamberBottom = chamberTop + chamberHeight;
+        const cornerRadius = 26;
 
-      // Current Liquid Fill Height
-      const currentFill = Math.min(100, Math.max(0, voltage)) / 100;
-      const liquidHeight = chamberHeight * currentFill;
-      const liquidTop = chamberBottom - liquidHeight;
+        // Current Liquid Fill Height
+        const currentFill = Math.min(100, Math.max(0, voltage)) / 100;
+        const liquidHeight = chamberHeight * currentFill;
+        const liquidTop = chamberBottom - liquidHeight;
 
-      // ----------------------------------------------------
-      // 1. Chamber Background & Back Glow
-      // ----------------------------------------------------
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(chamberX, chamberTop, chamberWidth, chamberHeight, cornerRadius);
-      ctx.clip();
+        // ----------------------------------------------------
+        // 1. Chamber Background & Back Glow
+        // ----------------------------------------------------
+        ctx.save();
+        ctx.beginPath();
+        drawRoundedRect(ctx, chamberX, chamberTop, chamberWidth, chamberHeight, cornerRadius);
+        ctx.clip();
 
       // Deep dark cavity
       const cavityGrad = ctx.createLinearGradient(chamberX, 0, chamberX + chamberWidth, 0);
@@ -239,7 +249,7 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
       // ----------------------------------------------------
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(chamberX, chamberTop, chamberWidth, chamberHeight, cornerRadius);
+      drawRoundedRect(ctx, chamberX, chamberTop, chamberWidth, chamberHeight, cornerRadius);
       ctx.lineWidth = 3;
       ctx.strokeStyle = '#6b1a28';
       ctx.stroke();
@@ -254,7 +264,11 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
       ctx.restore();
 
       animationFrameId = requestAnimationFrame(render);
-    };
+    } catch (err) {
+      console.warn('ReactorCanvas animation frame notice:', err);
+      animationFrameId = requestAnimationFrame(render);
+    }
+  };
 
     render();
 

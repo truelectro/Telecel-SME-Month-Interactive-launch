@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DesktopGame from './components/DesktopGame';
 import MobileController from './components/MobileController';
+import ErrorBoundary from './components/ErrorBoundary';
 import { RealtimeNetwork } from './utils/realtimeEngine';
 
 export default function App() {
@@ -130,11 +131,13 @@ export default function App() {
         </div>
       )}
 
-      {isController ? (
-        <MobileController socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
-      ) : (
-        <DesktopGame socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
-      )}
+      <ErrorBoundary>
+        {isController ? (
+          <MobileController socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
+        ) : (
+          <DesktopGame socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
+        )}
+      </ErrorBoundary>
     </div>
   );
 }
