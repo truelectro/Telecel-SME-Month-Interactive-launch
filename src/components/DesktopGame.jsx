@@ -150,14 +150,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       setOverlayVisible(true);
       setTimeout(() => {
         setOverlayVisible(false);
-      }, 2200);
+      }, 2000);
     };
 
-    // Initial popup 500ms after game starts
-    const initTimer = setTimeout(showMessage, 500);
+    // Initial popup 1.5s after game starts
+    const initTimer = setTimeout(showMessage, 1500);
 
-    // Periodic popups tailored to current voltage every 3.8s
-    const interval = setInterval(showMessage, 3800);
+    // Periodic popups tailored to current voltage every 8.5s (less frequent, deliberate)
+    const interval = setInterval(showMessage, 8500);
 
     return () => {
       clearTimeout(initTimer);
@@ -768,8 +768,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
-          {/* Main Heavy Reactor Assembly (Full Height & Majestic) */}
-          <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[540px] h-[64vh] sm:h-[68vh] md:h-[72vh] max-h-[660px] flex items-center justify-center">
+          {/* Main Heavy Reactor Assembly (Taller & Imposing) */}
+          <div className="relative w-full max-w-[380px] sm:max-w-[440px] md:max-w-[500px] lg:max-w-[560px] h-[68vh] sm:h-[72vh] md:h-[76vh] lg:h-[78vh] max-h-[720px] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}

@@ -49,11 +49,11 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
 
       ctx.clearRect(0, 0, width, height);
 
-      // Reactor Chamber Boundaries (Full Height & Majestic)
+      // Reactor Chamber Boundaries (Taller & Imposing)
       const chamberX = width * 0.08;
       const chamberWidth = width * 0.84;
-      const chamberTop = height * 0.015;
-      const chamberHeight = height * 0.96;
+      const chamberTop = height * 0.01;
+      const chamberHeight = height * 0.97;
       const chamberBottom = chamberTop + chamberHeight;
       const cornerRadius = 26;
 
@@ -267,9 +267,9 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
     <div className="relative w-full h-full flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        width={420}
-        height={680}
-        className="w-full h-full object-contain drop-shadow-[0_0_35px_rgba(255,31,67,0.6)]"
+        width={460}
+        height={860}
+        className="w-full h-full object-contain drop-shadow-[0_0_38px_rgba(255,31,67,0.6)]"
       />
     </div>
   );
