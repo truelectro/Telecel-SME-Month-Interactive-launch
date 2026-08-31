@@ -29,7 +29,7 @@ const EVENT_CONFIG = {
   ROUND_TIME_SECONDS: 90,
   DECAY_RATE_PER_SEC: 2.5,       // Responsive decay
   SHAKE_VOLTAGE_BASE: 0.52,     // Calibrated for 30s-35s across 1 to 300 players
-  COMBO_DECAY_TIME_MS: 1500,
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -104,7 +104,7 @@ class BrowserHostEngine {
           currentDecay *= 1.25;
         }
 
-        if (timeSinceShake > 1500) {
+        if (timeSinceShake > 400) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 

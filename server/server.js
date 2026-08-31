@@ -144,7 +144,7 @@ const EVENT_CONFIG = {
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
   DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '2.5'),       // Responsive decay
   SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.52'),     // Calibrated for 30s-35s across 1 to 300 players
-  COMBO_DECAY_TIME_MS: 1500,
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -196,7 +196,7 @@ setInterval(() => {
   gameState.connectedCount = Object.keys(gameState.players).length;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Only drains if audience stops shaking for > 1.5s)
+    // 1. Progressive Voltage Decay (Drains if audience pauses shaking for > 400ms)
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
@@ -206,7 +206,7 @@ setInterval(() => {
       currentDecay *= 1.5;
     }
 
-    if (timeSinceShake > 1500) {
+    if (timeSinceShake > 400) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
