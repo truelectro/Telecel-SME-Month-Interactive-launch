@@ -152,15 +152,24 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const isHttps = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname.includes('vercel.app') || window.location.hostname !== 'localhost');
   const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
   
-  // Construct mobile controller QR link
-  let controllerUrl = serverInfo?.tunnelUrl;
-  if (!controllerUrl) {
+  // Construct mobile controller QR link with guaranteed roomCode parameter
+  let baseControllerUrl = serverInfo?.tunnelUrl;
+  if (!baseControllerUrl) {
     const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     if (isLocalhost && serverInfo?.lanIp) {
-      controllerUrl = `http://${serverInfo.lanIp}:${serverInfo?.httpPort || 3001}/controller?room=${encodeURIComponent(roomCode)}`;
+      baseControllerUrl = `http://${serverInfo.lanIp}:${serverInfo?.httpPort || 3001}/controller`;
     } else {
-      controllerUrl = `${window.location.origin}/controller?room=${encodeURIComponent(roomCode)}`;
+      baseControllerUrl = `${window.location.origin}/controller`;
     }
+  }
+  
+  let controllerUrl = baseControllerUrl;
+  if (!controllerUrl.includes('/controller')) {
+    controllerUrl = `${controllerUrl}/controller`;
+  }
+  if (!controllerUrl.includes('room=')) {
+    const separator = controllerUrl.includes('?') ? '&' : '?';
+    controllerUrl = `${controllerUrl}${separator}room=${encodeURIComponent(roomCode)}`;
   }
   
   // On Vercel / HTTPS or when tunnel is active or when LAN IP is resolved, QR code is immediately ready

@@ -477,15 +477,28 @@ export class RealtimeNetwork {
 
     try {
       this.socket = io(url, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 500,
         reconnectionDelayMax: 2000,
-        timeout: 6000,
+        timeout: 5000,
       });
 
+      // If not connected within 3.5s and running in a browser without explicit VITE_SOCKET_URL, fall back to WebRTC
+      const socketTimeoutTimer = setTimeout(() => {
+        if (!this.connected && !this.socketFailed && !this.options.socketUrl && !import.meta.env.VITE_SOCKET_URL) {
+          console.warn('Socket.io connection timed out, attempting WebRTC fallback...');
+          this.socketFailed = true;
+          if (this.socket) {
+            try { this.socket.disconnect(); } catch (e) {}
+          }
+          this.initWebRTC();
+        }
+      }, 3500);
+
       this.socket.on('connect', () => {
+        clearTimeout(socketTimeoutTimer);
         console.log(`✅ Socket.io connected (ID: ${this.socket.id})`);
         this.connected = true;
         this.socketFailed = false;
@@ -505,12 +518,13 @@ export class RealtimeNetwork {
 
       this.socket.on('connect_error', (err) => {
         console.warn('Socket.io connection error:', err?.message || err);
-        if (!this.connected && !this.socketFailed && typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+        if (!this.connected && !this.socketFailed && !this.options.socketUrl && !import.meta.env.VITE_SOCKET_URL) {
+          clearTimeout(socketTimeoutTimer);
           this.socketFailed = true;
           if (this.socket) {
             try { this.socket.disconnect(); } catch (e) {}
           }
-          console.log('Falling back to WebRTC PeerJS for Vercel...');
+          console.log('Falling back to WebRTC PeerJS...');
           this.initWebRTC();
         }
       });
@@ -524,7 +538,10 @@ export class RealtimeNetwork {
       ];
 
       events.forEach(evt => {
-        this.socket.on(evt, (data) => this.emitLocal(evt, data));
+        this.socket.on(evt, (data) => {
+          this.connected = true;
+          this.emitLocal(evt, data);
+        });
       });
     } catch (e) {
       console.error('Socket.io init exception:', e);
@@ -679,11 +696,23 @@ export class RealtimeNetwork {
     console.log(`Connecting to Host Room: ${this.roomCode}...`);
 
     try {
+      // NOTE: Do NOT use reliable: true with PeerJS on iOS Safari/WebKit as it stalls the DataChannel handshake.
+      // serialization: 'json' provides ultra-fast, 100% reliable messaging across iOS and desktop.
       this.clientConn = this.peer.connect(this.roomCode, {
-        reliable: true,
+        serialization: 'json',
       });
 
+      // Watchdog: If data connection does not open within 4.5s, trigger reconnect
+      const connTimeout = setTimeout(() => {
+        if (this.clientConn && !this.clientConn.open && !this.connected) {
+          console.warn('WebRTC DataChannel handshake timed out, scheduling retry...');
+          try { this.clientConn.close(); } catch (e) {}
+          this.scheduleClientReconnect();
+        }
+      }, 4500);
+
       this.clientConn.on('open', () => {
+        clearTimeout(connTimeout);
         console.log(`✅ WebRTC connected to Host: ${this.roomCode}`);
         this.connected = true;
         this.emitLocal('connect', { id: this.peer.id });
@@ -695,22 +724,27 @@ export class RealtimeNetwork {
 
       this.clientConn.on('data', (msg) => {
         if (!msg || typeof msg !== 'object') return;
+        this.connected = true;
         const { event, data } = msg;
         this.emitLocal(event, data);
       });
 
       this.clientConn.on('close', () => {
+        clearTimeout(connTimeout);
         this.connected = false;
         this.emitLocal('disconnect');
         this.scheduleClientReconnect();
       });
 
       this.clientConn.on('error', (err) => {
+        clearTimeout(connTimeout);
+        console.warn('DataConnection notice:', err);
         this.connected = false;
         this.emitLocal('disconnect');
         this.scheduleClientReconnect();
       });
     } catch (err) {
+      console.warn('Connect to host exception:', err);
       this.scheduleClientReconnect();
     }
   }

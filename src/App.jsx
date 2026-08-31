@@ -42,6 +42,7 @@ export default function App() {
     });
 
     net.on('init_sync', (data) => {
+      setIsConnected(true);
       if (data?.gameState) setGameState(data.gameState);
       setServerInfo((prev) => ({
         ...prev,
@@ -61,6 +62,7 @@ export default function App() {
     });
 
     net.on('participant_joined', (data) => {
+      setIsConnected(true);
       if (data?.connectedCount !== undefined) {
         setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
       }
@@ -73,6 +75,7 @@ export default function App() {
     });
 
     net.on('controller_assigned', (data) => {
+      setIsConnected(true);
       if (data?.connectedCount !== undefined) {
         setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
       }
@@ -86,6 +89,7 @@ export default function App() {
     });
 
     net.on('game_state_update', (updatedState) => {
+      setIsConnected(true);
       setGameState((prev) => ({ ...prev, ...updatedState }));
     });
 
@@ -124,9 +128,9 @@ export default function App() {
       )}
 
       {isController ? (
-        <MobileController socket={network} gameState={gameState} serverInfo={serverInfo} />
+        <MobileController socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
       ) : (
-        <DesktopGame socket={network} gameState={gameState} serverInfo={serverInfo} />
+        <DesktopGame socket={network} gameState={gameState} serverInfo={serverInfo} isConnected={isConnected} />
       )}
     </div>
   );
