@@ -33,6 +33,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [shakeFlash, setShakeFlash] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
   const [showMobilePrompt, setShowMobilePrompt] = useState(false);
+  const [simulatingCrowd, setSimulatingCrowd] = useState(false);
+  const simIntervalRef = useRef(null);
 
   // Check if viewing desktop screen on a mobile device
   useEffect(() => {
@@ -252,6 +254,32 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     };
   }, [socket]);
 
+  // In-Browser 150-Crowd Simulator Loop (Active when simulatingCrowd is ON)
+  useEffect(() => {
+    if (!simulatingCrowd || status !== 'playing' || !socket) {
+      if (simIntervalRef.current) {
+        clearInterval(simIntervalRef.current);
+        simIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // 150 simulated operatives shaking at randomized realistic intervals
+    simIntervalRef.current = setInterval(() => {
+      if (socket) {
+        const randIntensity = Number((0.9 + Math.random() * 0.9).toFixed(2));
+        socket.emit('shake_pulse', { intensity: randIntensity });
+      }
+    }, 65);
+
+    return () => {
+      if (simIntervalRef.current) {
+        clearInterval(simIntervalRef.current);
+        simIntervalRef.current = null;
+      }
+    };
+  }, [simulatingCrowd, status, socket]);
+
   // Keyboard shortcut listener for easy testing / accessibility
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -269,6 +297,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       } else if (e.code === 'KeyR') {
         e.preventDefault();
         handleResetGame();
+      } else if (e.code === 'KeyC') {
+        e.preventDefault();
+        setSimulatingCrowd((prev) => !prev);
       }
     };
 
@@ -362,6 +393,21 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
         {/* Right: Utility & Audio Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+          {/* 150-Crowd Simulator Toggle */}
+          <button
+            onClick={() => setSimulatingCrowd(!simulatingCrowd)}
+            title="Toggle 150-Operative Crowd Simulator (Key: C)"
+            aria-label="Toggle Crowd Simulation"
+            className={`px-2 sm:px-2.5 h-8 sm:h-9 flex items-center justify-center gap-1.5 border transition-all sci-fi-cut-sm font-orbitron font-bold text-[10px] sm:text-xs cursor-pointer ${
+              simulatingCrowd 
+                ? 'bg-[#ff1f43] border-white text-white shadow-neon-red animate-pulse' 
+                : 'bg-[#25080e]/80 border-[#521520] hover:border-[#ff2a4b] text-[#ff8095] hover:text-white'
+            }`}
+          >
+            <Users size={14} className={simulatingCrowd ? 'animate-bounce' : ''} />
+            <span className="hidden sm:inline">{simulatingCrowd ? '150 CROWD ON' : 'SIM 150'}</span>
+          </button>
+
           {/* Audio Mute Toggle */}
           <button
             onClick={handleToggleMute}
@@ -633,7 +679,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           {/* Quick Keyboard Hint */}
           <div className="text-[10px] text-center text-[#7a2c39] flex items-center justify-center gap-1 mt-0.5">
             <Keyboard size={12} />
-            <span>Dev shortcuts: [Space] Shake • [S] Start • [R] Reset</span>
+            <span>Shortcuts: [S] Start • [Space] Shake • [C] 150 Crowd Sim • [R] Reset</span>
           </div>
 
         </div>
