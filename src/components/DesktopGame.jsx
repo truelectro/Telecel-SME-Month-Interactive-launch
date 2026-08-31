@@ -746,12 +746,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
               </div>
 
-              {/* RADIAL MULTIPLIER CARD */}
-              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex flex-col items-center">
-                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-0.5">
-                  MULTIPLIER
+              {/* SYSTEM STATUS CARD */}
+              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex flex-col items-center justify-center text-center">
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-1">
+                  REACTOR STATUS
                 </span>
-                <MultiplierGauge multiplier={multiplier} progress={multiplierProgress} />
+                <span className="font-orbitron font-bold text-xs sm:text-sm text-green-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  SYSTEMS ONLINE
+                </span>
               </div>
 
               {/* STATUS FOOTER BADGE */}
