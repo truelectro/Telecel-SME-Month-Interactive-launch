@@ -118,11 +118,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       audioEngine.ensureRunning();
       if (e.code === 'Space') {
         e.preventDefault();
-        if (status === 'victory' || status === 'gameover') {
-          handleResetGame();
-        } else if (status === 'lobby') {
+        if (status === 'lobby') {
           handleStartGame();
-        } else if (socket) {
+        } else if (status === 'playing' && socket) {
           socket.emit('shake_pulse', { intensity: 1.2 });
         }
       } else if (e.code === 'KeyB') {
@@ -279,9 +277,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       </header>
 
       {/* ==================================================== */}
-      {/* 2. MAIN 3-COLUMN GAME HUD (1:1 Reference Layout)    */}
+      {/* 2. MAIN 3-COLUMN GAME HUD (Hero Reactor Layout)     */}
       {/* ==================================================== */}
-      <main className="relative z-20 flex-1 grid grid-cols-12 gap-3 md:gap-6 items-center px-2 md:px-6 my-auto max-w-7xl mx-auto w-full">
+      <main className="relative z-20 flex-1 grid grid-cols-12 gap-3 md:gap-8 items-center px-2 md:px-6 my-auto max-w-[1600px] mx-auto w-full h-full">
         
         {/* -------------------------------------------------- */}
         {/* LEFT COLUMN: Objectives, Score, Best, Multiplier   */}
@@ -337,66 +335,66 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* CENTER COLUMN: Central High-Voltage Reactor Core   */}
         {/* -------------------------------------------------- */}
-        <div className="col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full max-h-[580px]">
+        <div className="col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-1">
           
-          {/* Main Heavy Reactor Assembly */}
-          <div className="relative w-full max-w-[380px] h-[480px] md:h-[540px] flex items-center justify-center">
+          {/* Main Heavy Reactor Assembly (Larger & Taller) */}
+          <div className="relative w-full max-w-[460px] md:max-w-[500px] lg:max-w-[540px] h-[540px] md:h-[640px] lg:h-[720px] max-h-[82vh] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
-            <div className="absolute left-0 bottom-12 z-10 flex flex-col items-center">
-              <div className="w-9 h-14 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_15px_rgba(255,31,67,0.3)]">
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
+            <div className="absolute -left-2 md:-left-4 bottom-14 z-10 flex flex-col items-center">
+              <div className="w-10 h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
               </div>
-              <div className="w-12 h-6 bg-[#180509] border border-[#50131e] rounded-b-md" />
+              <div className="w-14 h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
               {/* Cable connecting into base */}
-              <svg className="w-12 h-8 text-[#3d0f17]" viewBox="0 0 50 30">
+              <svg className="w-14 h-9 text-[#3d0f17]" viewBox="0 0 50 30">
                 <path d="M 10 0 C 15 25, 40 25, 50 20" fill="none" stroke="currentColor" strokeWidth="4" />
               </svg>
             </div>
 
             {/* Right Insulator Coil */}
-            <div className="absolute right-0 bottom-12 z-10 flex flex-col items-center">
-              <div className="w-9 h-14 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_15px_rgba(255,31,67,0.3)]">
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
-                <div className="w-8 h-1.5 bg-[#ff1f43]/70 rounded-full shadow-[0_0_6px_#ff1f43]" />
+            <div className="absolute -right-2 md:-right-4 bottom-14 z-10 flex flex-col items-center">
+              <div className="w-10 h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
               </div>
-              <div className="w-12 h-6 bg-[#180509] border border-[#50131e] rounded-b-md" />
+              <div className="w-14 h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
               {/* Cable connecting into base */}
-              <svg className="w-12 h-8 text-[#3d0f17]" viewBox="0 0 50 30">
+              <svg className="w-14 h-9 text-[#3d0f17]" viewBox="0 0 50 30">
                 <path d="M 40 0 C 35 25, 10 25, 0 20" fill="none" stroke="currentColor" strokeWidth="4" />
               </svg>
             </div>
 
             {/* Height Percentage Ruler Ticks (0%, 25%, 50%, 75%, 100%) */}
-            <div className="absolute right-12 top-[12%] bottom-[16%] flex flex-col justify-between items-start text-[10px] md:text-xs font-orbitron font-semibold text-[#802434] pointer-events-none z-10">
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-0.5 bg-[#802434]" />
-                <span className={voltage >= 95 ? 'text-white font-bold text-glow-red' : ''}>100%</span>
+            <div className="absolute right-4 md:right-7 top-[10%] bottom-[15%] flex flex-col justify-between items-start text-xs md:text-sm font-orbitron font-bold text-[#802434] pointer-events-none z-10">
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 bg-[#802434]" />
+                <span className={voltage >= 95 ? 'text-white font-bold text-glow-red text-sm md:text-base' : ''}>100%</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 75 ? 'text-[#ff4d6d] font-bold' : ''}>75%</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 50 ? 'text-[#ff4d6d] font-bold' : ''}>50%</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-2.5 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 25 ? 'text-[#ff4d6d] font-bold' : ''}>25%</span>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1.5">
+                <span className="w-4 h-0.5 bg-[#802434]" />
                 <span className="text-[#a03043]">0%</span>
               </div>
             </div>
 
             {/* Procedural HTML5 Canvas Reactor Tube */}
-            <div className="relative w-full h-full z-0">
+            <div className="relative w-full h-full z-0 flex items-center justify-center">
               <ReactorCanvas
                 voltage={voltage}
                 isOverloaded={voltage >= 90}
@@ -405,10 +403,10 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Bottom Reactor Base Chassis & Status Button */}
-            <div className="absolute bottom-2 inset-x-8 z-10 flex flex-col items-center">
-              <div className="w-full py-2 px-4 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_18px_rgba(255,31,67,0.35)]">
-                <Zap size={16} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
-                <span className="font-orbitron font-bold text-xs md:text-sm tracking-wider text-white uppercase drop-shadow-[0_0_8px_rgba(255,31,67,0.8)]">
+            <div className="absolute bottom-1 inset-x-6 md:inset-x-8 z-10 flex flex-col items-center">
+              <div className="w-full py-2.5 px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2.5 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
+                <Zap size={18} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
+                <span className="font-orbitron font-black text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">
                   {status === 'playing' ? (voltage > 70 ? 'CRITICAL SURGE' : 'VOLTAGE RISING') : 'STANDBY MODE'}
                 </span>
               </div>
@@ -609,14 +607,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {status === 'victory' && (
         <div 
-          onClick={handleResetGame}
-          className="fixed inset-0 z-50 w-screen h-screen bg-gradient-to-b from-[#1f050b] via-[#0c0205] to-[#040102] flex flex-col items-center justify-between p-6 md:p-10 cursor-pointer overflow-hidden select-none animate-fade-in"
-          title="Press Spacebar or Click anywhere to return to the game"
+          className="fixed inset-0 z-50 w-screen h-screen bg-gradient-to-b from-[#1f050b] via-[#0c0205] to-[#040102] flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden select-none animate-fade-in"
         >
           {/* Immersive Ambient Energy & Radial Shockwave */}
           <div className="absolute inset-0 pointer-events-none z-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85vw] h-[85vh] max-w-[1200px] max-h-[1200px] rounded-full bg-gradient-to-r from-[#d03b33]/25 via-[#ff1f43]/20 to-transparent blur-3xl animate-pulse pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[55vw] h-[55vh] max-w-[800px] max-h-[800px] rounded-full bg-[#ff4d6d]/20 blur-2xl pointer-events-none animate-ping" style={{ animationDuration: '4s' }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vh] max-w-[1400px] max-h-[1400px] rounded-full bg-gradient-to-r from-[#d03b33]/30 via-[#ff1f43]/20 to-transparent blur-3xl animate-pulse pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[65vw] h-[65vh] max-w-[950px] max-h-[950px] rounded-full bg-[#ff4d6d]/25 blur-2xl pointer-events-none animate-ping" style={{ animationDuration: '4s' }} />
             <div className="absolute inset-0 scanlines opacity-30 pointer-events-none" />
           </div>
 
@@ -629,24 +625,26 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Top Welcome Badge */}
-          <div className="relative z-20 mt-2 md:mt-4">
-            <div className="inline-flex items-center px-8 py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_25px_rgba(255,31,67,0.7)] backdrop-blur-md">
+          <div className="relative z-20 mt-2 md:mt-3">
+            <div className="inline-flex items-center px-8 py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.8)] backdrop-blur-md">
               <span className="font-orbitron font-black text-xs md:text-sm tracking-[0.35em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
                 WELCOME TO
               </span>
             </div>
           </div>
 
-          {/* Center: Massive Animated Launch Logo */}
-          <div className="relative z-20 flex-1 flex items-center justify-center w-full max-w-4xl px-4 my-auto">
-            <LaunchLogo className="w-full max-w-[680px] md:max-w-[780px] max-h-[62vh] h-auto" animate={true} />
+          {/* Center: Massive Animated Launch Logo (Large Hero Scale) */}
+          <div className="relative z-20 flex-1 flex items-center justify-center w-full max-w-7xl px-2 md:px-6 my-auto">
+            <LaunchLogo className="w-full max-w-[860px] md:max-w-[1080px] lg:max-w-[1280px] max-h-[75vh] h-auto" animate={true} />
           </div>
 
-          {/* Bottom Hint */}
-          <div className="relative z-20 mb-2 md:mb-4 text-center">
-            <span className="font-orbitron font-bold text-xs md:text-sm text-[#ff8095]/80 uppercase tracking-[0.35em] drop-shadow-[0_0_8px_#ff1f43]">
-              PRESS SPACEBAR TO RETURN TO GAME
+          {/* Bottom Activation Status Tagline */}
+          <div className="relative z-20 mb-2 md:mb-3 text-center flex items-center justify-center gap-2">
+            <Zap size={14} className="text-[#ff1f43] animate-pulse" />
+            <span className="font-orbitron font-bold text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
+              TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
             </span>
+            <Zap size={14} className="text-[#ff1f43] animate-pulse" />
           </div>
         </div>
       )}

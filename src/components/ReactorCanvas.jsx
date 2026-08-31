@@ -49,13 +49,13 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
 
       ctx.clearRect(0, 0, width, height);
 
-      // Reactor Chamber Boundaries
-      const chamberX = width * 0.18;
-      const chamberWidth = width * 0.64;
-      const chamberTop = height * 0.08;
-      const chamberHeight = height * 0.82;
+      // Reactor Chamber Boundaries (Larger & Taller)
+      const chamberX = width * 0.12;
+      const chamberWidth = width * 0.76;
+      const chamberTop = height * 0.05;
+      const chamberHeight = height * 0.88;
       const chamberBottom = chamberTop + chamberHeight;
-      const cornerRadius = 18;
+      const cornerRadius = 24;
 
       // Current Liquid Fill Height
       const currentFill = Math.min(100, Math.max(0, voltage)) / 100;
@@ -267,9 +267,9 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
     <div className="relative w-full h-full flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        width={340}
-        height={560}
-        className="w-full h-full max-h-[580px] object-contain drop-shadow-[0_0_25px_rgba(255,31,67,0.4)]"
+        width={440}
+        height={760}
+        className="w-full h-full max-h-[82vh] object-contain drop-shadow-[0_0_35px_rgba(255,31,67,0.55)]"
       />
     </div>
   );
