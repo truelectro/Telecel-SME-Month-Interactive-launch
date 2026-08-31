@@ -18,7 +18,9 @@ import {
   ExternalLink,
   Keyboard,
   Flame,
-  QrCode
+  QrCode,
+  Play,
+  Radio
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
 import MultiplierGauge from './MultiplierGauge';
@@ -79,34 +81,34 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const getVoltageTierMessage = useCallback((v) => {
     if (v < 25) {
       const msgs = [
-        { title: "START SHAKING! ⚡", sub: "Generate initial collective power" },
-        { title: "UNLEASH THE ENERGY! 🔥", sub: "Shake phones together to build momentum" },
-        { title: "ALL OPERATIVES ENGAGE! ⚡", sub: "Raise the launch voltage" },
-        { title: "SHAKE TO CHARGE! 🚀", sub: "Every device contributes power" },
+        { title: "START SHAKING!", sub: "Generate initial collective power" },
+        { title: "UNLEASH THE ENERGY!", sub: "Shake phones together to build momentum" },
+        { title: "ALL OPERATIVES ENGAGE!", sub: "Raise the launch voltage" },
+        { title: "SHAKE TO CHARGE!", sub: "Every device contributes power" },
       ];
       return msgs[Math.floor(Math.random() * msgs.length)];
     } else if (v < 55) {
       const msgs = [
-        { title: "KEEP SHAKING! POWER RISING! 🚀", sub: "Steady surge climbing" },
-        { title: "MAINTAIN THE RHYTHM! ⚡", sub: "Multipliers activating across devices" },
-        { title: "HALFWAY THERE! MORE POWER! 🔥", sub: "Collective surge compounding" },
-        { title: "MOMENTUM BUILDING! ⚡", sub: "Voltage passing intermediate threshold" },
+        { title: "KEEP SHAKING! POWER RISING!", sub: "Steady surge climbing" },
+        { title: "MAINTAIN THE RHYTHM!", sub: "Multipliers activating across devices" },
+        { title: "HALFWAY THERE! MORE POWER!", sub: "Collective surge compounding" },
+        { title: "MOMENTUM BUILDING!", sub: "Voltage passing intermediate threshold" },
       ];
       return msgs[Math.floor(Math.random() * msgs.length)];
     } else if (v < 80) {
       const msgs = [
-        { title: "OVERCHARGE ACCELERATING! ⚡", sub: "Approaching critical energy capacity" },
-        { title: "FASTER! FEEL THE SURGE! 🚀", sub: "High voltage detected" },
-        { title: "INTENSE POWER DETECTED! 🔥", sub: "Reactor coils charging rapidly" },
-        { title: "SURGE MULTIPLYING! ⚡", sub: "Power grid operating at high intensity" },
+        { title: "OVERCHARGE ACCELERATING!", sub: "Approaching critical energy capacity" },
+        { title: "FASTER! FEEL THE SURGE!", sub: "High voltage detected" },
+        { title: "INTENSE POWER DETECTED!", sub: "Reactor coils charging rapidly" },
+        { title: "SURGE MULTIPLYING!", sub: "Power grid operating at high intensity" },
       ];
       return msgs[Math.floor(Math.random() * msgs.length)];
     } else {
       const msgs = [
-        { title: "ALMOST AT 100%! 💥", sub: "Final push to initiate the launch!" },
-        { title: "MAXIMUM OVERDRIVE! ⚡", sub: "Do not stop! Overcharge in progress!" },
-        { title: "CRITICAL ACTIVATION IMMINENT! 🔥", sub: "Push to 100% now!" },
-        { title: "HOLD NOTHING BACK! 💥", sub: "Launch sequence ready to trigger!" },
+        { title: "ALMOST AT 100%!", sub: "Final push to initiate the launch!" },
+        { title: "MAXIMUM OVERDRIVE!", sub: "Do not stop! Overcharge in progress!" },
+        { title: "CRITICAL ACTIVATION IMMINENT!", sub: "Push to 100% now!" },
+        { title: "HOLD NOTHING BACK!", sub: "Launch sequence ready to trigger!" },
       ];
       return msgs[Math.floor(Math.random() * msgs.length)];
     }
@@ -302,7 +304,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
       if (now - lastToastTimeRef.current > 1200) {
         lastToastTimeRef.current = now;
-        const toast = { id: now, text: `${opName} +SURGE ENERGY! ⚡`, type: 'surge' };
+        const toast = { id: now, text: `${opName} +SURGE ENERGY`, type: 'surge' };
         setAudienceToasts((prev) => [...prev.slice(-2), toast]);
         setTimeout(() => {
           setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
@@ -317,7 +319,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         return [...prev, { id: `${Date.now()}-${Math.random()}`, name, time: Date.now() }];
       });
       setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
-      const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE SURGE! ⚡`, type: 'join' };
+      const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE ROSTER`, type: 'join' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
         setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
@@ -328,7 +330,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       audioEngine.playBoostSurge();
       setBoostAnimating(true);
       setTimeout(() => setBoostAnimating(false), 400);
-      const toast = { id: Date.now(), text: `🔥 SYSTEM BOOST ENGAGED! +25%`, type: 'boost' };
+      const toast = { id: Date.now(), text: `SYSTEM BOOST ENGAGED +25%`, type: 'boost' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
         setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
@@ -337,7 +339,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     const onMultiplierUp = ({ multiplier: newMult }) => {
       audioEngine.playMultiplierUp(newMult);
-      const toast = { id: Date.now(), text: `⚡ ${newMult}X SURGE MULTIPLIER ACTIVE!`, type: 'multiplier' };
+      const toast = { id: Date.now(), text: `${newMult}X MULTIPLIER ACTIVE`, type: 'multiplier' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
         setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
@@ -620,7 +622,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   {floatingSurges.length === 0 ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 text-[#ff8095]/60 animate-pulse">
-                      <Zap size={24} className="text-[#ff1f43] mb-1.5 animate-bounce" />
+                      <Activity size={22} className="text-[#ff1f43] mb-1.5 animate-pulse" />
                       <span className="font-orbitron font-bold text-xs uppercase tracking-wider">
                         SHAKE PHONES TO SURGE!
                       </span>
@@ -635,7 +637,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                           animationDuration: `${surge.duration}s`,
                         }}
                       >
-                        <Zap size={13} className="text-[#ff1f43] animate-bounce shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ff1f43] animate-ping shrink-0" />
                         <span className="font-orbitron font-black text-xs sm:text-sm text-white tracking-wide drop-shadow-[0_0_8px_#ff1f43] max-w-[130px] sm:max-w-[160px] truncate">
                           {surge.name}
                         </span>
@@ -650,7 +652,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 {/* Live Stream Base Indicator */}
                 <div className="relative z-10 w-full pt-1.5 border-t border-[#521520] flex items-center justify-between text-[10px] text-[#ff8095]">
                   <span className="font-orbitron font-semibold uppercase tracking-wider flex items-center gap-1">
-                    <Zap size={11} className="text-[#ff1f43] animate-pulse" />
+                    <Activity size={11} className="text-[#ff1f43] animate-pulse" />
                     LIVE SURGES
                   </span>
                   <span className="font-orbitron font-bold text-white">
@@ -684,7 +686,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     className="w-full h-full object-contain"
                   />
                   <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-black text-[9px] sm:text-[10px] px-3.5 sm:px-4 py-0.5 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
-                    SCAN TO SYNC ⚡
+                    SCAN TO JOIN
                   </div>
                 </div>
 
@@ -749,7 +751,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
               {/* STATUS FOOTER BADGE */}
               <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
-                <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+                <Radio size={13} className="text-[#ff1f43] animate-pulse shrink-0" />
                 <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase truncate">
                   WAITING FOR LAUNCH ACTIVATION
                 </span>
@@ -834,7 +836,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             {/* Bottom Reactor Base Chassis & Status Button */}
             <div className="absolute -bottom-2 inset-x-2 sm:inset-x-4 md:inset-x-6 z-20 flex flex-col items-center">
               <div className="w-full py-1.5 sm:py-2 px-4 sm:px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
-                <Zap size={16} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
+                <Activity size={15} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-pulse' : ''}`} />
                 <span className="font-orbitron font-black text-[11px] sm:text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">
                   {status === 'playing' ? (voltage > 70 ? 'CRITICAL SURGE' : 'VOLTAGE RISING') : 'STANDBY MODE'}
                 </span>
@@ -859,7 +861,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             {/* Rule 1 */}
             <div className="flex items-start gap-2 sm:gap-2.5 bg-[#170508]/60 p-1.5 sm:p-2 rounded border border-[#3b0f17]">
               <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
-                <Zap size={14} className="text-[#ff1f43]" />
+                <Smartphone size={14} className="text-[#ff1f43]" />
               </div>
               <div className="flex flex-col">
                 <span className="text-[11px] sm:text-xs font-bold text-white uppercase">SHAKE TO SURGE</span>
@@ -902,7 +904,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               shakeFlash ? 'scale-105 brightness-150 text-white' : 'text-[#ffccd5]'
             }`}>
               {status === 'playing' 
-                ? (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES! ⚡')) 
+                ? (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES!')) 
                 : 'READY TO SURGE'}
             </div>
 
@@ -916,7 +918,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           {/* REAL-TIME SYSTEM CORE STATUS CARD */}
           <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Zap size={16} className="text-[#ff1f43] animate-pulse" />
+              <Activity size={15} className="text-[#ff1f43] animate-pulse" />
               <span className="font-orbitron font-bold text-[11px] sm:text-xs text-gray-200 uppercase tracking-wider">
                 CORE STATUS
               </span>
@@ -953,7 +955,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               }`}
             >
               <div className="w-6 h-6 rounded-full bg-[#ff1f43]/25 flex items-center justify-center shrink-0 border border-[#ff1f43]/50">
-                <Zap size={13} className="text-[#ff1f43] animate-bounce" />
+                <Activity size={12} className="text-[#ff1f43] animate-pulse" />
               </div>
               <span className="font-orbitron font-bold text-[11px] sm:text-xs tracking-wider uppercase">
                 {toast.text}
@@ -1050,7 +1052,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     className="w-full h-full max-h-[82%] max-w-[82%] object-contain"
                   />
                   <div className="absolute -bottom-3 sm:-bottom-3.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[10px] sm:text-xs md:text-sm px-3 sm:px-4 py-0.5 sm:py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
-                    {tunnelReady ? 'SCAN TO SYNC ⚡' : 'LOCAL WI-FI (FALLBACK)'}
+                    {tunnelReady ? 'SCAN TO JOIN' : 'LOCAL WI-FI (FALLBACK)'}
                   </div>
                 </div>
               ) : (
@@ -1130,7 +1132,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 {/* Footer Status Pill */}
                 <div className="pt-1.5 border-t border-[#4d131d] flex items-center justify-between text-[10px] text-[#ff8095] shrink-0">
                   <span className="truncate font-semibold flex items-center gap-1">
-                    <Zap size={11} className="text-[#ff1f43] animate-bounce shrink-0" />
+                    <Radio size={11} className="text-[#ff1f43] animate-pulse shrink-0" />
                     {(gameState.connectedCount || joinedOperatives.length) > 0 
                       ? `${gameState.connectedCount || joinedOperatives.length} operative${(gameState.connectedCount || joinedOperatives.length) > 1 ? 's' : ''} ready to surge` 
                       : 'Waiting for attendees...'}
@@ -1151,7 +1153,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               onClick={handleStartGame}
               className="w-full py-2.5 sm:py-3.5 md:py-4 px-6 sm:px-8 sci-fi-cut font-orbitron font-black text-sm sm:text-lg md:text-xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-2.5 sm:gap-3"
             >
-              <Zap size={20} className="animate-bounce shrink-0" />
+              <Play size={18} className="text-white fill-white shrink-0" />
               <span>START LAUNCH ACTIVATION</span>
             </button>
             <span className="text-[10px] sm:text-xs text-[#a03d4c] mt-1 font-mono">
@@ -1207,12 +1209,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Bottom Activation Status Tagline */}
-          <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2 shrink-0">
-            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+          <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2.5 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
             <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
               TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
             </span>
-            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
           </div>
         </div>
       )}

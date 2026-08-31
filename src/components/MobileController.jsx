@@ -9,7 +9,8 @@ import {
   Radio,
   CheckCircle2,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  ArrowRight
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
 import { audioEngine } from '../utils/audioEngine';
@@ -447,15 +448,15 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
               <button
                 type="submit"
-                className="w-full mt-2 py-4 px-4 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all animate-pulse"
+                className="w-full mt-2 py-4 px-4 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all"
               >
-                <Zap size={20} className="animate-bounce" />
-                <span>ENTER LAUNCH LOBBY ⚡</span>
+                <ArrowRight size={18} />
+                <span>ENTER LAUNCH LOBBY</span>
               </button>
             </form>
 
             <span className="text-[10px] text-[#ff8095]/70 mt-4 tracking-wider uppercase">
-              ⚡ INSTANT STAGE SYNCHRONIZATION
+              LIVE STAGE SYNCHRONIZATION
             </span>
           </div>
         </main>
@@ -504,7 +505,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             </div>
 
             <span className="font-orbitron font-black text-xl sm:text-2xl text-white uppercase tracking-wider drop-shadow-[0_0_12px_#ff1f43]">
-              ACTIVATE SHAKE SENSORS
+              ACTIVATE MOTION SENSORS
             </span>
 
             <p className="font-rajdhani text-sm sm:text-base text-[#ffccd5] tracking-wide mt-2.5 leading-relaxed">
@@ -515,8 +516,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
               onClick={unlockIOSPermissions}
               className="mt-6 w-full py-4 px-6 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all animate-pulse"
             >
-              <Zap size={20} className="text-white animate-bounce" />
-              <span>ENABLE SHAKE SENSORS ⚡</span>
+              <Smartphone size={20} className="text-white animate-bounce" />
+              <span>ENABLE MOTION SENSORS</span>
             </button>
           </div>
         </div>
@@ -529,13 +530,13 @@ export default function MobileController({ socket, gameState, isConnected: propC
         <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="bg-[#24060d]/95 border-2 border-[#ff1f43] shadow-neon-red-lg p-6 rounded-2xl flex flex-col items-center text-center max-w-xs animate-cyber-core">
             <div className="w-14 h-14 rounded-full bg-[#ff1f43]/20 border border-[#ff1f43] flex items-center justify-center mb-3 shadow-[0_0_20px_#ff1f43]">
-              <Zap size={28} className="text-[#ff1f43] animate-bounce" />
+              <Activity size={26} className="text-[#ff1f43] animate-pulse" />
             </div>
             <span className="font-orbitron font-black text-xl text-white uppercase tracking-wider drop-shadow-[0_0_12px_#ff1f43]">
               ACTIVATION LIVE!
             </span>
             <p className="font-rajdhani font-bold text-sm text-[#ffccd5] tracking-widest uppercase mt-2">
-              SHAKE YOUR PHONE TOGETHER NOW! ⚡
+              SHAKE YOUR PHONE TOGETHER NOW!
             </p>
           </div>
         </div>
@@ -564,7 +565,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             <span className={`text-[10px] uppercase font-semibold tracking-wider ${
               isPlaying ? 'text-[#ff4d6d] animate-pulse' : 'text-[#8c2d3c]'
             }`}>
-              {isPlaying ? '⚡ OVERCHARGE ACTIVE' : 'LOBBY STANDBY'}
+              {isPlaying ? 'OVERCHARGE ACTIVE' : 'LOBBY STANDBY'}
             </span>
           </div>
         </div>
@@ -696,7 +697,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
                       shakeIntensity > 0 ? 'text-white scale-120 animate-bounce' : 'text-[#ff1f43]'
                     }`} />
                     <span className="font-orbitron font-black text-xs sm:text-sm uppercase text-white tracking-widest mt-1.5 drop-shadow-[0_0_8px_#ff1f43] whitespace-nowrap">
-                      {shakeIntensity > 0 ? '⚡ SURGING!' : 'SHAKE PHONE!'}
+                      {shakeIntensity > 0 ? 'SURGING!' : 'SHAKE PHONE!'}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#ffccd5] font-mono font-bold mt-0.5 whitespace-nowrap">
                       {shakeCount} SURGES
@@ -721,8 +722,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
             {/* Live Shake Pulse Surge Banner */}
             {isPlaying && Date.now() - lastShakeTimestamp < 350 && (
               <div className="inline-flex items-center gap-1.5 px-4 py-1 bg-[#ff1f43]/40 border border-[#ff1f43] rounded-full text-xs font-orbitron font-bold text-white uppercase tracking-wider animate-pulse shadow-[0_0_18px_#ff1f43]">
-                <Zap size={13} className="text-white animate-bounce" />
-                <span>ENERGY SURGING! +VOLTAGE</span>
+                <Activity size={13} className="text-white animate-pulse" />
+                <span>ENERGY SURGING +VOLTAGE</span>
               </div>
             )}
 
@@ -762,11 +763,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
             ? 'bg-[#22060c]/90 border-[#ff1f43]/60 shadow-[0_0_15px_rgba(255,31,67,0.3)]' 
             : 'bg-[#140306]/80 border-[#4d131d]'
         }`}>
-          <Zap size={14} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
+          <Radio size={13} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
           <span className={`font-orbitron font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase ${
             isPlaying ? 'text-[#ffccd5]' : 'text-[#ff8095]'
           }`}>
-            {isPlaying ? 'SHAKE YOUR PHONE RAPIDLY TO SURGE POWER! ⚡' : 'TELECEL SME MONTH • READY FOR LAUNCH'}
+            {isPlaying ? 'SHAKE YOUR PHONE RAPIDLY TO CHARGE' : 'TELECEL SME MONTH • READY FOR LAUNCH'}
           </span>
         </div>
       </footer>
