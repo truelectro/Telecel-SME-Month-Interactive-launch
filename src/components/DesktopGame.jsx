@@ -646,9 +646,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
-          {/* Center: Massive Animated Launch Logo (100% Hero Scale) */}
-          <div className="relative z-20 flex-1 flex items-center justify-center w-full h-full max-w-[1700px] px-2 md:px-6 my-auto overflow-hidden">
-            <LaunchLogo className="w-full h-full max-w-[1500px] max-h-[82vh] object-contain" animate={true} />
+          {/* Center: Hero Animated Launch Logo (Balanced Stage Proportion) */}
+          <div className="relative z-20 flex-1 flex items-center justify-center w-full max-w-6xl px-4 my-auto overflow-hidden">
+            <LaunchLogo className="w-full h-auto max-w-[680px] md:max-w-[780px] lg:max-w-[880px] max-h-[58vh] object-contain" animate={true} />
           </div>
 
           {/* Bottom Activation Status Tagline */}
