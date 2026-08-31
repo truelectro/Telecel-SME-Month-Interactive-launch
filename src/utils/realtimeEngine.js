@@ -123,13 +123,13 @@ class BrowserHostEngine {
         }
       }
 
-      // Prune inactive/disconnected players (e.g. screen turned off, tab closed) every 1s
-      if (now - this.lastPruneTime > 1000) {
+      // Prune inactive/disconnected players every 2s (generous 45s threshold to accommodate mobile background throttling)
+      if (now - this.lastPruneTime > 2000) {
         this.lastPruneTime = now;
         let countChanged = false;
         for (const id in this.gameState.players) {
           const p = this.gameState.players[id];
-          if (now - (p.lastSeen || 0) > 5000) {
+          if (now - (p.lastSeen || 0) > 45000) {
             delete this.gameState.players[id];
             countChanged = true;
           }

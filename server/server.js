@@ -239,10 +239,10 @@ setInterval(() => {
     }
   }
 
-  // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 2.8s
+  // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 45s
   for (const socketId in gameState.players) {
     const p = gameState.players[socketId];
-    if (now - (p.lastSeen || 0) > 2800) {
+    if (now - (p.lastSeen || 0) > 45000) {
       delete gameState.players[socketId];
       gameState.connectedCount = Object.keys(gameState.players).length;
       io.emit('participant_left', {
