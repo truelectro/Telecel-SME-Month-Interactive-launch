@@ -207,7 +207,7 @@ class AudioEngine {
     this.currentBpm = 126;
     this.musicStep = 0;
     if (this.humGain && this.ctx) {
-      this.humGain.gain.setTargetAtTime(0.02, this.ctx.currentTime, 0.1);
+      this.humGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.1);
     }
     if (this.humFilter && this.ctx) {
       this.humFilter.frequency.setTargetAtTime(100, this.ctx.currentTime, 0.1);

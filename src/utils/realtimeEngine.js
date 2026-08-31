@@ -539,12 +539,12 @@ export class RealtimeNetwork {
 
     try {
       this.socket = io(url, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 200,
-        reconnectionDelayMax: 1200,
-        timeout: 8000,
+        reconnectionDelay: 400,
+        reconnectionDelayMax: 2000,
+        timeout: 20000,
         autoConnect: true,
       });
 

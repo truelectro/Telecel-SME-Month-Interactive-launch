@@ -68,8 +68,8 @@ if (pems && pems.private && pems.cert) {
 // Socket.io attached to HTTP server (and HTTPS if active)
 const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] },
-  pingInterval: 10000,
-  pingTimeout: 5000,
+  pingInterval: 25000,
+  pingTimeout: 20000,
 });
 
 if (httpsServer) {
