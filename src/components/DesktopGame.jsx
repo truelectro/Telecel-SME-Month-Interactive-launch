@@ -590,96 +590,121 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       )}
 
       {/* ==================================================== */}
-      {/* 3. LOBBY & PAIRING QR CODE MODAL OVERLAY             */}
+      {/* 3. FULL-SCREEN IMMERSIVE LOBBY & PAIRING SCREEN     */}
       {/* ==================================================== */}
       {status === 'lobby' && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="hud-panel max-w-2xl w-full p-6 md:p-8 sci-fi-cut border-2 border-[#801b2a] shadow-neon-red flex flex-col items-center text-center">
-            
-            {/* Launch Event Badge */}
-            <div className="inline-flex items-center px-4 py-1.5 bg-[#2b080f] border border-[#ff1f43] rounded-full mb-3 shadow-[0_0_15px_rgba(255,31,67,0.4)]">
-              <span className="font-orbitron font-black text-xs tracking-widest text-white uppercase">
-                TELECEL SME MONTH LAUNCH
-              </span>
-            </div>
+        <div className="fixed inset-0 z-50 w-screen h-screen bg-[#0a0204] flex flex-col justify-between p-3 sm:p-5 md:p-8 overflow-hidden select-none animate-fade-in">
+          
+          {/* Ambient Background Radial Glows */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+            <div 
+              className="absolute inset-0 w-full h-full"
+              style={{
+                background: 'radial-gradient(ellipse 120% 90% at 50% 45%, #6e1020 0%, #380811 45%, #180206 80%, #080103 100%)'
+              }}
+            />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140vw] h-[140vh] rounded-full bg-[#ff1f43]/15 blur-[120px] animate-pulse" />
+            <div className="absolute inset-0 scanlines opacity-20" />
+          </div>
 
-            {/* Modal Title */}
-            <h2 className="font-orbitron font-black text-2xl md:text-3xl tracking-wider uppercase text-white drop-shadow-[0_0_12px_#ff1f43] mb-1">
+          {/* Fullscreen Outer Sci-Fi Border */}
+          <div className="absolute inset-2 sm:inset-4 md:inset-6 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
+            <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+          </div>
+
+          {/* Top: Telecel SME Month Logo & Headline */}
+          <div className="relative z-20 flex flex-col items-center text-center mt-1">
+            <div className="w-full max-w-[260px] sm:max-w-[300px] md:max-w-[360px] max-h-[13vh] flex items-center justify-center mb-1">
+              <LaunchLogo className="w-full h-auto max-w-[340px] max-h-[12vh] object-contain" animate={false} />
+            </div>
+            
+            <h2 className="font-orbitron font-black text-2xl sm:text-3xl md:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-1">
               SCAN TO JOIN THE CROWD SURGE
             </h2>
-            <p className="text-xs md:text-sm text-[#ff99aa] max-w-lg mb-4">
-              Everyone in the audience scan with your smartphone! When the countdown begins, shake your phones together to surge the voltage to 100% for the launch reveal!
+            <p className="text-xs sm:text-sm text-[#ff99aa] max-w-2xl mt-1 px-4">
+              Everyone in the audience scan with your smartphone! When the activation begins, shake your phones together to surge the voltage to 100%!
             </p>
+          </div>
 
-            {/* High-Contrast QR Code Container */}
-            {tunnelReady || showLocalFallback ? (
-              <div className="relative p-4 bg-white rounded-xl shadow-[0_0_35px_rgba(255,31,67,0.7)] border-4 border-[#ff1f43] mb-4">
-                <QRCodeSVG
-                  value={controllerUrl}
-                  size={210}
-                  level="H"
-                  includeMargin={false}
-                />
-                <div className="absolute -bottom-3.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[10px] px-3.5 py-0.5 border border-[#ff1f43] rounded-full whitespace-nowrap shadow-md">
-                  {tunnelReady ? 'SCAN TO SYNC ⚡' : 'LOCAL WI-FI (FALLBACK)'}
+          {/* Center Stage: Split Hero Presentation Area (Large QR Code + Connected Counter) */}
+          <div className="relative z-20 flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-12 items-center justify-center max-w-5xl mx-auto w-full my-auto px-4">
+            
+            {/* Left: Large High-Contrast Stage QR Code */}
+            <div className="flex flex-col items-center justify-center">
+              {tunnelReady || showLocalFallback ? (
+                <div className="relative p-4 sm:p-5 bg-white rounded-2xl shadow-[0_0_45px_rgba(255,31,67,0.8)] border-4 border-[#ff1f43]">
+                  <QRCodeSVG
+                    value={controllerUrl}
+                    size={280}
+                    level="H"
+                    includeMargin={false}
+                    className="w-[180px] h-[180px] sm:w-[230px] sm:h-[230px] md:w-[280px] md:h-[280px] lg:w-[310px] lg:h-[310px]"
+                  />
+                  <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-xs sm:text-sm px-5 py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43]">
+                    {tunnelReady ? 'SCAN TO SYNC ⚡' : 'LOCAL WI-FI (FALLBACK)'}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="relative p-8 bg-[#170508] rounded-xl border-2 border-[#521520] mb-4 flex flex-col items-center justify-center gap-3 min-h-[232px] min-w-[232px]">
-                <div className="w-8 h-8 border-3 border-[#ff1f43] border-t-transparent rounded-full animate-spin" />
-                <span className="font-orbitron font-bold text-xs text-[#ff8095] uppercase tracking-wider animate-pulse">
-                  ESTABLISHING SECURE LINK...
-                </span>
-                <span className="text-[10px] text-[#803844]">
-                  Setting up HTTPS for phone sensor access
-                </span>
-                <button
-                  onClick={() => setShowLocalFallback(true)}
-                  className="mt-2 text-[10px] text-[#ff4d6d] underline hover:text-white transition-colors"
-                >
-                  Or use local network QR code
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="relative p-8 bg-[#170508] rounded-2xl border-2 border-[#521520] flex flex-col items-center justify-center gap-3 min-h-[260px] min-w-[260px]">
+                  <div className="w-10 h-10 border-4 border-[#ff1f43] border-t-transparent rounded-full animate-spin" />
+                  <span className="font-orbitron font-bold text-sm text-[#ff8095] uppercase tracking-wider animate-pulse">
+                    ESTABLISHING SECURE LINK...
+                  </span>
+                  <button
+                    onClick={() => setShowLocalFallback(true)}
+                    className="mt-2 text-xs text-[#ff4d6d] underline hover:text-white transition-colors"
+                  >
+                    Or use local network QR code
+                  </button>
+                </div>
+              )}
+            </div>
 
-            {/* REAL-TIME AUDIENCE SCANNER COUNTER (LARGE BOLD DISPLAY) */}
-            <div className="w-full max-w-lg bg-gradient-to-b from-[#22070d] to-[#120306] border-2 border-[#801b2a] rounded-2xl p-6 mb-6 shadow-[0_0_30px_rgba(255,31,67,0.35)] flex flex-col items-center justify-center">
-              
-              {/* Massive Live Counter Number */}
-              <div className="font-orbitron font-black text-6xl md:text-7xl text-white tracking-wider text-glow-red drop-shadow-[0_0_20px_#ff1f43] leading-none mb-2">
-                {gameState.connectedCount || 0}
-              </div>
+            {/* Right: Live Audience Counter Box */}
+            <div className="flex flex-col items-center justify-center w-full">
+              <div className="w-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
+                
+                {/* Massive Live Counter Number */}
+                <div className="font-orbitron font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white tracking-wider text-glow-red drop-shadow-[0_0_30px_#ff1f43] leading-none mb-3">
+                  {gameState.connectedCount || 0}
+                </div>
 
-              {/* Connected Audience Label Beneath Number */}
-              <div className="flex items-center gap-2 text-[#ff8095] mb-2">
-                <Users size={18} className="text-[#ff1f43] animate-pulse" />
-                <span className="font-orbitron font-bold text-sm md:text-base tracking-[0.25em] uppercase text-white">
-                  CONNECTED AUDIENCE
-                </span>
-              </div>
+                {/* Connected Audience Label */}
+                <div className="flex items-center gap-2 text-[#ff8095] mb-3">
+                  <Users size={22} className="text-[#ff1f43] animate-pulse" />
+                  <span className="font-orbitron font-bold text-sm sm:text-base md:text-lg tracking-[0.25em] uppercase text-white">
+                    CONNECTED AUDIENCE
+                  </span>
+                </div>
 
-              {/* Live Connection Feed */}
-              <div className="text-xs text-[#ff99aa] flex items-center justify-center gap-2 mt-1">
-                <span>
+                {/* Live Feed Pill */}
+                <div className="px-4 py-1.5 bg-[#140306] border border-[#ff1f43]/40 rounded-full text-xs sm:text-sm text-[#ff99aa] font-semibold">
                   {gameState.connectedCount > 0 
-                    ? `Live: ${gameState.connectedCount} device${gameState.connectedCount > 1 ? 's' : ''} ready to shake!` 
-                    : 'Scan the QR code above with your phone to join'}
-                </span>
+                    ? `⚡ Live: ${gameState.connectedCount} device${gameState.connectedCount > 1 ? 's' : ''} ready to shake!` 
+                    : 'Scan the QR code with your phone to join'}
+                </div>
               </div>
             </div>
 
-            {/* Start Launch Sequence CTA */}
+          </div>
+
+          {/* Bottom: Start Launch Sequence CTA */}
+          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-1">
             <button
               onClick={handleStartGame}
-              className="w-full max-w-lg py-4 px-6 sci-fi-cut font-orbitron font-black text-xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/50 cursor-pointer transition-all flex items-center justify-center gap-3"
+              className="w-full py-4 sm:py-5 px-8 sci-fi-cut font-orbitron font-black text-lg sm:text-xl md:text-2xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-3"
             >
-              <Zap size={22} className="animate-bounce" />
+              <Zap size={24} className="animate-bounce" />
               <span>START LAUNCH ACTIVATION</span>
             </button>
-            <span className="text-[10px] text-[#7a2c39] mt-2">
-              (Host can also press [Spacebar] or [S] on keyboard to start)
+            <span className="text-xs text-[#a03d4c] mt-2 font-mono">
+              [Spacebar] or [S] on keyboard to start
             </span>
           </div>
+
         </div>
       )}
 
