@@ -119,7 +119,7 @@ export default function App() {
   }, [isController]);
 
   return (
-    <div className="w-full min-h-screen bg-[#070204]">
+    <div className="w-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#070204]">
       {/* Connection Indicator if disconnected */}
       {!isConnected && (
         <div className="fixed top-0 inset-x-0 z-50 bg-red-900/90 text-white text-center py-1 text-xs font-bold font-orbitron border-b border-red-500 animate-pulse">
