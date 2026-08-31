@@ -12,6 +12,11 @@
   * {
     box-sizing: border-box;
   }
+  html, body, #root {
+    min-height: 100%;
+    height: 100%;
+    width: 100%;
+  }
   body {
     background-color: #070204;
     color: #fce8eb;

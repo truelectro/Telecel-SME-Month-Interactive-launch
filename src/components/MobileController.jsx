@@ -592,10 +592,10 @@ export default function MobileController({ socket, gameState, isConnected: propC
       onTouchStart={() => audioEngine.ensureRunning()}
       onPointerDown={() => audioEngine.ensureRunning()}
       style={{ 
-        paddingTop: 'max(env(safe-area-inset-top), 24px)', 
+        paddingTop: 'max(env(safe-area-inset-top), 20px)', 
         paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' 
       }}
-      className={`relative h-[100dvh] max-h-[100dvh] w-full text-white flex flex-col justify-between px-3.5 sm:px-5 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
+      className={`relative min-h-[100dvh] h-full w-full text-white flex flex-col justify-between px-3.5 sm:px-5 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
         isPlaying ? 'bg-[#080204]' : 'bg-[#060203]'
       }`}
     >
@@ -664,16 +664,16 @@ export default function MobileController({ socket, gameState, isConnected: propC
       {/* ==================================================== */}
       {/* 1. CONTROLLER HEADER & STATUS BAR                    */}
       {/* ==================================================== */}
-      <header className={`relative z-10 flex items-center justify-between border-b pb-1.5 sm:pb-2 shrink-0 transition-colors duration-300 ${
+      <header className={`relative z-10 flex items-center justify-between border-b pb-2 shrink-0 transition-colors duration-300 ${
         isPlaying ? 'border-[#ff1f43]/60' : 'border-[#4d131d]'
       }`}>
         <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded border flex items-center justify-center transition-all ${
+          <div className={`w-8 h-8 rounded border flex items-center justify-center transition-all ${
             isPlaying 
               ? 'bg-[#3d0d17] border-[#ff1f43] shadow-[0_0_12px_#ff1f43]' 
               : 'bg-[#22070c] border-[#661827]'
           }`}>
-            <Smartphone size={15} className={`transition-all ${
+            <Smartphone size={16} className={`transition-all ${
               isPlaying && shakeIntensity > 0 ? 'text-white animate-bounce' : (isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#a03d4c]')
             }`} />
           </div>
@@ -681,7 +681,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase truncate max-w-[170px] sm:max-w-[220px]">
               {playerName ? playerName : `OPERATIVE #${operativeNumber}`}
             </span>
-            <span className={`text-[9px] sm:text-[10px] uppercase font-semibold tracking-wider ${
+            <span className={`text-[10px] uppercase font-semibold tracking-wider ${
               isPlaying ? 'text-[#ff4d6d] animate-pulse' : 'text-[#8c2d3c]'
             }`}>
               {isPlaying ? 'OVERCHARGE ACTIVE' : 'LOBBY STANDBY'}
@@ -690,11 +690,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
         </div>
 
         {/* Live Audience Count Badge */}
-        <div className={`flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border transition-all ${
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
           isPlaying ? 'bg-[#20050b] border-[#ff1f43]/70' : 'bg-[#150306] border-[#521520]'
         }`}>
-          <Users size={11} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
-          <span className="font-orbitron font-bold text-[11px] sm:text-xs text-[#ffccd5]">
+          <Users size={12} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
+          <span className="font-orbitron font-bold text-xs text-[#ffccd5]">
             {connectedCount} LIVE
           </span>
         </div>
@@ -703,25 +703,25 @@ export default function MobileController({ socket, gameState, isConnected: propC
       {/* ==================================================== */}
       {/* 2. MAIN CONTROLLER MOTION DISPLAY AREA               */}
       {/* ==================================================== */}
-      <main className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-between py-1 sm:py-2 w-full max-w-sm mx-auto select-none overflow-hidden">
+      <main className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-evenly py-2 w-full max-w-sm mx-auto select-none overflow-hidden">
 
         {/* Hardware Motion Sensor Active / Permission Banner Slot (Fixed Height) */}
-        <div className="h-6 sm:h-7 flex items-center justify-center shrink-0 w-full">
+        <div className="h-7 flex items-center justify-center shrink-0 w-full">
           {needsIOSPermission && !sensorActive ? (
             <button
               onClick={unlockIOSPermissions}
-              className="inline-flex items-center gap-1.5 px-3.5 py-0.5 bg-[#380e16] border border-[#ff1f43] rounded-full text-[11px] sm:text-xs shadow-[0_0_15px_rgba(255,31,67,0.6)] animate-pulse cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-0.5 bg-[#380e16] border border-[#ff1f43] rounded-full text-xs shadow-[0_0_15px_rgba(255,31,67,0.6)] animate-pulse cursor-pointer"
             >
               <Zap size={12} className="text-[#ff1f43]" />
               <span className="text-white font-bold tracking-wider uppercase">TAP TO ENABLE SENSORS</span>
             </button>
           ) : (
-            <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] transition-all ${
+            <div className={`inline-flex items-center gap-1.5 px-3.5 py-0.5 rounded-full text-xs transition-all ${
               isPlaying 
                 ? 'bg-[#1a0408] border border-[#ff1f43]/80 shadow-[0_0_12px_rgba(255,31,67,0.4)]' 
                 : 'bg-[#140407] border border-[#2d7a3e]/60 shadow-[0_0_10px_rgba(74,222,128,0.15)]'
             }`}>
-              <Activity size={11} className={isPlaying ? 'text-[#ff1f43] animate-bounce' : (sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500')} />
+              <Activity size={12} className={isPlaying ? 'text-[#ff1f43] animate-bounce' : (sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500')} />
               <span className={`font-bold tracking-wider uppercase ${
                 isPlaying ? 'text-[#ffccd5]' : (sensorActive ? 'text-green-300' : 'text-yellow-400')
               }`}>
@@ -740,7 +740,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               </span>
             </div>
 
-            <div className="w-full max-w-[260px] my-2">
+            <div className="w-full max-w-[280px] my-2">
               <LaunchLogo className="w-full h-auto" animate={true} />
             </div>
 
@@ -753,12 +753,12 @@ export default function MobileController({ socket, gameState, isConnected: propC
           <>
             {/* Voltage Header Display */}
             <div className="flex flex-col items-center text-center shrink-0">
-              <span className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase ${
+              <span className={`text-[10px] font-bold tracking-widest uppercase ${
                 isPlaying ? 'text-[#ff4d6d]' : 'text-[#8c3240]'
               }`}>
                 {isPlaying ? 'COLLECTIVE VOLTAGE' : 'LAUNCH VOLTAGE • STANDBY'}
               </span>
-              <div className={`font-orbitron font-black text-4xl sm:text-5xl tracking-wider my-0.5 transition-all ${
+              <div className={`font-orbitron font-black text-5xl sm:text-6xl tracking-wider my-0.5 transition-all ${
                 isPlaying 
                   ? 'text-white text-glow-red drop-shadow-[0_0_20px_#ff1f43]' 
                   : 'text-gray-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]'
@@ -768,7 +768,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             </div>
 
             {/* Voltage Gauge Progress Bar */}
-            <div className="w-full max-w-[240px] sm:max-w-[270px] h-3 sm:h-3.5 bg-[#170508] border-2 border-[#521520] rounded-full p-0.5 shadow-panel-inset relative overflow-hidden shrink-0">
+            <div className="w-full max-w-[280px] h-3.5 bg-[#170508] border-2 border-[#521520] rounded-full p-0.5 shadow-panel-inset relative overflow-hidden shrink-0">
               <div 
                 className={`h-full rounded-full transition-all duration-150 ${
                   isPlaying 
@@ -782,7 +782,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             {/* Perfectly Centered Dynamic Physical Motion Reactor Circle */}
             <div 
               onClick={handleTapSurge}
-              className={`relative w-36 h-36 sm:w-44 sm:h-44 shrink-0 flex items-center justify-center my-auto transition-transform active:scale-95 select-none ${
+              className={`relative w-48 h-48 sm:w-56 sm:h-56 shrink-0 flex items-center justify-center my-auto transition-transform active:scale-95 select-none ${
                 isPlaying ? 'cursor-pointer' : 'pointer-events-none'
               }`}
             >
@@ -796,14 +796,14 @@ export default function MobileController({ socket, gameState, isConnected: propC
                   : 'scale-100 opacity-30 border-[#521520]'
               }`} />
 
-              <div className={`absolute inset-2 sm:inset-3 rounded-full border transition-all duration-200 pointer-events-none ${
+              <div className={`absolute inset-3 rounded-full border transition-all duration-200 pointer-events-none ${
                 isPlaying 
                   ? (shakeIntensity > 0 ? 'scale-105 opacity-90 border-[#ff4d6d]' : 'opacity-40 border-[#ff1f43]/30')
                   : 'opacity-15 border-[#3b0f17]'
               }`} />
 
               {/* Inner Reactor Sphere with Perfectly Centered Column Content */}
-              <div className={`w-28 h-28 sm:w-34 sm:h-34 rounded-full flex flex-col items-center justify-center p-2 text-center transition-all duration-200 shrink-0 pointer-events-none ${
+              <div className={`w-38 h-38 sm:w-44 sm:h-44 rounded-full flex flex-col items-center justify-center p-3 text-center transition-all duration-200 shrink-0 pointer-events-none ${
                 isPlaying 
                   ? (shakeIntensity > 0 
                       ? 'bg-gradient-to-b from-[#52121f] to-[#1c0409] border-2 border-[#ff1f43] shadow-[0_0_30px_#ff1f43] scale-105' 
@@ -814,24 +814,24 @@ export default function MobileController({ socket, gameState, isConnected: propC
                 {isPlaying ? (
                   /* PLAYING: Live Motion Feedback */
                   <>
-                    <Smartphone size={24} className={`transition-all duration-100 ${
+                    <Smartphone size={28} className={`transition-all duration-100 ${
                       shakeIntensity > 0 ? 'text-white scale-120 animate-bounce' : 'text-[#ff1f43]'
                     }`} />
-                    <span className="font-orbitron font-black text-[11px] sm:text-xs uppercase text-white tracking-widest mt-1 drop-shadow-[0_0_8px_#ff1f43] whitespace-nowrap">
+                    <span className="font-orbitron font-black text-xs sm:text-sm uppercase text-white tracking-widest mt-1.5 drop-shadow-[0_0_8px_#ff1f43] whitespace-nowrap">
                       {shakeIntensity > 0 ? 'SURGING!' : 'SHAKE PHONE!'}
                     </span>
-                    <span className="text-[9px] sm:text-[10px] text-[#ffccd5] font-mono font-bold whitespace-nowrap">
+                    <span className="text-[10px] sm:text-[11px] text-[#ffccd5] font-mono font-bold whitespace-nowrap">
                       {shakeCount} SURGES
                     </span>
                   </>
                 ) : (
                   /* LOBBY: Standby Mode */
                   <>
-                    <Radio size={20} className="text-[#8c2d3c] animate-pulse" />
-                    <span className="font-orbitron font-bold text-[11px] sm:text-xs uppercase text-gray-300 tracking-wider mt-1 whitespace-nowrap">
+                    <Radio size={24} className="text-[#8c2d3c] animate-pulse" />
+                    <span className="font-orbitron font-bold text-xs sm:text-sm uppercase text-gray-300 tracking-wider mt-1.5 whitespace-nowrap">
                       STANDBY
                     </span>
-                    <span className="text-[8px] sm:text-[9px] text-[#ff8095]/80 font-mono tracking-widest uppercase whitespace-nowrap">
+                    <span className="text-[9px] sm:text-[10px] text-[#ff8095]/80 font-mono tracking-widest uppercase mt-0.5 whitespace-nowrap">
                       WAIT FOR LAUNCH
                     </span>
                   </>
@@ -841,34 +841,34 @@ export default function MobileController({ socket, gameState, isConnected: propC
             </div>
 
             {/* Live Shake Pulse Surge Banner Slot (Fixed Height to Prevent Layout Shift) */}
-            <div className="h-6 sm:h-7 flex items-center justify-center shrink-0 w-full pointer-events-none">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 bg-[#ff1f43]/40 border border-[#ff1f43] rounded-full text-[10px] sm:text-xs font-orbitron font-bold text-white uppercase tracking-wider shadow-[0_0_18px_#ff1f43] transition-all duration-150 ${
+            <div className="h-7 flex items-center justify-center shrink-0 w-full pointer-events-none">
+              <div className={`inline-flex items-center gap-1.5 px-3.5 py-0.5 bg-[#ff1f43]/40 border border-[#ff1f43] rounded-full text-xs font-orbitron font-bold text-white uppercase tracking-wider shadow-[0_0_18px_#ff1f43] transition-all duration-150 ${
                 isPlaying && Date.now() - lastShakeTimestamp < 400
                   ? 'opacity-100 scale-100'
                   : 'opacity-0 scale-90'
               }`}>
-                <Activity size={11} className="text-white animate-pulse" />
+                <Activity size={12} className="text-white animate-pulse" />
                 <span>ENERGY SURGING +VOLTAGE</span>
               </div>
             </div>
 
             {/* User Instructions (Fixed Height to Prevent Layout Shift) */}
-            <div className="h-10 sm:h-11 flex flex-col items-center justify-center text-center px-3 max-w-xs shrink-0">
+            <div className="h-11 flex flex-col items-center justify-center text-center px-4 max-w-xs shrink-0">
               {isPlaying ? (
                 <>
-                  <p className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wide drop-shadow-[0_0_6px_#ff1f43]">
+                  <p className="text-xs font-bold text-white uppercase tracking-wide drop-shadow-[0_0_6px_#ff1f43]">
                     SHAKE YOUR PHONE RAPIDLY! 🔥
                   </p>
-                  <p className="text-[10px] sm:text-[11px] text-[#ff99aa] leading-tight">
+                  <p className="text-[11px] text-[#ff99aa] leading-tight">
                     All {connectedCount} connected phones push voltage to 100%!
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-[11px] sm:text-xs font-bold text-gray-300 uppercase tracking-wide">
+                  <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
                     {playerName ? `READY, ${playerName.toUpperCase()}` : 'CONNECTED • GET READY'}
                   </p>
-                  <p className="text-[10px] sm:text-[11px] text-[#ff8095] leading-tight">
+                  <p className="text-[11px] text-[#ff8095] leading-tight">
                     When the countdown begins, shake vigorously to charge!
                   </p>
                 </>
@@ -883,13 +883,13 @@ export default function MobileController({ socket, gameState, isConnected: propC
       {/* 3. CONTROLLER FOOTER / TELEMETRY STATUS BAR          */}
       {/* ==================================================== */}
       <footer className="relative z-10 shrink-0">
-        <div className={`w-full py-1.5 sm:py-2 px-2.5 border sci-fi-cut flex items-center justify-center gap-1.5 transition-colors duration-300 ${
+        <div className={`w-full py-2 px-3 border sci-fi-cut flex items-center justify-center gap-1.5 transition-colors duration-300 ${
           isPlaying 
             ? 'bg-[#22060c]/90 border-[#ff1f43]/60 shadow-[0_0_15px_rgba(255,31,67,0.3)]' 
             : 'bg-[#140306]/80 border-[#4d131d]'
         }`}>
-          <Radio size={11} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
-          <span className={`font-orbitron font-bold text-[9px] sm:text-[10px] tracking-[0.15em] uppercase ${
+          <Radio size={12} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
+          <span className={`font-orbitron font-bold text-[10px] sm:text-xs tracking-[0.15em] uppercase ${
             isPlaying ? 'text-[#ffccd5]' : 'text-[#ff8095]'
           }`}>
             {isPlaying ? 'SHAKE PHONE RAPIDLY TO CHARGE' : 'TELECEL SME MONTH • READY FOR LAUNCH'}
