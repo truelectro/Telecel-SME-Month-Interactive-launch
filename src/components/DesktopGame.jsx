@@ -517,18 +517,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           />
         </div>
 
-        {/* Center: MAX VOLTAGE 100% Display */}
-        <div className="flex flex-col items-center">
-          <span className="text-[9px] sm:text-[10px] md:text-xs tracking-widest font-semibold text-[#ff8095]/80 uppercase">
-            {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
-          </span>
-          <div className="px-3 sm:px-5 py-0.5 sm:py-1 bg-[#20070b]/90 border border-[#5e1925] sci-fi-cut-sm shadow-[0_0_12px_rgba(255,31,67,0.3)]">
-            <span className="font-orbitron font-black text-base sm:text-xl md:text-2xl tracking-wider text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
-              {status === 'playing' ? `${Math.floor(voltage)}%` : '100%'}
-            </span>
-          </div>
-        </div>
-
         {/* Right: Utility & Audio Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
           {/* 150-Crowd Simulator Toggle */}
@@ -602,24 +590,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             /* PLAYING MODE: LIVE FLOATING PARTICIPANT STREAM  */
             /* ============================================== */
             <>
-              {/* SURGE STREAM HEADER & AUDIENCE BADGE */}
-              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Activity size={15} className="text-[#ff1f43] animate-pulse shrink-0" />
-                  <span className="font-orbitron font-black text-[11px] sm:text-xs text-white uppercase tracking-wider drop-shadow-[0_0_8px_#ff1f43]">
-                    SURGE STREAM
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#3d0d17] border border-[#ff1f43]/70">
-                  <Users size={11} className="text-[#ff1f43] animate-bounce" />
-                  <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ffccd5]">
-                    {gameState.connectedCount || 0} LIVE
-                  </span>
-                </div>
+              {/* SURGE STREAM HEADER */}
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center gap-2">
+                <Activity size={16} className="text-[#ff1f43] animate-pulse shrink-0" />
+                <span className="font-orbitron font-black text-xs sm:text-sm text-white uppercase tracking-wider drop-shadow-[0_0_8px_#ff1f43]">
+                  SURGE STREAM
+                </span>
               </div>
 
               {/* FLOATING NAMES SURGE CASCADE CONTAINER */}
-              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut h-[170px] sm:h-[200px] md:h-[230px] relative overflow-hidden flex flex-col justify-end shadow-neon-red">
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut h-[140px] sm:h-[165px] md:h-[190px] relative overflow-hidden flex flex-col justify-end shadow-neon-red">
                 {/* Ambient Grid & Background Lightning Glow */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#3a0812]/75 via-[#180408]/40 to-transparent pointer-events-none" />
                 <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
@@ -656,7 +636,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
 
                 {/* Live Stream Base Indicator */}
-                <div className="relative z-10 w-full pt-1.5 border-t border-[#521520] flex items-center justify-between text-[10px] text-[#ff8095]">
+                <div className="relative z-10 w-full pt-1 border-t border-[#521520] flex items-center justify-between text-[10px] text-[#ff8095]">
                   <span className="font-orbitron font-semibold uppercase tracking-wider flex items-center gap-1">
                     <Zap size={11} className="text-[#ff1f43] animate-pulse" />
                     LIVE SURGES
@@ -667,37 +647,37 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
               </div>
 
-              {/* MID-GAME LIVE QR CODE CARD: SCAN TO JOIN IN-PROGRESS */}
-              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex flex-col items-center bg-gradient-to-b from-[#2d0a14]/95 via-[#180408]/95 to-[#0e0205]/95 border-2 border-[#ff1f43]/60 shadow-[0_0_20px_rgba(255,31,67,0.3)]">
-                <div className="flex items-center justify-between w-full mb-1 pb-1 border-b border-[#4d131d]">
+              {/* MID-GAME LIVE QR CODE CARD: SCAN TO JOIN IN-PROGRESS (LARGE) */}
+              <div className="hud-panel p-2.5 sm:p-3.5 sci-fi-cut flex flex-col items-center bg-gradient-to-b from-[#2d0a14]/95 via-[#180408]/95 to-[#0e0205]/95 border-2 border-[#ff1f43]/70 shadow-[0_0_25px_rgba(255,31,67,0.4)]">
+                <div className="flex items-center justify-between w-full mb-1.5 pb-1 border-b border-[#4d131d]">
                   <div className="flex items-center gap-1.5">
-                    <QrCode size={13} className="text-[#ff1f43] animate-pulse" />
-                    <span className="font-orbitron font-bold text-[10px] sm:text-[11px] text-white tracking-wider uppercase">
+                    <QrCode size={14} className="text-[#ff1f43] animate-pulse" />
+                    <span className="font-orbitron font-bold text-xs sm:text-sm text-white tracking-wider uppercase drop-shadow-[0_0_6px_#ff1f43]">
                       SCAN TO JOIN LIVE
                     </span>
                   </div>
-                  <span className="font-orbitron text-[9px] text-green-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="font-orbitron text-[9px] sm:text-[10px] text-green-400 font-bold uppercase tracking-wider flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                     OPEN
                   </span>
                 </div>
 
-                {/* QR Code Container */}
-                <div className="relative p-1.5 bg-white rounded-xl shadow-[0_0_15px_rgba(255,31,67,0.4)] border-2 border-[#ff1f43] flex items-center justify-center my-0.5">
+                {/* Larger High-Contrast QR Code Container */}
+                <div className="relative p-2 sm:p-2.5 bg-white rounded-2xl shadow-[0_0_20px_rgba(255,31,67,0.6)] border-2 sm:border-3 border-[#ff1f43] flex items-center justify-center my-1">
                   <QRCodeSVG
                     value={controllerUrl}
-                    size={90}
-                    level="M"
+                    size={150}
+                    level="H"
                     includeMargin={false}
-                    className="w-16 h-16 sm:w-20 sm:h-20 md:w-22 md:h-22 object-contain"
+                    className="w-28 h-28 sm:w-34 sm:h-34 md:w-38 md:h-38 object-contain"
                   />
-                  <div className="absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[8px] px-2 py-0.2 border border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_8px_#ff1f43]">
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[9px] sm:text-[10px] px-3 py-0.5 border border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_10px_#ff1f43]">
                     JOIN ⚡
                   </div>
                 </div>
 
-                <span className="text-[9px] text-[#ffccd5] text-center mt-1 font-semibold leading-tight">
-                  Scan now to jump into the action!
+                <span className="text-[10px] sm:text-[11px] text-[#ffccd5] text-center mt-1.5 font-semibold leading-tight">
+                  Point camera to jump into the action!
                 </span>
               </div>
             </>
@@ -774,8 +754,20 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
+          {/* Centered System Charge Percentage Display (Directly Aligned Above Voltage Chamber) */}
+          <div className="flex flex-col items-center mb-1 sm:mb-2 z-20">
+            <span className="text-[10px] sm:text-xs md:text-sm tracking-widest font-orbitron font-bold text-[#ff8095] uppercase drop-shadow-[0_0_8px_#ff1f43]">
+              {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
+            </span>
+            <div className="mt-0.5 px-4 sm:px-6 py-0.5 sm:py-1 bg-[#22070c]/90 border-2 border-[#ff1f43]/70 sci-fi-cut-sm shadow-[0_0_16px_rgba(255,31,67,0.5)]">
+              <span className="font-orbitron font-black text-lg sm:text-2xl md:text-3xl tracking-wider text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]">
+                {status === 'playing' ? `${Math.floor(voltage)}%` : '100%'}
+              </span>
+            </div>
+          </div>
+
           {/* Main Heavy Reactor Assembly */}
-          <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] h-full max-h-[72vh] sm:max-h-[76vh] md:max-h-[80vh] flex items-center justify-center">
+          <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] h-full max-h-[66vh] sm:max-h-[70vh] md:max-h-[74vh] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
@@ -905,11 +897,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               shakeFlash ? 'opacity-100' : 'opacity-40'
             }`} />
 
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#ff8095] uppercase block mb-1 z-10">
-              AUDIENCE DIRECTIVE
-            </span>
-
-            {/* Glowing Dynamic Prompt */}
+            {/* Glowing Dynamic Prompt (SHAKE PHONES) */}
             <div className={`font-orbitron font-black text-base sm:text-lg md:text-xl tracking-wider uppercase text-glow-red transition-all duration-300 z-10 ${
               shakeFlash ? 'scale-105 brightness-150 text-white' : 'text-[#ffccd5]'
             }`}>
