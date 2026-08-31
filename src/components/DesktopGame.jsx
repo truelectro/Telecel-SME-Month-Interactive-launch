@@ -505,12 +505,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {/* 1. TOP HEADER                                       */}
       {/* ==================================================== */}
-      <header className={`relative z-20 flex items-center justify-between px-2 sm:px-4 py-1 sm:py-1.5 shrink-0 ${
+      <header className={`relative z-20 flex items-center justify-between px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 shrink-0 ${
         isBooting || status === 'playing' ? 'animate-cyber-down' : ''
       }`}>
-        {/* Left: Telecel SME Month Official Brand Logo */}
-        <div className="flex items-center">
-          <LaunchLogo className="w-auto h-10 sm:h-12 md:h-14 lg:h-16 max-w-[140px] sm:max-w-[180px] md:max-w-[220px] object-contain drop-shadow-[0_0_16px_rgba(255,31,67,0.85)]" animate={false} />
+        {/* Left: Telecel SME Month Official Brand Logo (Large, Prominent) */}
+        <div className="flex items-center min-w-0 pr-2">
+          <LaunchLogo 
+            className="w-auto h-14 sm:h-18 md:h-22 lg:h-28 max-w-[220px] sm:max-w-[290px] md:max-w-[360px] lg:max-w-[440px] object-contain drop-shadow-[0_0_24px_rgba(255,31,67,0.95)]" 
+            animate={false} 
+          />
         </div>
 
         {/* Center: MAX VOLTAGE 100% Display */}
@@ -1005,8 +1008,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
           {/* Top: Telecel SME Month Logo & Headline */}
           <div className="relative z-20 flex flex-col items-center text-center mt-0.5 sm:mt-1 shrink-0">
-            <div className="w-full max-w-[340px] sm:max-w-[440px] md:max-w-[540px] lg:max-w-[620px] max-h-[12vh] sm:max-h-[14vh] md:max-h-[16vh] flex items-center justify-center mb-1 sm:mb-1.5">
-              <LaunchLogo className="w-full h-auto max-w-full max-h-[12vh] sm:max-h-[14vh] md:max-h-[16vh] object-contain" animate={false} />
+            <div className="w-full max-w-[400px] sm:max-w-[520px] md:max-w-[650px] lg:max-w-[760px] max-h-[15vh] sm:max-h-[18vh] md:max-h-[22vh] flex items-center justify-center mb-1 sm:mb-1.5">
+              <LaunchLogo className="w-full h-auto max-w-full max-h-[15vh] sm:max-h-[18vh] md:max-h-[22vh] object-contain" animate={false} />
             </div>
             
             <h2 className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-0.5">
