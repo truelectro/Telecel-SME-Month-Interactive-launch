@@ -85,13 +85,14 @@ if (httpsServer) {
   io.attach(httpsServer);
 }
 
-import { Tunnel } from 'cloudflared';
-
 let publicTunnelUrl = null;
 
 async function setupPublicTunnel() {
-  if (process.env.DISABLE_TUNNEL === 'true') return;
+  if (process.env.DISABLE_TUNNEL === 'true' || process.env.RENDER || process.env.RENDER_EXTERNAL_URL) {
+    return;
+  }
   try {
+    const { Tunnel } = await import('cloudflared');
     const t = Tunnel.quick(`http://localhost:${HTTP_PORT}`);
     
     t.on('url', (url) => {
@@ -121,16 +122,28 @@ async function setupPublicTunnel() {
   }
 }
 
+// Health Check Endpoints for Cloud Load Balancers & Render
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', uptime: process.uptime() });
+});
+
 // API route to return server network info & pairing URL
 app.get('/api/info', (req, res) => {
+  const renderUrl = process.env.RENDER_EXTERNAL_URL;
+  const activeTunnel = renderUrl || publicTunnelUrl;
+  
   res.json({
     lanIp: LAN_IP,
     httpPort: HTTP_PORT,
     httpsPort: HTTPS_PORT,
-    tunnelUrl: publicTunnelUrl ? `${publicTunnelUrl}/controller` : null,
-    httpsAvailable: !!httpsServer,
+    tunnelUrl: activeTunnel ? (activeTunnel.endsWith('/controller') ? activeTunnel : `${activeTunnel}/controller`) : null,
+    httpsAvailable: !!httpsServer || !!renderUrl,
     controllerHttpUrl: `http://${LAN_IP}:${HTTP_PORT}/controller`,
-    controllerHttpsUrl: publicTunnelUrl ? `${publicTunnelUrl}/controller` : (httpsServer ? `https://${LAN_IP}:${HTTPS_PORT}/controller` : `http://${LAN_IP}:${HTTP_PORT}/controller`),
+    controllerHttpsUrl: activeTunnel ? (activeTunnel.endsWith('/controller') ? activeTunnel : `${activeTunnel}/controller`) : (httpsServer ? `https://${LAN_IP}:${HTTPS_PORT}/controller` : `http://${LAN_IP}:${HTTP_PORT}/controller`),
   });
 });
 
