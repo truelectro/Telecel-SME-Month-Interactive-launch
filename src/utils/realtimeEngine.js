@@ -27,9 +27,9 @@ const ICE_SERVERS = [
 const EVENT_CONFIG = {
   MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.6,       // Tightened challenging decay
-  SHAKE_VOLTAGE_BASE: 0.95,     // Tightened per-shake energy base
-  COMBO_DECAY_TIME_MS: 450,
+  DECAY_RATE_PER_SEC: 4.2,       // Tightened challenging decay
+  SHAKE_VOLTAGE_BASE: 0.58,     // Tightened per-shake energy base
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -98,14 +98,14 @@ class BrowserHostEngine {
         let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
 
         if (this.gameState.voltage > 85) {
-          currentDecay *= 1.85; // Strong high-voltage tension drain
+          currentDecay *= 1.9; // Strong high-voltage tension drain
         } else if (this.gameState.voltage > 70) {
           currentDecay *= 1.5;
         } else if (this.gameState.voltage > 45) {
           currentDecay *= 1.25;
         }
 
-        if (timeSinceShake > 450) {
+        if (timeSinceShake > 400) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
@@ -339,14 +339,14 @@ class BrowserHostEngine {
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.52; // Strong climax resistance
+        resistanceFactor = 0.42; // Strong climax resistance
       } else if (currentVolt > 65) {
-        resistanceFactor = 0.72;
+        resistanceFactor = 0.65;
       } else if (currentVolt > 40) {
-        resistanceFactor = 0.88;
+        resistanceFactor = 0.82;
       }
 
-      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.78);
+      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.82);
       const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 

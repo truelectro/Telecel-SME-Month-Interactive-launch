@@ -44,7 +44,23 @@ export default function MobileController({ socket, gameState, isConnected: propC
   } = gameState || {};
 
   const [isConnected, setIsConnected] = useState(propConnected ?? !!socket?.connected);
+  const [displayVoltage, setDisplayVoltage] = useState(voltage);
   const prevStatusRef = useRef(status);
+
+  // Smooth client-side voltage interpolation for liquid fluid visual feedback
+  useEffect(() => {
+    let animId;
+    const smoothStep = () => {
+      setDisplayVoltage((prev) => {
+        const diff = voltage - prev;
+        if (Math.abs(diff) < 0.1) return voltage;
+        return prev + diff * 0.16;
+      });
+      animId = requestAnimationFrame(smoothStep);
+    };
+    animId = requestAnimationFrame(smoothStep);
+    return () => cancelAnimationFrame(animId);
+  }, [voltage]);
 
   // Buffer references for high-speed motion tracking
   const accelHistoryRef = useRef([]);
@@ -573,13 +589,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
             </span>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="relative z-10 text-center py-0.5 shrink-0">
-          <span className="font-orbitron text-[9px] text-[#ff8095]/60 tracking-[0.2em] uppercase">
-            TELECEL SME MONTH • INTERACTIVE LAUNCH
-          </span>
-        </footer>
       </div>
     );
   }
@@ -763,19 +772,19 @@ export default function MobileController({ socket, gameState, isConnected: propC
                   ? 'text-white text-glow-red drop-shadow-[0_0_20px_#ff1f43]' 
                   : 'text-gray-300 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]'
               }`}>
-                {Math.floor(voltage)}%
+                {Math.floor(displayVoltage)}%
               </div>
             </div>
 
             {/* Voltage Gauge Progress Bar */}
             <div className="w-full max-w-[240px] sm:max-w-[270px] h-2.5 sm:h-3 bg-[#170508] border border-[#521520] rounded-full p-0.5 shadow-panel-inset relative overflow-hidden shrink-0">
               <div 
-                className={`h-full rounded-full transition-all duration-150 ${
+                className={`h-full rounded-full transition-[width] duration-300 ease-out ${
                   isPlaying 
                     ? 'bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#ffffff] shadow-[0_0_15px_#ff1f43]' 
                     : 'bg-gradient-to-r from-[#4d101a] to-[#731928]'
                 }`}
-                style={{ width: `${Math.min(100, Math.max(2, voltage))}%` }}
+                style={{ width: `${Math.min(100, Math.max(2, displayVoltage))}%` }}
               />
             </div>
 
@@ -878,24 +887,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
         )}
 
       </main>
-
-      {/* ==================================================== */}
-      {/* 3. CONTROLLER FOOTER / TELEMETRY STATUS BAR          */}
-      {/* ==================================================== */}
-      <footer className="relative z-10 shrink-0">
-        <div className={`w-full py-1.5 px-2.5 border sci-fi-cut flex items-center justify-center gap-1.5 transition-colors duration-300 ${
-          isPlaying 
-            ? 'bg-[#22060c]/90 border-[#ff1f43]/60 shadow-[0_0_15px_rgba(255,31,67,0.3)]' 
-            : 'bg-[#140306]/80 border-[#4d131d]'
-        }`}>
-          <Radio size={11} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
-          <span className={`font-orbitron font-bold text-[9px] sm:text-[10px] tracking-[0.15em] uppercase ${
-            isPlaying ? 'text-[#ffccd5]' : 'text-[#ff8095]'
-          }`}>
-            {isPlaying ? 'SHAKE PHONE RAPIDLY TO CHARGE' : 'TELECEL SME MONTH • READY FOR LAUNCH'}
-          </span>
-        </div>
-      </footer>
 
       {/* ==================================================== */}
       {/* 4. CINEMATIC MOBILE COUNTDOWN OVERLAY                */}

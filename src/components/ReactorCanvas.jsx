@@ -10,6 +10,12 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 
 export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSurging = false }) {
   const canvasRef = useRef(null);
+  const voltageRef = useRef(voltage);
+  const smoothVoltageRef = useRef(voltage);
+
+  useEffect(() => {
+    voltageRef.current = voltage;
+  }, [voltage]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -57,6 +63,10 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
         const width = canvas.width;
         const height = canvas.height;
 
+        // Smooth physical liquid lerp dampening (60fps continuous glide)
+        const target = Math.min(100, Math.max(0, voltageRef.current));
+        smoothVoltageRef.current += (target - smoothVoltageRef.current) * 0.14;
+
         ctx.clearRect(0, 0, width, height);
 
         // Reactor Chamber Boundaries (Taller & Imposing)
@@ -67,8 +77,8 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
         const chamberBottom = chamberTop + chamberHeight;
         const cornerRadius = 26;
 
-        // Current Liquid Fill Height
-        const currentFill = Math.min(100, Math.max(0, voltage)) / 100;
+        // Current Liquid Fill Height (from smooth lerped value)
+        const currentFill = Math.min(100, Math.max(0, smoothVoltageRef.current)) / 100;
         const liquidHeight = chamberHeight * currentFill;
         const liquidTop = chamberBottom - liquidHeight;
 

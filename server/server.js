@@ -163,9 +163,9 @@ app.get('*', (req, res) => {
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '3.6'),       // Tightened challenging decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.95'),     // Tightened per-shake energy base
-  COMBO_DECAY_TIME_MS: 450,
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.2'),       // Tightened challenging decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.58'),     // Tightened per-shake energy base
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -218,19 +218,19 @@ setInterval(() => {
   gameState.connectedCount = Object.keys(gameState.players).length;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 450ms)
+    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 400ms)
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
     if (gameState.voltage > 85) {
-      currentDecay *= 1.85; // Strong high-voltage tension drain
+      currentDecay *= 1.9; // Strong high-voltage tension drain
     } else if (gameState.voltage > 70) {
       currentDecay *= 1.5;
     } else if (gameState.voltage > 45) {
       currentDecay *= 1.25;
     }
 
-    if (timeSinceShake > 450) {
+    if (timeSinceShake > 400) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
@@ -422,14 +422,14 @@ io.on('connection', (socket) => {
         const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
         let resistanceFactor = 1.0;
         if (currentVolt > 85) {
-          resistanceFactor = 0.52; // Strong climax resistance
+          resistanceFactor = 0.42; // Strong climax resistance
         } else if (currentVolt > 65) {
-          resistanceFactor = 0.72;
+          resistanceFactor = 0.65;
         } else if (currentVolt > 40) {
-          resistanceFactor = 0.88;
+          resistanceFactor = 0.82;
         }
 
-        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.78);
+        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.82);
         const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
         
         gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
