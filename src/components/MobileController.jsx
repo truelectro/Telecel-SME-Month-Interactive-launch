@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Zap, 
   Smartphone, 
-  RotateCw, 
   Flame, 
   Activity,
   Users,
-  CheckCircle2
+  ShieldAlert
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
 
@@ -16,7 +15,6 @@ export default function MobileController({ socket, gameState }) {
   const [needsIOSPermission, setNeedsIOSPermission] = useState(false);
   const [shakeCount, setShakeCount] = useState(0);
   const [shakeIntensity, setShakeIntensity] = useState(0);
-  const [touchActive, setTouchActive] = useState(false);
   const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
 
   const {
@@ -82,7 +80,7 @@ export default function MobileController({ socket, gameState }) {
     setLastShakeTimestamp(Date.now());
 
     if (navigator.vibrate) {
-      try { navigator.vibrate(30); } catch (e) {}
+      try { navigator.vibrate(35); } catch (e) {}
     }
 
     const s = socketRef.current;
@@ -92,7 +90,7 @@ export default function MobileController({ socket, gameState }) {
 
     setTimeout(() => {
       setShakeIntensity(0);
-    }, 120);
+    }, 150);
   }, []);
 
   // Motion Analyzer - Handles both Linear Acceleration & Gravity Vector (iOS Safari + Android)
@@ -147,13 +145,12 @@ export default function MobileController({ socket, gameState }) {
     const maxAxisRange = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
 
     // Shake Trigger Criteria: Responsive threshold for iPhone and Android
-    // Detects wrist flicks, vertical pumps, and lateral shakes
-    const isShake = (magRange > 2.4 || maxAxisRange > 2.4 || instantJerk > 3.2);
+    const isShake = (magRange > 2.2 || maxAxisRange > 2.2 || instantJerk > 3.0);
 
-    if (isShake && now - lastShakeTimeRef.current > 90) {
+    if (isShake && now - lastShakeTimeRef.current > 85) {
       lastShakeTimeRef.current = now;
       const peak = Math.max(magRange, maxAxisRange, instantJerk);
-      const intensity = Math.min(2.0, Math.max(0.7, peak / 3.8));
+      const intensity = Math.min(2.0, Math.max(0.7, peak / 3.6));
       sendShakeImpulse(intensity);
     }
   }, [sendShakeImpulse]);
@@ -166,7 +163,6 @@ export default function MobileController({ socket, gameState }) {
     if (a && (a.x !== null || a.y !== null || a.z !== null)) {
       onRawMotion(a.x || 0, a.y || 0, a.z || 0);
     } else if (ag && (ag.x !== null || ag.y !== null || ag.z !== null)) {
-      // iPhone Safari returns full acceleration with gravity
       onRawMotion(ag.x || 0, ag.y || 0, ag.z || 0);
     }
   }, [onRawMotion]);
@@ -196,9 +192,7 @@ export default function MobileController({ socket, gameState }) {
           if (orientRes === 'granted') {
             window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
           }
-        } catch (err) {
-          // Orientation permission is optional if motion is granted
-        }
+        } catch (err) {}
       }
     } catch (e) {
       console.warn('iOS sensor permission notice:', e);
@@ -212,10 +206,10 @@ export default function MobileController({ socket, gameState }) {
     if (isIOS) {
       setNeedsIOSPermission(true);
 
-      // 1. Attempt immediate automatic permission prompt on load
+      // Attempt immediate automatic permission prompt on load
       unlockIOSPermissions();
 
-      // 2. Fallback: prompt immediately on the very first touch/tap anywhere on the page
+      // Fallback: prompt on the very first touch anywhere on the page
       const autoPromptOnTouch = () => {
         unlockIOSPermissions();
       };
@@ -246,13 +240,13 @@ export default function MobileController({ socket, gameState }) {
     };
   }, [handleDeviceMotionEvent, handleDeviceOrientationEvent]);
 
-  // Active liveness heartbeat (1s interval)
+  // Active liveness heartbeat (2s interval)
   useEffect(() => {
     const timer = setInterval(() => {
       if (socketRef.current) {
         socketRef.current.emit('ping_heartbeat', { time: Date.now() });
       }
-    }, 1000);
+    }, 2000);
     return () => clearInterval(timer);
   }, []);
 
@@ -266,10 +260,9 @@ export default function MobileController({ socket, gameState }) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Screen turned on / tab reopened -> verify connection and re-join
         if (socketRef.current) {
           if (!socketRef.current.connected) {
-            socketRef.current.connectToHost();
+            socketRef.current.connectToHost?.();
           } else {
             socketRef.current.emit('join_controller', { playerName: '' });
           }
@@ -288,35 +281,26 @@ export default function MobileController({ socket, gameState }) {
     };
   }, []);
 
-  // Screen Tap Fallback
-  const handleTapSurge = () => {
-    if (needsIOSPermission) {
-      unlockIOSPermissions();
-    }
-    setTouchActive(true);
-    sendShakeImpulse(1.0);
-    setTimeout(() => setTouchActive(false), 100);
-  };
-
   return (
     <div 
-      className="relative min-h-screen w-full bg-[#080204] text-white flex flex-col justify-between p-3 md:p-4 overflow-hidden select-none font-rajdhani touch-none"
+      className="relative min-h-screen w-full bg-[#080204] text-white flex flex-col justify-between p-3.5 sm:p-5 overflow-hidden select-none font-rajdhani touch-none"
     >
-      {/* Background Glow */}
+      {/* Dynamic Background Glow on Physical Shake */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#20060c] via-[#0d0205] to-[#050102]" />
-        <div className={`absolute inset-0 bg-[#ff1f43]/25 transition-opacity duration-100 ${
-          shakeIntensity > 0 || touchActive ? 'opacity-100' : 'opacity-0'
+        <div className={`absolute inset-0 bg-[#ff1f43]/30 transition-opacity duration-150 ${
+          shakeIntensity > 0 ? 'opacity-100' : 'opacity-0'
         }`} />
+        <div className="absolute inset-0 scanlines opacity-10" />
       </div>
 
       {/* ==================================================== */}
       {/* 1. CONTROLLER HEADER & STATUS BAR                    */}
       {/* ==================================================== */}
-      <header className="relative z-10 flex items-center justify-between border-b border-[#4d131d] pb-2">
+      <header className="relative z-10 flex items-center justify-between border-b border-[#4d131d] pb-2.5 shrink-0">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded bg-[#330c14] border border-[#ff1f43] flex items-center justify-center shadow-[0_0_10px_#ff1f43]">
-            <Smartphone size={16} className="text-[#ff1f43]" />
+            <Smartphone size={16} className={`text-[#ff1f43] ${shakeIntensity > 0 ? 'animate-bounce text-white' : ''}`} />
           </div>
           <div className="flex flex-col">
             <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase">
@@ -330,7 +314,7 @@ export default function MobileController({ socket, gameState }) {
 
         {/* Live Audience Count Badge */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1a0408] border border-[#661827] rounded-full">
-          <Users size={12} className="text-[#ff1f43]" />
+          <Users size={12} className="text-[#ff1f43] animate-pulse" />
           <span className="font-orbitron font-bold text-xs text-[#ffccd5]">
             {connectedCount} LIVE
           </span>
@@ -338,17 +322,27 @@ export default function MobileController({ socket, gameState }) {
       </header>
 
       {/* ==================================================== */}
-      {/* 2. MAIN CONTROLLER INTERACTION AREA                  */}
+      {/* 2. MAIN CONTROLLER MOTION DISPLAY AREA               */}
       {/* ==================================================== */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center gap-3 py-2">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center gap-4 py-4">
 
-        {/* Hardware Motion Sensor Active Pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#140407] border border-[#4d131d] rounded-full text-xs">
-          <Activity size={12} className={sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500'} />
-          <span className={sensorActive ? 'text-green-300 font-bold' : 'text-yellow-400'}>
-            {sensorActive ? 'MOTION ACCELEROMETER ACTIVE' : 'TOUCH & TAP CONTROLLER READY'}
-          </span>
-        </div>
+        {/* Hardware Motion Sensor Active / Permission Banner */}
+        {needsIOSPermission && !sensorActive ? (
+          <button
+            onClick={unlockIOSPermissions}
+            className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#380e16] border border-[#ff1f43] rounded-full text-xs shadow-[0_0_15px_rgba(255,31,67,0.6)] animate-pulse cursor-pointer"
+          >
+            <Zap size={13} className="text-[#ff1f43]" />
+            <span className="text-white font-bold tracking-wider uppercase">TAP TO ENABLE MOTION SENSORS</span>
+          </button>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-[#140407] border border-[#2d7a3e]/60 rounded-full text-xs shadow-[0_0_10px_rgba(74,222,128,0.15)]">
+            <Activity size={12} className={sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500'} />
+            <span className={sensorActive ? 'text-green-300 font-bold tracking-wider' : 'text-yellow-400'}>
+              {sensorActive ? 'MOTION SENSORS READY • SHAKE DEVICE' : 'CALIBRATING SENSORS...'}
+            </span>
+          </div>
+        )}
 
         {status === 'victory' ? (
           /* Victory / Launch Revealed Logo Screen */
@@ -368,68 +362,73 @@ export default function MobileController({ socket, gameState }) {
             </p>
           </div>
         ) : (
-          /* Active Gameplay Shake Interface */
+          /* Active Gameplay Motion Reactive Interface */
           <>
             {/* Voltage Percentage */}
             <div className="flex flex-col items-center text-center">
               <span className="text-[10px] font-bold tracking-widest text-[#ff4d6d] uppercase">
                 {status === 'playing' ? 'COLLECTIVE VOLTAGE' : 'STANDBY • READY TO SHAKE'}
               </span>
-              <div className="font-orbitron font-black text-5xl text-white text-glow-red tracking-wider my-0.5">
+              <div className="font-orbitron font-black text-5xl sm:text-6xl text-white text-glow-red tracking-wider my-1">
                 {Math.floor(voltage)}%
               </div>
             </div>
 
-            {/* Mini Voltage Gauge */}
-            <div className="w-full max-w-[280px] h-6 bg-[#170508] border-2 border-[#661827] rounded-full p-0.5 shadow-panel-inset relative overflow-hidden">
+            {/* Voltage Gauge Progress Bar */}
+            <div className="w-full max-w-[280px] h-5 bg-[#170508] border-2 border-[#661827] rounded-full p-0.5 shadow-panel-inset relative overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#ffffff] rounded-full transition-all duration-100 shadow-[0_0_15px_#ff1f43]"
+                className="h-full bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#ffffff] rounded-full transition-all duration-150 shadow-[0_0_15px_#ff1f43]"
                 style={{ width: `${Math.min(100, Math.max(2, voltage))}%` }}
               />
             </div>
 
-            {/* Central Shake Orb */}
-            <div 
-              onClick={handleTapSurge}
-              className="relative w-36 h-36 flex items-center justify-center cursor-pointer active:scale-95 transition-transform my-1"
-            >
-              <div className={`absolute inset-0 rounded-full border-2 border-[#ff1f43] transition-transform duration-150 ${
-                shakeIntensity > 0 || touchActive ? 'scale-115 opacity-100 shadow-[0_0_30px_#ff1f43]' : 'scale-100 opacity-40'
+            {/* Dynamic Physical Motion Visualizer (Reactive HUD Core) */}
+            <div className="relative w-44 h-44 flex items-center justify-center my-2 pointer-events-none">
+              {/* Outer Energy Pulse Rings */}
+              <div className={`absolute inset-0 rounded-full border-2 border-[#ff1f43] transition-all duration-200 ${
+                shakeIntensity > 0 
+                  ? 'scale-120 opacity-100 shadow-[0_0_40px_#ff1f43] border-[#ff4d6d]' 
+                  : 'scale-100 opacity-30 animate-pulse'
               }`} />
-              <div className={`absolute inset-3 rounded-full border border-[#ff4d6d]/40 transition-transform duration-100 ${
-                shakeIntensity > 0 || touchActive ? 'scale-110' : 'scale-95'
+              <div className={`absolute inset-4 rounded-full border border-[#ff4d6d]/50 transition-all duration-150 ${
+                shakeIntensity > 0 ? 'scale-115 opacity-90' : 'scale-95 opacity-20'
               }`} />
 
-              <div className={`w-24 h-24 rounded-full bg-gradient-to-b from-[#380e16] to-[#1a0408] border-2 border-[#801b2a] flex flex-col items-center justify-center transition-all ${
-                shakeIntensity > 0 || touchActive ? 'scale-110 border-[#ff1f43] shadow-[0_0_25px_#ff1f43] bg-[#5c1322]' : ''
+              {/* Inner Reactor Sphere */}
+              <div className={`w-32 h-32 rounded-full bg-gradient-to-b from-[#380e16] to-[#1a0408] border-2 border-[#801b2a] flex flex-col items-center justify-center transition-all duration-150 ${
+                shakeIntensity > 0 
+                  ? 'scale-110 border-[#ff1f43] shadow-[0_0_35px_#ff1f43] bg-[#5c1322]' 
+                  : 'shadow-[0_0_15px_rgba(255,31,67,0.2)]'
               }`}>
-                <RotateCw size={24} className={`text-[#ff4d6d] ${shakeIntensity > 0 || touchActive ? 'animate-spin text-white' : ''}`} />
-                <span className="font-orbitron font-bold text-xs uppercase text-white tracking-widest mt-1">
-                  SHAKE!
+                <Smartphone size={32} className={`text-[#ff4d6d] transition-transform duration-100 ${
+                  shakeIntensity > 0 ? 'scale-125 text-white animate-bounce' : 'opacity-80'
+                }`} />
+                <span className="font-orbitron font-black text-sm uppercase text-white tracking-widest mt-1.5 drop-shadow-[0_0_8px_#ff1f43]">
+                  {shakeIntensity > 0 ? 'SURGING!' : 'SHAKE PHONE'}
                 </span>
-                <span className="text-[9px] text-[#ff8095] font-mono">
+                <span className="text-[10px] text-[#ff8095] font-mono mt-0.5">
                   {shakeCount} SURGES
                 </span>
               </div>
             </div>
 
             {/* Live Shake Pulse Feedback Banner */}
-            {Date.now() - lastShakeTimestamp < 300 && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-[#ff1f43]/30 border border-[#ff1f43] rounded-full text-[10px] font-orbitron font-bold text-white uppercase tracking-wider animate-pulse">
-                <Zap size={11} className="text-[#ff1f43]" />
-                <span>SURGE CONTRIBUTING! +ENERGY</span>
+            {Date.now() - lastShakeTimestamp < 350 && (
+              <div className="inline-flex items-center gap-1.5 px-4 py-1 bg-[#ff1f43]/35 border border-[#ff1f43] rounded-full text-xs font-orbitron font-bold text-white uppercase tracking-wider animate-pulse shadow-[0_0_15px_#ff1f43]">
+                <Zap size={13} className="text-[#ff1f43]" />
+                <span>ENERGY SURGING! ⚡</span>
               </div>
             )}
 
-            {/* Instructions */}
-            <div className="text-center px-4">
-              <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+            {/* User Instructions */}
+            <div className="text-center px-4 max-w-xs">
+              <p className="text-xs font-bold text-gray-200 uppercase tracking-wide">
                 {status === 'playing' ? 'Shake your phone vigorously!' : 'You are connected! Get ready.'}
               </p>
-              <p className="text-[11px] text-[#ff99aa]">
+              <p className="text-[11px] text-[#ff99aa] mt-0.5 leading-relaxed">
                 {status === 'playing'
-                  ? `All ${connectedCount} connected phones combine power to hit 100%!`
-                  : 'Waiting for host to initiate launch sequence on stage...'}
+                  ? `All ${connectedCount} connected phones combine power in real-time!`
+                  : 'When the launch sequence begins on stage, shake your phone to generate voltage!'}
               </p>
             </div>
           </>
@@ -438,20 +437,25 @@ export default function MobileController({ socket, gameState }) {
       </main>
 
       {/* ==================================================== */}
-      {/* 3. CONTROLLER FOOTER & TAP TO CHARGE BUTTON          */}
+      {/* 3. CONTROLLER FOOTER / TELEMETRY STATUS BAR          */}
       {/* ==================================================== */}
-      <footer className="relative z-10 flex flex-col gap-2">
-        <button
-          onClick={handleTapSurge}
-          className={`w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-base tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-2 ${
-            status === 'playing'
-              ? 'bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] active:scale-95 text-white shadow-neon-red border border-white/40 cursor-pointer'
-              : 'bg-[#2b0810] border border-[#ff1f43]/50 text-[#ffccd5] cursor-pointer'
-          }`}
-        >
-          <Zap size={18} className={status === 'playing' ? 'animate-bounce text-white' : 'text-[#ff1f43]'} />
-          <span>{status === 'playing' ? 'TAP OR SHAKE TO SURGE! ⚡' : 'CONNECTED • READY TO SHAKE ⚡'}</span>
-        </button>
+      <footer className="relative z-10 shrink-0">
+        {needsIOSPermission && !sensorActive ? (
+          <button
+            onClick={unlockIOSPermissions}
+            className="w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-sm tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] text-white shadow-neon-red border-2 border-white/60 animate-pulse cursor-pointer flex items-center justify-center gap-2"
+          >
+            <Zap size={16} />
+            <span>ACTIVATE MOTION SENSORS ⚡</span>
+          </button>
+        ) : (
+          <div className="w-full py-2 px-3 bg-[#170508]/80 border border-[#4d131d] sci-fi-cut flex items-center justify-center gap-2">
+            <Zap size={13} className="text-[#ff1f43] animate-pulse" />
+            <span className="font-orbitron font-bold text-[10px] tracking-[0.2em] text-[#ff99aa] uppercase">
+              {status === 'playing' ? 'PHYSICAL SHAKE SENSORS ENGAGED' : 'TELECEL SME MONTH • GRID LINK READY'}
+            </span>
+          </div>
+        )}
       </footer>
     </div>
   );
