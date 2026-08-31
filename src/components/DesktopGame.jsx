@@ -346,16 +346,22 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       }, 2500);
     };
 
+    const onGameReset = () => {
+      audioEngine.resetAudio();
+    };
+
     socket.on('surge_pulse', onSurgePulse);
     socket.on('participant_joined', onParticipantJoined);
     socket.on('boost_activated', onBoostActivated);
     socket.on('multiplier_up', onMultiplierUp);
+    socket.on('game_reset', onGameReset);
 
     return () => {
       socket.off('surge_pulse', onSurgePulse);
       socket.off('participant_joined', onParticipantJoined);
       socket.off('boost_activated', onBoostActivated);
       socket.off('multiplier_up', onMultiplierUp);
+      socket.off('game_reset', onGameReset);
     };
   }, [socket]);
 
@@ -451,6 +457,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
   const handleResetGame = () => {
     audioEngine.ensureRunning();
+    audioEngine.resetAudio();
     if (socket) socket.emit('reset_game');
   };
 

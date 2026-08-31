@@ -178,6 +178,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
     const onGameReset = () => {
       setShakeCount(0);
       setGameStartOverlay(false);
+      audioEngine.resetAudio();
     };
 
     const onAssigned = ({ operativeNumber: num }) => {

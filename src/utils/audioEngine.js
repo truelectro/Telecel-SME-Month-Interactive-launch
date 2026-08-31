@@ -112,16 +112,18 @@ class AudioEngine {
     // Volume intensifies dynamically
     const humVol = 0.04 + (norm * 0.16);
     this.humGain.gain.setTargetAtTime(humVol, this.ctx.currentTime, 0.08);
-
-    // Increase track BPM as voltage builds towards 100%
-    this.currentBpm = Math.floor(124 + norm * 24); // 124 -> 148 BPM
   }
 
-  // Start procedural pulse-pounding synthwave soundtrack
+  // Start procedural pulse-pounding synthwave soundtrack (Locked to rock-solid 126 BPM sync)
   startDramaticTrack() {
-    if (this.musicInterval || !this.ctx || this.isMuted) return;
+    if (!this.ctx || this.isMuted) return;
+
+    // Clear any previous running intervals first to prevent compounding speedups
+    this.stopDramaticTrack();
 
     this.musicStep = 0;
+    this.currentBpm = 126;
+
     const bassNotes = [110, 110, 130.81, 110, 146.83, 130.81, 164.81, 146.83]; // A minor driving arpeggio
     const leadNotes = [440, 523.25, 587.33, 659.25, 880, 783.99, 659.25, 587.33];
 
@@ -174,7 +176,8 @@ class AudioEngine {
       this.musicStep++;
     };
 
-    const intervalMs = Math.floor((60 / this.currentBpm / 2) * 1000);
+    // Fixed 126 BPM: 238ms per 8th note
+    const intervalMs = Math.floor((60 / 126 / 2) * 1000);
     this.musicInterval = setInterval(playTick, intervalMs);
   }
 
@@ -182,6 +185,26 @@ class AudioEngine {
     if (this.musicInterval) {
       clearInterval(this.musicInterval);
       this.musicInterval = null;
+    }
+    this.musicStep = 0;
+    this.currentBpm = 126;
+  }
+
+  resetAudio() {
+    this.stopDramaticTrack();
+    this.currentBpm = 126;
+    this.musicStep = 0;
+    if (this.humGain && this.ctx) {
+      this.humGain.gain.setTargetAtTime(0.02, this.ctx.currentTime, 0.1);
+    }
+    if (this.humFilter && this.ctx) {
+      this.humFilter.frequency.setTargetAtTime(100, this.ctx.currentTime, 0.1);
+    }
+    if (this.humOsc1 && this.ctx) {
+      this.humOsc1.frequency.setTargetAtTime(55, this.ctx.currentTime, 0.1);
+    }
+    if (this.humOsc2 && this.ctx) {
+      this.humOsc2.frequency.setTargetAtTime(110, this.ctx.currentTime, 0.1);
     }
   }
 
