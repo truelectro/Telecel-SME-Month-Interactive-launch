@@ -27,9 +27,9 @@ const ICE_SERVERS = [
 const EVENT_CONFIG = {
   MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 2.8,       // Responsive calibrated decay
-  SHAKE_VOLTAGE_BASE: 1.8,     // Calibrated crowd scaling base
-  COMBO_DECAY_TIME_MS: 500,
+  DECAY_RATE_PER_SEC: 3.6,       // Tightened challenging decay
+  SHAKE_VOLTAGE_BASE: 0.95,     // Tightened per-shake energy base
+  COMBO_DECAY_TIME_MS: 450,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -98,12 +98,14 @@ class BrowserHostEngine {
         let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
 
         if (this.gameState.voltage > 85) {
-          currentDecay *= 1.8; // Drain at high voltage if shaking stops
-        } else if (this.gameState.voltage > 65) {
-          currentDecay *= 1.4;
+          currentDecay *= 1.85; // Strong high-voltage tension drain
+        } else if (this.gameState.voltage > 70) {
+          currentDecay *= 1.5;
+        } else if (this.gameState.voltage > 45) {
+          currentDecay *= 1.25;
         }
 
-        if (timeSinceShake > 500) {
+        if (timeSinceShake > 450) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
@@ -336,15 +338,15 @@ class BrowserHostEngine {
 
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
       let resistanceFactor = 1.0;
-      if (currentVolt > 90) {
-        resistanceFactor = 0.50; // Dramatic climax resistance
-      } else if (currentVolt > 75) {
-        resistanceFactor = 0.70;
-      } else if (currentVolt > 50) {
-        resistanceFactor = 0.85;
+      if (currentVolt > 85) {
+        resistanceFactor = 0.52; // Strong climax resistance
+      } else if (currentVolt > 65) {
+        resistanceFactor = 0.72;
+      } else if (currentVolt > 40) {
+        resistanceFactor = 0.88;
       }
 
-      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.72);
+      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.78);
       const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 
