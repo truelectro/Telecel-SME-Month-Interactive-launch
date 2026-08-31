@@ -114,23 +114,21 @@ class AudioEngine {
     this.humGain.gain.setTargetAtTime(humVol, this.ctx.currentTime, 0.08);
   }
 
-  // Start procedural pulse-pounding synthwave soundtrack (Locked to rock-solid 126 BPM sync)
+  // Start procedural pulse-pounding synthwave soundtrack (Locked to global beat grid for 100% sync across all devices)
   startDramaticTrack() {
     if (!this.ctx || this.isMuted) return;
 
-    // Clear any previous running intervals first to prevent compounding speedups
+    // Clear any previous running timers first to prevent compounding
     this.stopDramaticTrack();
-
-    this.musicStep = 0;
-    this.currentBpm = 126;
 
     const bassNotes = [110, 110, 130.81, 110, 146.83, 130.81, 164.81, 146.83]; // A minor driving arpeggio
     const leadNotes = [440, 523.25, 587.33, 659.25, 880, 783.99, 659.25, 587.33];
+    const STEP_MS = 238; // 126 BPM 8th-note duration (238ms per step, 1904ms per 8-step measure)
 
-    const playTick = () => {
-      if (!this.ctx || this.isMuted) return;
+    const playNoteAtStep = (globalStep) => {
+      if (!this.ctx || this.isMuted || this.ctx.state === 'suspended') return;
       const t = this.ctx.currentTime;
-      const step = this.musicStep % 8;
+      const step = ((globalStep % 8) + 8) % 8;
 
       // 1. Driving Sub/Mid Bass Pulse
       const bassFreq = bassNotes[step];
@@ -172,16 +170,29 @@ class AudioEngine {
         leadOsc.start(t);
         leadOsc.stop(t + 0.14);
       }
-
-      this.musicStep++;
     };
 
-    // Fixed 126 BPM: 238ms per 8th note
-    const intervalMs = Math.floor((60 / 126 / 2) * 1000);
-    this.musicInterval = setInterval(playTick, intervalMs);
+    const tick = () => {
+      const now = Date.now();
+      const globalStep = Math.floor(now / STEP_MS);
+      playNoteAtStep(globalStep);
+    };
+
+    // Align with global network clock timestamp grid so all joining phones lock in phase
+    const now = Date.now();
+    const msToNextBeat = Math.max(5, STEP_MS - (now % STEP_MS));
+
+    this.musicTimeout = setTimeout(() => {
+      tick();
+      this.musicInterval = setInterval(tick, STEP_MS);
+    }, msToNextBeat);
   }
 
   stopDramaticTrack() {
+    if (this.musicTimeout) {
+      clearTimeout(this.musicTimeout);
+      this.musicTimeout = null;
+    }
     if (this.musicInterval) {
       clearInterval(this.musicInterval);
       this.musicInterval = null;

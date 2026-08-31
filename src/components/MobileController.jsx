@@ -424,6 +424,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
       sessionStorage.setItem('operative_name', clean);
     } catch (err) {}
 
+    audioEngine.ensureRunning();
+    if (statusRef.current === 'playing') {
+      audioEngine.updateVoltageHum(voltage, true);
+    }
+
     setPlayerName(clean);
     setIsRegistered(true);
     setNameError('');
@@ -557,6 +562,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
   // ====================================================
   return (
     <div 
+      onTouchStart={() => audioEngine.ensureRunning()}
+      onPointerDown={() => audioEngine.ensureRunning()}
       className={`relative min-h-screen w-full text-white flex flex-col justify-between p-3.5 sm:p-5 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
         isPlaying ? 'bg-[#080204]' : 'bg-[#060203]'
       }`}
