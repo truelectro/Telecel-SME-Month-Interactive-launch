@@ -33,6 +33,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [shakeFlash, setShakeFlash] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
 
+  const {
+    status = 'lobby',
+    voltage = 0,
+    score = 0,
+    highScore = 50000,
+    multiplier = 1,
+    multiplierProgress = 0,
+  } = gameState || {};
+
   // Auto-enable local QR fallback after 4 seconds if tunnel hasn't connected
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -67,15 +76,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     return () => clearInterval(interval);
   }, [status]);
-
-  const {
-    status = 'lobby',
-    voltage = 0,
-    score = 0,
-    highScore = 50000,
-    multiplier = 1,
-    multiplierProgress = 0,
-  } = gameState || {};
 
   // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
   const roomCode = serverInfo?.roomCode || 'telecel-launch';
