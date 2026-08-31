@@ -355,15 +355,11 @@ io.on('connection', (socket) => {
       };
       gameState.connectedCount = Object.keys(gameState.players).length;
     }
-    const player = gameState.players[socket.id];
-    const now = Date.now();
-
-    // Auto-start activation if in lobby and crowd begins shaking
-    if (gameState.status === 'lobby') {
-      gameState.status = 'playing';
-      gameState.lastTickTime = now;
+    if (player) {
+      player.lastSeen = now;
     }
 
+    // Only process shake voltage when the host has officially initiated the game
     if (gameState.status === 'playing') {
       gameState.lastActiveShakeTime = now;
 

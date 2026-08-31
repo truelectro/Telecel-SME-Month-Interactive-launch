@@ -236,6 +236,25 @@ class BrowserHostEngine {
       });
     }
   }
+  handleStartGame() {
+    this.resetGame('playing');
+    this.broadcast('game_started');
+    this.broadcast('game_state_update', {
+      status: 'playing',
+      voltage: 0,
+      connectedCount: this.gameState.connectedCount,
+    });
+  }
+
+  handleResetGame() {
+    this.resetGame('lobby');
+    this.broadcast('game_reset');
+    this.broadcast('game_state_update', {
+      status: 'lobby',
+      voltage: 0,
+      connectedCount: this.gameState.connectedCount,
+    });
+  }
 
   handleShakePulse(senderId, intensity = 1.0) {
     if (!this.gameState.players[senderId]) {
@@ -244,11 +263,11 @@ class BrowserHostEngine {
     const player = this.gameState.players[senderId];
     const now = Date.now();
 
-    if (this.gameState.status === 'lobby') {
-      this.gameState.status = 'playing';
-      this.gameState.lastTickTime = now;
+    if (player) {
+      player.lastSeen = now;
     }
 
+    // Only process shake voltage when the host has officially initiated the game
     if (this.gameState.status === 'playing') {
       this.gameState.lastActiveShakeTime = now;
 

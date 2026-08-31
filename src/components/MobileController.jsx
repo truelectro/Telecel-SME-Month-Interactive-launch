@@ -424,10 +424,12 @@ export default function MobileController({ socket, gameState }) {
             {/* Instructions */}
             <div className="text-center px-4">
               <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
-                Shake your phone vigorously!
+                {status === 'playing' ? 'Shake your phone vigorously!' : 'You are connected! Get ready.'}
               </p>
               <p className="text-[11px] text-[#ff99aa]">
-                All {connectedCount} connected phones combine power to hit 100%!
+                {status === 'playing'
+                  ? `All ${connectedCount} connected phones combine power to hit 100%!`
+                  : 'Waiting for host to initiate launch sequence on stage...'}
               </p>
             </div>
           </>
@@ -441,10 +443,14 @@ export default function MobileController({ socket, gameState }) {
       <footer className="relative z-10 flex flex-col gap-2">
         <button
           onClick={handleTapSurge}
-          className="w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-base tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-2 bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] active:scale-95 text-white shadow-neon-red border border-white/40 cursor-pointer"
+          className={`w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-base tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-2 ${
+            status === 'playing'
+              ? 'bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] active:scale-95 text-white shadow-neon-red border border-white/40 cursor-pointer'
+              : 'bg-[#2b0810] border border-[#ff1f43]/50 text-[#ffccd5] cursor-pointer'
+          }`}
         >
-          <Zap size={18} className="animate-bounce" />
-          <span>TAP OR SHAKE TO SURGE! ⚡</span>
+          <Zap size={18} className={status === 'playing' ? 'animate-bounce text-white' : 'text-[#ff1f43]'} />
+          <span>{status === 'playing' ? 'TAP OR SHAKE TO SURGE! ⚡' : 'CONNECTED • READY TO SHAKE ⚡'}</span>
         </button>
       </footer>
     </div>
