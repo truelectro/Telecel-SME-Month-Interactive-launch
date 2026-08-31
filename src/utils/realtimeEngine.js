@@ -27,8 +27,8 @@ const ICE_SERVERS = [
 const EVENT_CONFIG = {
   MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.5,       // Responsive decay
-  SHAKE_VOLTAGE_BASE: 0.40,     // Challenging calibration for intense crowd effort
+  DECAY_RATE_PER_SEC: 4.5,       // Responsive high-stakes decay
+  SHAKE_VOLTAGE_BASE: 0.28,     // Hardened calibration requiring synchronized crowd power
   COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
@@ -310,17 +310,17 @@ class BrowserHostEngine {
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.50;
+        resistanceFactor = 0.38;
       } else if (currentVolt > 65) {
-        resistanceFactor = 0.72;
+        resistanceFactor = 0.60;
       } else if (currentVolt > 40) {
-        resistanceFactor = 0.85;
+        resistanceFactor = 0.78;
       }
 
-      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.05);
+      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.04);
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 
-      const multGain = 1.2 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
+      const multGain = 0.95 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
       this.gameState.multiplierProgress += multGain;
       if (this.gameState.multiplierProgress >= 100) {
         if (this.gameState.multiplier < 5) {

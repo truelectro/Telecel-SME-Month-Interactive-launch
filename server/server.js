@@ -142,8 +142,8 @@ app.get('*', (req, res) => {
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '3.5'),       // Responsive decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.40'),     // Challenging calibration for intense crowd effort
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.5'),       // Responsive high-stakes decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.28'),     // Hardened calibration requiring synchronized crowd power
   COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
@@ -396,23 +396,23 @@ io.on('connection', (socket) => {
       // Dynamic per-shake gain scales with active players
       const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(Math.max(1, activeCount), 0.92);
 
-      // Challenging 3-tier resistance curve as voltage rises (adds intense climax tension above 65%)
+      // Hardened 3-tier resistance curve (high electromagnetic resistance above 65% and 85%)
       const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.50; // Final 15% requires sustained intense crowd effort
+        resistanceFactor = 0.38; // Final 15% requires sustained intense crowd effort
       } else if (currentVolt > 65) {
-        resistanceFactor = 0.72;
+        resistanceFactor = 0.60;
       } else if (currentVolt > 40) {
-        resistanceFactor = 0.85;
+        resistanceFactor = 0.78;
       }
 
-      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.05);
+      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.04);
       
       gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
 
       // Multiplier progress requires sustained momentum
-      const multGain = 1.2 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
+      const multGain = 0.95 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
       gameState.multiplierProgress += multGain;
       if (gameState.multiplierProgress >= 100) {
         if (gameState.multiplier < 5) {
