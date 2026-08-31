@@ -123,13 +123,13 @@ class BrowserHostEngine {
         }
       }
 
-      // Prune inactive/disconnected players every 2s (generous 45s threshold to accommodate mobile background throttling)
-      if (now - this.lastPruneTime > 2000) {
+      // Prune inactive/disconnected players every 3s (60s threshold to accommodate mobile background throttling)
+      if (now - this.lastPruneTime > 3000) {
         this.lastPruneTime = now;
         let countChanged = false;
         for (const id in this.gameState.players) {
           const p = this.gameState.players[id];
-          if (now - (p.lastSeen || 0) > 45000) {
+          if (p.lastSeen && (now - p.lastSeen > 60000)) {
             delete this.gameState.players[id];
             countChanged = true;
           }
@@ -167,6 +167,7 @@ class BrowserHostEngine {
     this.participantCounter += 1;
     const operativeNumber = this.participantCounter;
     const displayName = playerName?.trim() || `Operative #${operativeNumber}`;
+    const now = Date.now();
 
     this.gameState.players[senderId] = {
       id: senderId,
@@ -176,7 +177,7 @@ class BrowserHostEngine {
       lastShakeTime: 0,
       intensity: 0,
       sensorActive: false,
-      lastSeen: Date.now(),
+      lastSeen: now,
     };
 
     this.gameState.connectedCount = Object.keys(this.gameState.players).length;
@@ -184,7 +185,7 @@ class BrowserHostEngine {
     this.gameState.recentJoins.push({
       number: operativeNumber,
       name: displayName,
-      time: Date.now(),
+      time: now,
     });
     if (this.gameState.recentJoins.length > 20) {
       this.gameState.recentJoins.shift();
@@ -210,8 +211,9 @@ class BrowserHostEngine {
   }
 
   handlePlayerHeartbeat(senderId) {
+    const now = Date.now();
     if (this.gameState.players[senderId]) {
-      this.gameState.players[senderId].lastSeen = Date.now();
+      this.gameState.players[senderId].lastSeen = now;
     } else {
       this.handlePlayerJoin(senderId, '');
     }
@@ -236,6 +238,7 @@ class BrowserHostEngine {
       });
     }
   }
+
   handleStartGame() {
     this.resetGame('playing');
     this.broadcast('game_started');
@@ -321,16 +324,6 @@ class BrowserHostEngine {
     }
   }
 
-  handleStartGame() {
-    this.resetGame('playing');
-    this.broadcast('game_started');
-  }
-
-  handleResetGame() {
-    this.resetGame('lobby');
-    this.broadcast('game_reset');
-  }
-
   broadcast(event, data = {}) {
     if (this.onBroadcast) {
       this.onBroadcast(event, data);
@@ -353,7 +346,7 @@ class BrowserHostEngine {
 
 /**
  * Unified Realtime Network Adapter
- * Seamlessly manages WebRTC (PeerJS) for Vercel/Serverless and Socket.io for Dedicated servers.
+ * Seamlessly manages Socket.io for dedicated server / Cloudflare tunnel / LAN and WebRTC as fallback.
  */
 export class RealtimeNetwork {
   constructor(options = {}) {
@@ -361,15 +354,16 @@ export class RealtimeNetwork {
     this.isController = options.isController || false;
     this.roomCode = options.roomCode || 'telecel-launch';
     this.listeners = new Map();
-    this.connections = new Map(); // id -> DataConnection (host only)
+    this.connections = new Map();
     this.peer = null;
-    this.clientConn = null; // DataConnection to host (client only)
+    this.clientConn = null;
     this.socket = null;
     this.connected = false;
     this.id = null;
-    this.transport = 'webrtc'; // 'webrtc' | 'socket.io'
+    this.transport = 'socket.io'; // Default to Socket.io for unlimited scale
     this.hostEngine = null;
     this.reconnectTimer = null;
+    this.socketFailed = false;
   }
 
   on(event, callback) {
@@ -396,19 +390,17 @@ export class RealtimeNetwork {
   }
 
   emit(event, data) {
-    if (this.transport === 'socket.io' && this.socket) {
+    if (this.socket && this.transport === 'socket.io') {
       this.socket.emit(event, data);
       return;
     }
 
-    // WebRTC Mode
+    // WebRTC Fallback Mode
     if (this.isController) {
-      // Mobile controller sends to Desktop Host
       if (this.clientConn && this.clientConn.open) {
         this.clientConn.send({ event, data });
       }
     } else {
-      // Desktop Host processes event directly or sends to all peers
       this.handleHostAction(event, data);
     }
   }
@@ -427,53 +419,89 @@ export class RealtimeNetwork {
   }
 
   init() {
-    const customSocketUrl = this.options.socketUrl || import.meta.env.VITE_SOCKET_URL;
     const queryParams = new URLSearchParams(window.location.search);
-    const forceSocket = queryParams.get('mode') === 'socket' || !!customSocketUrl;
+    const forceWebRTC = queryParams.get('mode') === 'webrtc';
 
-    // If local dev on port 5173 without explicit WebRTC flag and custom socket is provided, or forced socket:
-    if (forceSocket) {
-      this.initSocketIO(customSocketUrl || `http://${window.location.hostname}:3001`);
+    if (forceWebRTC) {
+      this.initWebRTC();
       return;
     }
 
-    // Default for Vercel / Cloud: WebRTC Peer-to-Peer!
-    this.initWebRTC();
+    // Determine target Socket.io URL
+    const customSocketUrl = this.options.socketUrl || import.meta.env.VITE_SOCKET_URL;
+    let socketUrl = customSocketUrl;
+    if (!socketUrl) {
+      if (typeof window !== 'undefined') {
+        if (window.location.port === '5173') {
+          socketUrl = `http://${window.location.hostname}:3001`;
+        } else {
+          socketUrl = window.location.origin;
+        }
+      } else {
+        socketUrl = 'http://localhost:3001';
+      }
+    }
+
+    this.initSocketIO(socketUrl);
   }
 
   initSocketIO(url) {
     this.transport = 'socket.io';
     console.log(`Connecting via Socket.io to ${url}...`);
 
-    this.socket = io(url, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 50,
-      reconnectionDelay: 1000,
-      timeout: 10000,
-    });
+    try {
+      this.socket = io(url, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 500,
+        reconnectionDelayMax: 2000,
+        timeout: 8000,
+      });
 
-    this.socket.on('connect', () => {
-      this.connected = true;
-      this.id = this.socket.id;
-      this.emitLocal('connect', { id: this.socket.id });
-    });
+      this.socket.on('connect', () => {
+        console.log(`✅ Socket.io connected (ID: ${this.socket.id})`);
+        this.connected = true;
+        this.socketFailed = false;
+        this.id = this.socket.id;
+        this.emitLocal('connect', { id: this.socket.id });
 
-    this.socket.on('disconnect', () => {
-      this.connected = false;
-      this.emitLocal('disconnect');
-    });
+        if (this.isController) {
+          this.socket.emit('join_controller', { playerName: '' });
+        }
+      });
 
-    // Forward any socket events to local listeners
-    const events = [
-      'init_sync', 'game_state_update', 'controller_assigned',
-      'participant_joined', 'participant_left', 'surge_pulse',
-      'boost_activated', 'multiplier_up', 'game_victory',
-      'game_over', 'game_started', 'game_reset', 'tunnel_ready'
-    ];
+      this.socket.on('disconnect', (reason) => {
+        console.warn(`Socket.io disconnected: ${reason}`);
+        this.connected = false;
+        this.emitLocal('disconnect');
+      });
 
-    events.forEach(evt => {
-      this.socket.on(evt, (data) => this.emitLocal(evt, data));
-    });
+      this.socket.on('connect_error', (err) => {
+        console.warn('Socket.io connection error:', err?.message || err);
+        // If on pure Vercel serverless without socket backend, fallback to WebRTC after timeout
+        if (!this.connected && !this.socketFailed && typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+          this.socketFailed = true;
+          console.log('Falling back to WebRTC PeerJS for Vercel...');
+          this.initWebRTC();
+        }
+      });
+
+      // Forward all socket events to local listeners
+      const events = [
+        'init_sync', 'game_state_update', 'controller_assigned',
+        'participant_joined', 'participant_left', 'surge_pulse',
+        'boost_activated', 'multiplier_up', 'game_victory',
+        'game_over', 'game_started', 'game_reset', 'tunnel_ready'
+      ];
+
+      events.forEach(evt => {
+        this.socket.on(evt, (data) => this.emitLocal(evt, data));
+      });
+    } catch (e) {
+      console.error('Socket.io init exception:', e);
+      this.initWebRTC();
+    }
   }
 
   initWebRTC() {
@@ -506,7 +534,6 @@ export class RealtimeNetwork {
       this.peer.on('error', (err) => {
         console.warn('Peer error:', err?.type || err);
 
-        // If ID taken (e.g. host reloaded or room exists), fallback cleanly
         if (err.type === 'unavailable-id' && !this.isController) {
           console.log('Room ID taken, reconnecting with unique suffix...');
           const altId = `${this.roomCode}-${Math.floor(Math.random() * 8999 + 1000)}`;
@@ -534,7 +561,6 @@ export class RealtimeNetwork {
     this.hostEngine = new BrowserHostEngine(
       this.roomCode,
       (event, data, targetPeerId) => {
-        // Broadcast over WebRTC data channels
         const msg = { event, data };
         if (targetPeerId && this.connections.has(targetPeerId)) {
           const conn = this.connections.get(targetPeerId);
@@ -546,25 +572,21 @@ export class RealtimeNetwork {
         }
       },
       (event, data) => {
-        // Notify local Desktop Game UI
         this.emitLocal(event, data);
       }
     );
 
-    // Initial sync
     this.emitLocal('init_sync', {
       gameState: this.hostEngine.gameState,
       roomCode: this.roomCode,
     });
 
-    // Accept incoming mobile controller connections
     this.peer.on('connection', (conn) => {
       const connId = conn.peer;
       this.connections.set(connId, conn);
 
       conn.on('open', () => {
         console.log(`Participant WebRTC connected: ${connId}`);
-        // Send immediate init sync to new peer
         conn.send({
           event: 'init_sync',
           data: {
@@ -601,13 +623,11 @@ export class RealtimeNetwork {
       });
 
       conn.on('close', () => {
-        console.log(`Participant disconnected: ${connId}`);
         this.connections.delete(connId);
         this.hostEngine.handlePlayerLeave(connId);
       });
 
       conn.on('error', (err) => {
-        console.warn(`Connection error with ${connId}:`, err);
         this.connections.delete(connId);
         this.hostEngine.handlePlayerLeave(connId);
       });
@@ -629,8 +649,6 @@ export class RealtimeNetwork {
         console.log(`✅ WebRTC connected to Host: ${this.roomCode}`);
         this.connected = true;
         this.emitLocal('connect', { id: this.peer.id });
-
-        // Automatically register controller
         this.emit('join_controller', { playerName: '' });
       });
 
@@ -641,20 +659,17 @@ export class RealtimeNetwork {
       });
 
       this.clientConn.on('close', () => {
-        console.log('Disconnected from Host');
         this.connected = false;
         this.emitLocal('disconnect');
         this.scheduleClientReconnect();
       });
 
       this.clientConn.on('error', (err) => {
-        console.warn('Host connection error:', err);
         this.connected = false;
         this.emitLocal('disconnect');
         this.scheduleClientReconnect();
       });
     } catch (err) {
-      console.warn('Error connecting to host:', err);
       this.scheduleClientReconnect();
     }
   }

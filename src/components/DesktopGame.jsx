@@ -147,11 +147,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   // Construct mobile controller QR link
   let controllerUrl = serverInfo?.tunnelUrl;
   if (!controllerUrl) {
-    controllerUrl = `${window.location.origin}/controller?room=${encodeURIComponent(roomCode)}`;
+    const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (isLocalhost && serverInfo?.lanIp) {
+      controllerUrl = `http://${serverInfo.lanIp}:${serverInfo?.httpPort || 3001}/controller?room=${encodeURIComponent(roomCode)}`;
+    } else {
+      controllerUrl = `${window.location.origin}/controller?room=${encodeURIComponent(roomCode)}`;
+    }
   }
   
-  // On Vercel / HTTPS or when tunnel is active, QR code is immediately ready
-  const tunnelReady = isHttps || !!serverInfo?.tunnelUrl;
+  // On Vercel / HTTPS or when tunnel is active or when LAN IP is resolved, QR code is immediately ready
+  const tunnelReady = isHttps || !!serverInfo?.tunnelUrl || !!serverInfo?.lanIp;
 
   // Trigger sound engine updates on voltage changes
   useEffect(() => {
@@ -253,7 +258,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   };
 
   return (
-    <div className="relative w-screen h-screen min-h-[700px] bg-[#070204] text-white flex flex-col justify-between p-3 md:p-6 overflow-hidden select-none font-rajdhani">
+    <div className="relative w-screen h-screen max-h-screen bg-[#070204] text-white flex flex-col justify-between p-2 sm:p-3 md:p-4 overflow-hidden select-none font-rajdhani">
       
       {/* Background Industrial Skyline Silhouette & Lightning Atmospherics */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -266,7 +271,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         }`} />
 
         {/* Industrial Tower Silhouettes at Horizon */}
-        <svg className="absolute bottom-0 w-full h-48 opacity-25 text-[#1f070b]" viewBox="0 0 1200 200" preserveAspectRatio="none">
+        <svg className="absolute bottom-0 w-full h-36 md:h-48 opacity-25 text-[#1f070b]" viewBox="0 0 1200 200" preserveAspectRatio="none">
           <path fill="currentColor" d="M0,200 L0,140 L40,140 L50,80 L60,80 L70,140 L120,140 L140,110 L160,140 L220,140 L230,60 L240,60 L250,140 L340,140 L360,95 L390,140 L460,140 L480,40 L495,40 L510,140 L600,140 L620,105 L650,140 L720,140 L735,70 L750,140 L830,140 L850,50 L870,140 L960,140 L980,100 L1010,140 L1100,140 L1120,75 L1140,140 L1200,140 L1200,200 Z" />
         </svg>
 
@@ -275,7 +280,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       </div>
 
       {/* Screen Edge Bevel Outer Border (Cyberpunk Metal Enclosure) */}
-      <div className="absolute inset-2 md:inset-4 border border-[#42111a]/80 pointer-events-none z-10 sci-fi-cut">
+      <div className="absolute inset-1.5 sm:inset-2 md:inset-4 border border-[#42111a]/80 pointer-events-none z-10 sci-fi-cut">
         {/* Corner Rivet Details */}
         <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-[#ff2a4b]/40 shadow-[0_0_8px_#ff2a4b]" />
         <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#ff2a4b]/40 shadow-[0_0_8px_#ff2a4b]" />
@@ -286,44 +291,44 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {/* 1. TOP HEADER                                       */}
       {/* ==================================================== */}
-      <header className={`relative z-20 flex items-center justify-between px-4 py-2 ${
+      <header className={`relative z-20 flex items-center justify-between px-2 sm:px-4 py-1 sm:py-1.5 shrink-0 ${
         isBooting || status === 'playing' ? 'animate-cyber-down' : ''
       }`}>
-        {/* Left: Telecel SME Month Official Brand Logo (Enlarged) */}
+        {/* Left: Telecel SME Month Official Brand Logo */}
         <div className="flex items-center">
-          <LaunchLogo className="w-auto h-16 sm:h-18 md:h-20 lg:h-22 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain drop-shadow-[0_0_16px_rgba(255,31,67,0.85)]" animate={false} />
+          <LaunchLogo className="w-auto h-10 sm:h-12 md:h-14 lg:h-16 max-w-[140px] sm:max-w-[180px] md:max-w-[220px] object-contain drop-shadow-[0_0_16px_rgba(255,31,67,0.85)]" animate={false} />
         </div>
 
         {/* Center: MAX VOLTAGE 100% Display */}
         <div className="flex flex-col items-center">
-          <span className="text-[10px] md:text-xs tracking-widest font-semibold text-[#ff8095]/80 uppercase">
+          <span className="text-[9px] sm:text-[10px] md:text-xs tracking-widest font-semibold text-[#ff8095]/80 uppercase">
             {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
           </span>
-          <div className="px-5 py-1 bg-[#20070b]/90 border border-[#5e1925] sci-fi-cut-sm shadow-[0_0_12px_rgba(255,31,67,0.3)]">
-            <span className="font-orbitron font-black text-xl md:text-2xl tracking-wider text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
+          <div className="px-3 sm:px-5 py-0.5 sm:py-1 bg-[#20070b]/90 border border-[#5e1925] sci-fi-cut-sm shadow-[0_0_12px_rgba(255,31,67,0.3)]">
+            <span className="font-orbitron font-black text-base sm:text-xl md:text-2xl tracking-wider text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]">
               {status === 'playing' ? `${Math.floor(voltage)}%` : '100%'}
             </span>
           </div>
         </div>
 
         {/* Right: Utility & Audio Buttons */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
           {/* Audio Mute Toggle */}
           <button
             onClick={handleToggleMute}
             aria-label="Toggle Audio"
-            className="w-9 h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
 
           {/* Help Button */}
           <button
             onClick={() => setShowHelp(!showHelp)}
             aria-label="How to play"
-            className="w-9 h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
-            <HelpCircle size={18} />
+            <HelpCircle size={16} />
           </button>
 
           {/* Reset / Settings */}
@@ -331,18 +336,18 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             onClick={handleResetGame}
             title="Reset Game / Lobby"
             aria-label="Reset Game"
-            className="w-9 h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
-            <RotateCcw size={18} />
+            <RotateCcw size={16} />
           </button>
 
           {/* Fullscreen Toggle */}
           <button
             onClick={toggleFullscreen}
             aria-label="Fullscreen"
-            className="w-9 h-9 hidden sm:flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+            className="w-8 h-8 sm:w-9 sm:h-9 hidden sm:flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
-            <Maximize2 size={18} />
+            <Maximize2 size={16} />
           </button>
         </div>
       </header>
@@ -350,17 +355,17 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {/* 2. MAIN 3-COLUMN GAME HUD (Hero Reactor Layout)     */}
       {/* ==================================================== */}
-      <main className="relative z-20 flex-1 grid grid-cols-12 gap-3 md:gap-8 items-center px-2 md:px-6 my-auto max-w-[1600px] mx-auto w-full h-full">
+      <main className="relative z-20 flex-1 min-h-0 grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 lg:gap-6 items-center px-1 sm:px-2 md:px-4 my-auto max-w-[1600px] mx-auto w-full h-full">
         
         {/* -------------------------------------------------- */}
         {/* LEFT COLUMN: Objectives, Score, Best, Multiplier   */}
         {/* -------------------------------------------------- */}
-        <div className={`col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-2 md:order-1 ${
+        <div className={`col-span-12 md:col-span-3 flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 order-2 md:order-1 justify-center ${
           isBooting || status === 'playing' ? 'animate-cyber-left' : ''
         }`}>
           {/* OBJECTIVE CARD */}
-          <div className="hud-panel p-3.5 sci-fi-cut">
-            <span className="text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-1">
+          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
               LAUNCH MISSION
             </span>
             <p className="font-orbitron font-semibold text-xs md:text-sm text-gray-200 uppercase tracking-wide">
@@ -369,37 +374,37 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* CONNECTED AUDIENCE CARD */}
-          <div className="hud-panel p-3.5 sci-fi-cut">
-            <span className="text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
+          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
               CONNECTED AUDIENCE
             </span>
-            <div className="font-orbitron font-black text-2xl md:text-3xl text-white tracking-wider text-glow-red">
+            <div className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl text-white tracking-wider text-glow-red">
               {gameState.connectedCount || 0}
             </div>
           </div>
 
           {/* COLLECTIVE SCORE CARD */}
-          <div className="hud-panel p-3 sci-fi-cut">
-            <span className="text-[10px] font-bold tracking-widest text-[#a83244] uppercase block mb-0.5">
+          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut">
+            <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-[#a83244] uppercase block mb-0.5">
               COLLECTIVE ENERGY
             </span>
-            <div className="font-orbitron font-bold text-lg md:text-xl text-[#f08095] tracking-wider">
+            <div className="font-orbitron font-bold text-base sm:text-lg md:text-xl text-[#f08095] tracking-wider">
               {score.toLocaleString()}
             </div>
           </div>
 
           {/* RADIAL MULTIPLIER CARD */}
-          <div className="hud-panel p-3 sci-fi-cut flex flex-col items-center">
-            <span className="text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-1">
+          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex flex-col items-center">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-0.5">
               MULTIPLIER
             </span>
             <MultiplierGauge multiplier={multiplier} progress={multiplierProgress} />
           </div>
 
           {/* STATUS FOOTER BADGE */}
-          <div className="hud-panel p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
-            <Zap size={14} className="text-[#ff1f43] animate-pulse" />
-            <span className="text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase">
+          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
+            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase truncate">
               {status === 'playing' ? 'KEEP THE VOLTAGE RISING!' : 'WAITING FOR SENSORS'}
             </span>
           </div>
@@ -408,62 +413,62 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* CENTER COLUMN: Central High-Voltage Reactor Core   */}
         {/* -------------------------------------------------- */}
-        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-1 ${
+        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-0.5 sm:py-1 ${
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
-          {/* Main Heavy Reactor Assembly (Larger & Taller) */}
-          <div className="relative w-full max-w-[460px] md:max-w-[500px] lg:max-w-[540px] h-[540px] md:h-[640px] lg:h-[720px] max-h-[82vh] flex items-center justify-center">
+          {/* Main Heavy Reactor Assembly */}
+          <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] h-full max-h-[72vh] sm:max-h-[76vh] md:max-h-[80vh] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
-            <div className="absolute -left-2 md:-left-4 bottom-14 z-10 flex flex-col items-center">
-              <div className="w-10 h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+            <div className="absolute -left-2 md:-left-4 bottom-10 sm:bottom-14 z-10 flex flex-col items-center pointer-events-none">
+              <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
               </div>
-              <div className="w-14 h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
+              <div className="w-10 sm:w-14 h-5 sm:h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
               {/* Cable connecting into base */}
-              <svg className="w-14 h-9 text-[#3d0f17]" viewBox="0 0 50 30">
+              <svg className="w-10 sm:w-14 h-7 sm:h-9 text-[#3d0f17]" viewBox="0 0 50 30">
                 <path d="M 10 0 C 15 25, 40 25, 50 20" fill="none" stroke="currentColor" strokeWidth="4" />
               </svg>
             </div>
 
             {/* Right Insulator Coil */}
-            <div className="absolute -right-2 md:-right-4 bottom-14 z-10 flex flex-col items-center">
-              <div className="w-10 h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
-                <div className="w-8 md:w-9 h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+            <div className="absolute -right-2 md:-right-4 bottom-10 sm:bottom-14 z-10 flex flex-col items-center pointer-events-none">
+              <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
+                <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
               </div>
-              <div className="w-14 h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
+              <div className="w-10 sm:w-14 h-5 sm:h-7 bg-[#180509] border border-[#50131e] rounded-b-md" />
               {/* Cable connecting into base */}
-              <svg className="w-14 h-9 text-[#3d0f17]" viewBox="0 0 50 30">
+              <svg className="w-10 sm:w-14 h-7 sm:h-9 text-[#3d0f17]" viewBox="0 0 50 30">
                 <path d="M 40 0 C 35 25, 10 25, 0 20" fill="none" stroke="currentColor" strokeWidth="4" />
               </svg>
             </div>
 
             {/* Height Percentage Ruler Ticks (0%, 25%, 50%, 75%, 100%) */}
-            <div className="absolute right-4 md:right-7 top-[10%] bottom-[15%] flex flex-col justify-between items-start text-xs md:text-sm font-orbitron font-bold text-[#802434] pointer-events-none z-10">
-              <div className="flex items-center gap-1.5">
-                <span className="w-4 h-0.5 bg-[#802434]" />
-                <span className={voltage >= 95 ? 'text-white font-bold text-glow-red text-sm md:text-base' : ''}>100%</span>
+            <div className="absolute right-4 md:right-7 top-[10%] bottom-[15%] flex flex-col justify-between items-start text-[11px] sm:text-xs md:text-sm font-orbitron font-bold text-[#802434] pointer-events-none z-10">
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="w-3 sm:w-4 h-0.5 bg-[#802434]" />
+                <span className={voltage >= 95 ? 'text-white font-bold text-glow-red text-xs sm:text-base' : ''}>100%</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="w-2.5 sm:w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 75 ? 'text-[#ff4d6d] font-bold' : ''}>75%</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="w-2.5 sm:w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 50 ? 'text-[#ff4d6d] font-bold' : ''}>50%</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="w-2.5 sm:w-3 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 25 ? 'text-[#ff4d6d] font-bold' : ''}>25%</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-4 h-0.5 bg-[#802434]" />
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <span className="w-3 sm:w-4 h-0.5 bg-[#802434]" />
                 <span className="text-[#a03043]">0%</span>
               </div>
             </div>
@@ -478,10 +483,10 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Bottom Reactor Base Chassis & Status Button */}
-            <div className="absolute bottom-1 inset-x-6 md:inset-x-8 z-10 flex flex-col items-center">
-              <div className="w-full py-2.5 px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2.5 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
-                <Zap size={18} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
-                <span className="font-orbitron font-black text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">
+            <div className="absolute bottom-1 inset-x-4 sm:inset-x-6 md:inset-x-8 z-10 flex flex-col items-center">
+              <div className="w-full py-1.5 sm:py-2 md:py-2.5 px-4 sm:px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
+                <Zap size={16} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
+                <span className="font-orbitron font-black text-[11px] sm:text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">
                   {status === 'playing' ? (voltage > 70 ? 'CRITICAL SURGE' : 'VOLTAGE RISING') : 'STANDBY MODE'}
                 </span>
               </div>
@@ -492,65 +497,65 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* RIGHT COLUMN: How to Play Cards & Status           */}
         {/* -------------------------------------------------- */}
-        <div className={`col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-3 ${
+        <div className={`col-span-12 md:col-span-3 flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 order-3 justify-center ${
           isBooting || status === 'playing' ? 'animate-cyber-right' : ''
         }`}>
           
           {/* HOW TO PLAY CARDS */}
-          <div className="hud-panel p-4 sci-fi-cut flex flex-col gap-3">
-            <span className="text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block">
+          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex flex-col gap-2">
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block">
               HOW TO PLAY
             </span>
 
             {/* Rule 1 */}
-            <div className="flex items-start gap-3 bg-[#170508]/60 p-2 rounded border border-[#3b0f17]">
-              <div className="w-8 h-8 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
-                <Zap size={16} className="text-[#ff1f43]" />
+            <div className="flex items-start gap-2 sm:gap-2.5 bg-[#170508]/60 p-1.5 sm:p-2 rounded border border-[#3b0f17]">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
+                <Zap size={14} className="text-[#ff1f43]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white uppercase">SHAKE TO SURGE</span>
-                <span className="text-[11px] text-[#b85c6c]">Shake your phones rapidly to raise the voltage</span>
+                <span className="text-[11px] sm:text-xs font-bold text-white uppercase">SHAKE TO SURGE</span>
+                <span className="text-[10px] sm:text-[11px] text-[#b85c6c] leading-tight">Shake your phones rapidly to raise voltage</span>
               </div>
             </div>
 
             {/* Rule 2 */}
-            <div className="flex items-start gap-3 bg-[#170508]/60 p-2 rounded border border-[#3b0f17]">
-              <div className="w-8 h-8 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
-                <Activity size={16} className="text-[#ff1f43]" />
+            <div className="flex items-start gap-2 sm:gap-2.5 bg-[#170508]/60 p-1.5 sm:p-2 rounded border border-[#3b0f17]">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
+                <Activity size={14} className="text-[#ff1f43]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white uppercase">KEEP ENERGY FLOWING</span>
-                <span className="text-[11px] text-[#b85c6c]">Maintain rhythm together to multiply power</span>
+                <span className="text-[11px] sm:text-xs font-bold text-white uppercase">KEEP ENERGY FLOWING</span>
+                <span className="text-[10px] sm:text-[11px] text-[#b85c6c] leading-tight">Maintain rhythm together to multiply power</span>
               </div>
             </div>
 
             {/* Rule 3 */}
-            <div className="flex items-start gap-3 bg-[#170508]/60 p-2 rounded border border-[#3b0f17]">
-              <div className="w-8 h-8 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
-                <ShieldAlert size={16} className="text-[#ff1f43]" />
+            <div className="flex items-start gap-2 sm:gap-2.5 bg-[#170508]/60 p-1.5 sm:p-2 rounded border border-[#3b0f17]">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-[#330c14] flex items-center justify-center shrink-0 border border-[#661827]">
+                <ShieldAlert size={14} className="text-[#ff1f43]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white uppercase">DON'T LET IT DROP</span>
-                <span className="text-[11px] text-[#b85c6c]">Voltage drains continuously if shaking stops</span>
+                <span className="text-[11px] sm:text-xs font-bold text-white uppercase">DON'T LET IT DROP</span>
+                <span className="text-[10px] sm:text-[11px] text-[#b85c6c] leading-tight">Voltage drains continuously if shaking stops</span>
               </div>
             </div>
           </div>
 
           {/* REAL-TIME SYSTEM CORE STATUS CARD */}
-          <div className="hud-panel p-3.5 sci-fi-cut flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap size={18} className="text-[#ff1f43] animate-pulse" />
-              <span className="font-orbitron font-bold text-xs text-gray-200 uppercase tracking-wider">
+          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Zap size={16} className="text-[#ff1f43] animate-pulse" />
+              <span className="font-orbitron font-bold text-[11px] sm:text-xs text-gray-200 uppercase tracking-wider">
                 CORE STATUS
               </span>
             </div>
-            <span className="font-orbitron font-black text-sm text-[#ff4d6d] tracking-widest uppercase">
+            <span className="font-orbitron font-black text-xs sm:text-sm text-[#ff4d6d] tracking-widest uppercase">
               {status === 'playing' ? (voltage > 75 ? 'MAX OVERCHARGE' : 'POWER RISING') : 'LOBBY STANDBY'}
             </span>
           </div>
 
           {/* Quick Keyboard Hint */}
-          <div className="text-[10px] text-center text-[#7a2c39] flex items-center justify-center gap-1 mt-1">
+          <div className="text-[10px] text-center text-[#7a2c39] flex items-center justify-center gap-1 mt-0.5">
             <Keyboard size={12} />
             <span>Dev shortcuts: [Space] Shake • [S] Start • [R] Reset</span>
           </div>
@@ -577,12 +582,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             <div className="absolute inset-x-0 h-0.5 bottom-0 bg-gradient-to-r from-transparent via-[#ff1f43] to-transparent shadow-[0_0_20px_#ff1f43]" />
 
             {/* Hi-Tech HUD Framing Box */}
-            <div className="relative z-10 bg-[#160307]/85 backdrop-blur-md px-8 md:px-12 py-5 md:py-6 rounded-2xl border-2 border-[#ff1f43]/70 shadow-[0_0_50px_rgba(255,31,67,0.5)] sci-fi-cut">
-              <div className="font-orbitron font-black text-3xl md:text-5xl lg:text-6xl text-white tracking-widest uppercase text-glow-red drop-shadow-[0_0_25px_#ff1f43]">
+            <div className="relative z-10 bg-[#160307]/85 backdrop-blur-md px-6 md:px-12 py-4 md:py-6 rounded-2xl border-2 border-[#ff1f43]/70 shadow-[0_0_50px_rgba(255,31,67,0.5)] sci-fi-cut">
+              <div className="font-orbitron font-black text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-white tracking-widest uppercase text-glow-red drop-shadow-[0_0_25px_#ff1f43]">
                 {overlayMessage.title}
               </div>
               {overlayMessage.sub && (
-                <p className="font-rajdhani font-bold text-sm md:text-xl text-[#ffccd5] tracking-[0.25em] uppercase mt-2 drop-shadow-[0_0_8px_#ff1f43]">
+                <p className="font-rajdhani font-bold text-xs sm:text-base md:text-xl text-[#ffccd5] tracking-[0.25em] uppercase mt-2 drop-shadow-[0_0_8px_#ff1f43]">
                   {overlayMessage.sub}
                 </p>
               )}
@@ -595,7 +600,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* 3. FULL-SCREEN IMMERSIVE LOBBY & PAIRING SCREEN     */}
       {/* ==================================================== */}
       {status === 'lobby' && (
-        <div className="fixed inset-0 z-50 w-screen h-screen bg-[#0a0204] flex flex-col justify-between p-3 sm:p-5 md:p-8 overflow-hidden select-none animate-fade-in">
+        <div className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#0a0204] flex flex-col justify-between p-2.5 sm:p-4 md:p-6 overflow-hidden select-none animate-fade-in">
           
           {/* Ambient Background Radial Glows */}
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -610,54 +615,54 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Fullscreen Outer Sci-Fi Border */}
-          <div className="absolute inset-2 sm:inset-4 md:inset-6 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
-            <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+          <div className="absolute inset-1.5 sm:inset-3 md:inset-4 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
+            <div className="absolute top-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
           </div>
 
           {/* Top: Telecel SME Month Logo & Headline */}
-          <div className="relative z-20 flex flex-col items-center text-center mt-1">
-            <div className="w-full max-w-[420px] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[680px] max-h-[20vh] flex items-center justify-center mb-2">
-              <LaunchLogo className="w-full h-auto max-w-[640px] max-h-[19vh] object-contain" animate={false} />
+          <div className="relative z-20 flex flex-col items-center text-center mt-0.5 sm:mt-1 shrink-0">
+            <div className="w-full max-w-[340px] sm:max-w-[440px] md:max-w-[540px] lg:max-w-[620px] max-h-[12vh] sm:max-h-[14vh] md:max-h-[16vh] flex items-center justify-center mb-1 sm:mb-1.5">
+              <LaunchLogo className="w-full h-auto max-w-full max-h-[12vh] sm:max-h-[14vh] md:max-h-[16vh] object-contain" animate={false} />
             </div>
             
-            <h2 className="font-orbitron font-black text-2xl sm:text-3xl md:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-1">
-              SCAN TO JOIN THE CROWD SURGE
+            <h2 className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-0.5">
+              SCAN TO JOIN THE SME SURGE
             </h2>
-            <p className="text-xs sm:text-sm text-[#ff99aa] max-w-2xl mt-1 px-4">
+            <p className="text-[11px] sm:text-xs md:text-sm text-[#ff99aa] max-w-xl sm:max-w-2xl mt-0.5 sm:mt-1 px-4 leading-tight sm:leading-normal">
               Everyone in the audience scan with your smartphone! When the activation begins, shake your phones together to surge the voltage to 100%!
             </p>
           </div>
 
           {/* Center Stage: Split Hero Presentation Area (Matching Height QR Code + Connected Counter) */}
-          <div className="relative z-20 flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center justify-items-center max-w-5xl mx-auto w-full my-auto px-4">
+          <div className="relative z-20 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center justify-items-center max-w-4xl lg:max-w-5xl mx-auto w-full my-auto px-2 sm:px-4">
             
             {/* Left: Large High-Contrast Stage QR Code Box */}
-            <div className="flex items-center justify-center w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] h-[280px] sm:h-[330px] md:h-[360px] lg:h-[380px]">
+            <div className="flex items-center justify-center w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[390px] h-full max-h-[38vh] sm:max-h-[42vh] md:max-h-[46vh] min-h-[180px]">
               {tunnelReady || showLocalFallback ? (
-                <div className="relative w-full h-full p-4 sm:p-5 md:p-6 bg-white rounded-3xl shadow-[0_0_45px_rgba(255,31,67,0.8)] border-4 border-[#ff1f43] flex items-center justify-center">
+                <div className="relative w-full h-full p-3 sm:p-4 md:p-5 bg-white rounded-2xl sm:rounded-3xl shadow-[0_0_40px_rgba(255,31,67,0.75)] border-[3px] sm:border-4 border-[#ff1f43] flex items-center justify-center">
                   <QRCodeSVG
                     value={controllerUrl}
                     size={300}
                     level="H"
                     includeMargin={false}
-                    className="w-full h-full max-h-[85%] max-w-[85%] object-contain"
+                    className="w-full h-full max-h-[82%] max-w-[82%] object-contain"
                   />
-                  <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-xs sm:text-sm px-5 py-1.5 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
+                  <div className="absolute -bottom-3 sm:-bottom-3.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[10px] sm:text-xs md:text-sm px-3 sm:px-4 py-0.5 sm:py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
                     {tunnelReady ? 'SCAN TO SYNC ⚡' : 'LOCAL WI-FI (FALLBACK)'}
                   </div>
                 </div>
               ) : (
-                <div className="relative w-full h-full p-8 bg-[#170508] rounded-3xl border-2 border-[#521520] flex flex-col items-center justify-center gap-3">
-                  <div className="w-10 h-10 border-4 border-[#ff1f43] border-t-transparent rounded-full animate-spin" />
-                  <span className="font-orbitron font-bold text-sm text-[#ff8095] uppercase tracking-wider animate-pulse">
+                <div className="relative w-full h-full p-4 sm:p-6 bg-[#170508] rounded-2xl sm:rounded-3xl border-2 border-[#521520] flex flex-col items-center justify-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 border-3 sm:border-4 border-[#ff1f43] border-t-transparent rounded-full animate-spin" />
+                  <span className="font-orbitron font-bold text-xs sm:text-sm text-[#ff8095] uppercase tracking-wider animate-pulse text-center">
                     ESTABLISHING SECURE LINK...
                   </span>
                   <button
                     onClick={() => setShowLocalFallback(true)}
-                    className="mt-2 text-xs text-[#ff4d6d] underline hover:text-white transition-colors"
+                    className="mt-1 text-[11px] sm:text-xs text-[#ff4d6d] underline hover:text-white transition-colors cursor-pointer"
                   >
                     Or use local network QR code
                   </button>
@@ -666,24 +671,24 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Right: Live Audience Counter Box (Matching Height) */}
-            <div className="flex items-center justify-center w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] h-[280px] sm:h-[330px] md:h-[360px] lg:h-[380px]">
-              <div className="w-full h-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
+            <div className="flex items-center justify-center w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[390px] h-full max-h-[38vh] sm:max-h-[42vh] md:max-h-[46vh] min-h-[180px]">
+              <div className="w-full h-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-2xl sm:rounded-3xl p-3 sm:p-5 md:p-6 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
                 
                 {/* Massive Live Counter Number */}
-                <div className="font-orbitron font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white tracking-wider text-glow-red drop-shadow-[0_0_30px_#ff1f43] leading-none mb-3">
+                <div className="font-orbitron font-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wider text-glow-red drop-shadow-[0_0_30px_#ff1f43] leading-none mb-1 sm:mb-2">
                   {gameState.connectedCount || 0}
                 </div>
 
                 {/* Connected Audience Label */}
-                <div className="flex items-center gap-2 text-[#ff8095] mb-3">
-                  <Users size={22} className="text-[#ff1f43] animate-pulse" />
-                  <span className="font-orbitron font-bold text-sm sm:text-base md:text-lg tracking-[0.25em] uppercase text-white">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[#ff8095] mb-1 sm:mb-2">
+                  <Users size={18} className="text-[#ff1f43] animate-pulse shrink-0" />
+                  <span className="font-orbitron font-bold text-xs sm:text-sm md:text-base tracking-[0.2em] uppercase text-white">
                     CONNECTED AUDIENCE
                   </span>
                 </div>
 
                 {/* Live Feed Pill */}
-                <div className="px-4 py-1.5 bg-[#140306] border border-[#ff1f43]/40 rounded-full text-xs sm:text-sm text-[#ff99aa] font-semibold">
+                <div className="px-3 sm:px-4 py-0.5 sm:py-1 bg-[#140306] border border-[#ff1f43]/40 rounded-full text-[10px] sm:text-xs md:text-sm text-[#ff99aa] font-semibold truncate max-w-full">
                   {gameState.connectedCount > 0 
                     ? `⚡ Live: ${gameState.connectedCount} device${gameState.connectedCount > 1 ? 's' : ''} ready to shake!` 
                     : 'Scan the QR code with your phone to join'}
@@ -694,15 +699,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Bottom: Start Launch Sequence CTA */}
-          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-xl mx-auto mb-1">
+          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto mb-0.5 sm:mb-1 shrink-0">
             <button
               onClick={handleStartGame}
-              className="w-full py-4 sm:py-5 px-8 sci-fi-cut font-orbitron font-black text-lg sm:text-xl md:text-2xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-3"
+              className="w-full py-2.5 sm:py-3.5 md:py-4 px-6 sm:px-8 sci-fi-cut font-orbitron font-black text-sm sm:text-lg md:text-xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-2.5 sm:gap-3"
             >
-              <Zap size={24} className="animate-bounce" />
+              <Zap size={20} className="animate-bounce shrink-0" />
               <span>START LAUNCH ACTIVATION</span>
             </button>
-            <span className="text-xs text-[#a03d4c] mt-2 font-mono">
+            <span className="text-[10px] sm:text-xs text-[#a03d4c] mt-1 font-mono">
               [Spacebar] or [S] on keyboard to start
             </span>
           </div>
@@ -715,7 +720,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {status === 'victory' && (
         <div 
-          className="fixed inset-0 z-50 w-screen h-screen bg-[#100204] flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden select-none animate-fade-in"
+          className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#100204] flex flex-col items-center justify-between p-2.5 sm:p-4 md:p-6 overflow-hidden select-none animate-fade-in"
         >
           {/* Fullscreen Seamless Radial Red Background Field (Edge-to-Edge) */}
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -733,16 +738,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Fullscreen Outer Sci-Fi Border */}
-          <div className="absolute inset-3 md:inset-6 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
-            <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+          <div className="absolute inset-1.5 sm:inset-3 md:inset-4 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
+            <div className="absolute top-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            <div className="absolute bottom-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
           </div>
 
           {/* Top Welcome Badge */}
-          <div className="relative z-20 mt-2 md:mt-3">
-            <div className="inline-flex items-center px-8 py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.8)] backdrop-blur-md">
+          <div className="relative z-20 mt-1 sm:mt-2 shrink-0">
+            <div className="inline-flex items-center px-6 sm:px-8 py-1.5 sm:py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.8)] backdrop-blur-md">
               <span className="font-orbitron font-black text-xs md:text-sm tracking-[0.35em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
                 WELCOME TO
               </span>
@@ -750,17 +755,17 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Center: Hero Animated Launch Logo (Edge-to-Edge Stage Flow) */}
-          <div className="relative z-20 flex-1 flex items-center justify-center w-full px-4 my-auto">
-            <LaunchLogo className="w-full h-auto max-w-[680px] md:max-w-[780px] lg:max-w-[880px] max-h-[58vh] object-contain" animate={true} />
+          <div className="relative z-20 flex-1 min-h-0 flex items-center justify-center w-full px-4 my-auto">
+            <LaunchLogo className="w-full h-auto max-w-[520px] sm:max-w-[640px] md:max-w-[760px] lg:max-w-[840px] max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] object-contain" animate={true} />
           </div>
 
           {/* Bottom Activation Status Tagline */}
-          <div className="relative z-20 mb-2 md:mb-3 text-center flex items-center justify-center gap-2">
-            <Zap size={14} className="text-[#ff1f43] animate-pulse" />
-            <span className="font-orbitron font-bold text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
+          <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2 shrink-0">
+            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+            <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
               TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
             </span>
-            <Zap size={14} className="text-[#ff1f43] animate-pulse" />
+            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
           </div>
         </div>
       )}

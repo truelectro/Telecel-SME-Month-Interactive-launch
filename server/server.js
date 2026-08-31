@@ -239,10 +239,10 @@ setInterval(() => {
     }
   }
 
-  // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 45s
+  // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 60s
   for (const socketId in gameState.players) {
     const p = gameState.players[socketId];
-    if (now - (p.lastSeen || 0) > 45000) {
+    if (p.lastSeen && (now - p.lastSeen > 60000)) {
       delete gameState.players[socketId];
       gameState.connectedCount = Object.keys(gameState.players).length;
       io.emit('participant_left', {
@@ -289,10 +289,11 @@ io.on('connection', (socket) => {
   });
 
   // Participant joins as mobile controller
-  socket.on('join_controller', ({ playerName }) => {
+  socket.on('join_controller', ({ playerName } = {}) => {
     participantCounter += 1;
     const operativeNumber = participantCounter;
     const displayName = playerName?.trim() || `Operative #${operativeNumber}`;
+    const now = Date.now();
 
     gameState.players[socket.id] = {
       id: socket.id,
@@ -302,6 +303,7 @@ io.on('connection', (socket) => {
       lastShakeTime: 0,
       intensity: 0,
       sensorActive: false,
+      lastSeen: now,
     };
 
     gameState.connectedCount = Object.keys(gameState.players).length;
@@ -310,7 +312,7 @@ io.on('connection', (socket) => {
     gameState.recentJoins.push({
       number: operativeNumber,
       name: displayName,
-      time: Date.now(),
+      time: now,
     });
     if (gameState.recentJoins.length > 20) {
       gameState.recentJoins.shift();
@@ -334,15 +336,19 @@ io.on('connection', (socket) => {
   });
 
   // Controller reports sensor status
-  socket.on('sensor_status', ({ active }) => {
+  socket.on('sensor_status', ({ active } = {}) => {
     if (gameState.players[socket.id]) {
       gameState.players[socket.id].sensorActive = active;
+      gameState.players[socket.id].lastSeen = Date.now();
     }
   });
 
   // Physical shake impulse received (calibrated for mass crowd scaling)
-  socket.on('shake_pulse', ({ intensity = 1.0 }) => {
-    if (!gameState.players[socket.id]) {
+  socket.on('shake_pulse', ({ intensity = 1.0 } = {}) => {
+    const now = Date.now();
+    let player = gameState.players[socket.id];
+
+    if (!player) {
       participantCounter += 1;
       gameState.players[socket.id] = {
         id: socket.id,
@@ -352,22 +358,21 @@ io.on('connection', (socket) => {
         lastShakeTime: 0,
         intensity: 0,
         sensorActive: true,
+        lastSeen: now,
       };
+      player = gameState.players[socket.id];
       gameState.connectedCount = Object.keys(gameState.players).length;
     }
-    if (player) {
-      player.lastSeen = now;
-    }
+
+    player.lastSeen = now;
 
     // Only process shake voltage when the host has officially initiated the game
     if (gameState.status === 'playing') {
       gameState.lastActiveShakeTime = now;
 
-      if (player) {
-        player.shakes += 1;
-        player.lastShakeTime = now;
-        player.intensity = intensity;
-      }
+      player.shakes += 1;
+      player.lastShakeTime = now;
+      player.intensity = intensity;
 
       // LOWER SHAKE SENSITIVITY CALIBRATION:
       // With up to 200 people shaking concurrently, we scale each shake's contribution
@@ -398,8 +403,8 @@ io.on('connection', (socket) => {
 
       // Broadcast surge event
       io.emit('surge_pulse', {
-        operativeNumber: player?.number || 1,
-        name: player?.name || 'Operative',
+        operativeNumber: player.number || 1,
+        name: player.name || 'Operative',
         intensity: clampedIntensity,
         voltage: gameState.voltage,
       });
@@ -434,8 +439,22 @@ io.on('connection', (socket) => {
 
   // Heartbeat ping from mobile controller
   socket.on('ping_heartbeat', () => {
+    const now = Date.now();
     if (gameState.players[socket.id]) {
-      gameState.players[socket.id].lastSeen = Date.now();
+      gameState.players[socket.id].lastSeen = now;
+    } else {
+      participantCounter += 1;
+      gameState.players[socket.id] = {
+        id: socket.id,
+        number: participantCounter,
+        name: `Operative #${participantCounter}`,
+        shakes: 0,
+        lastShakeTime: 0,
+        intensity: 0,
+        sensorActive: false,
+        lastSeen: now,
+      };
+      gameState.connectedCount = Object.keys(gameState.players).length;
     }
   });
 

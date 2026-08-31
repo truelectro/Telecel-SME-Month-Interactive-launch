@@ -46,18 +46,36 @@ export default function App() {
       setServerInfo((prev) => ({
         ...prev,
         roomCode: data?.roomCode || roomCode,
-        lanIp: data?.lanIp,
-        httpPort: data?.httpPort,
-        httpsPort: data?.httpsPort,
-        tunnelUrl: data?.tunnelUrl ? `${data.tunnelUrl}/controller` : prev?.tunnelUrl || null,
+        lanIp: data?.lanIp || prev?.lanIp,
+        httpPort: data?.httpPort || prev?.httpPort,
+        httpsPort: data?.httpsPort || prev?.httpsPort,
+        tunnelUrl: data?.tunnelUrl ? (data.tunnelUrl.endsWith('/controller') ? data.tunnelUrl : `${data.tunnelUrl}/controller`) : prev?.tunnelUrl || null,
       }));
     });
 
     net.on('tunnel_ready', ({ tunnelUrl }) => {
       setServerInfo((prev) => ({
         ...prev,
-        tunnelUrl: `${tunnelUrl}/controller`,
+        tunnelUrl: tunnelUrl.endsWith('/controller') ? tunnelUrl : `${tunnelUrl}/controller`,
       }));
+    });
+
+    net.on('participant_joined', (data) => {
+      if (data?.connectedCount !== undefined) {
+        setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
+      }
+    });
+
+    net.on('participant_left', (data) => {
+      if (data?.connectedCount !== undefined) {
+        setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
+      }
+    });
+
+    net.on('controller_assigned', (data) => {
+      if (data?.connectedCount !== undefined) {
+        setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
+      }
     });
 
     net.on('game_state_update', (updatedState) => {
