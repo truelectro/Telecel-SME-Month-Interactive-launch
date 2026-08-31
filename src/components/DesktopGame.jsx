@@ -517,6 +517,18 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           />
         </div>
 
+        {/* Center: System Charge Percentage Display (Aligned Directly Above Voltage Chamber) */}
+        <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center pointer-events-none z-30">
+          <span className="text-[9px] sm:text-[10px] md:text-xs tracking-widest font-orbitron font-bold text-[#ff8095] uppercase drop-shadow-[0_0_8px_#ff1f43]">
+            {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
+          </span>
+          <div className="mt-0.5 px-4 sm:px-6 py-0.5 bg-[#22070c]/90 border-2 border-[#ff1f43]/70 sci-fi-cut-sm shadow-[0_0_18px_rgba(255,31,67,0.55)]">
+            <span className="font-orbitron font-black text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-wider text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]">
+              {status === 'playing' ? `${Math.floor(voltage)}%` : '100%'}
+            </span>
+          </div>
+        </div>
+
         {/* Right: Utility & Audio Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
           {/* 150-Crowd Simulator Toggle */}
@@ -754,24 +766,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
-          {/* Centered System Charge Percentage Display (Directly Aligned Above Voltage Chamber) */}
-          <div className="flex flex-col items-center mb-1 sm:mb-1.5 z-20 shrink-0">
-            <span className="text-[10px] sm:text-xs md:text-sm tracking-widest font-orbitron font-bold text-[#ff8095] uppercase drop-shadow-[0_0_8px_#ff1f43]">
-              {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
-            </span>
-            <div className="mt-0.5 px-5 sm:px-7 py-0.5 sm:py-1 bg-[#22070c]/90 border-2 border-[#ff1f43]/70 sci-fi-cut-sm shadow-[0_0_18px_rgba(255,31,67,0.55)]">
-              <span className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl tracking-wider text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.9)]">
-                {status === 'playing' ? `${Math.floor(voltage)}%` : '100%'}
-              </span>
-            </div>
-          </div>
-
-          {/* Main Heavy Reactor Assembly */}
-          <div className="relative w-full max-w-[340px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] h-[52vh] sm:h-[56vh] md:h-[60vh] max-h-[520px] flex items-center justify-center">
+          {/* Main Heavy Reactor Assembly (Full Height & Majestic) */}
+          <div className="relative w-full max-w-[360px] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[540px] h-[64vh] sm:h-[68vh] md:h-[72vh] max-h-[660px] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
-            <div className="absolute -left-2 md:-left-4 bottom-8 sm:bottom-10 z-10 flex flex-col items-center pointer-events-none">
+            <div className="absolute -left-2 md:-left-4 bottom-8 sm:bottom-12 z-10 flex flex-col items-center pointer-events-none">
               <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
@@ -785,7 +785,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Right Insulator Coil */}
-            <div className="absolute -right-2 md:-right-4 bottom-8 sm:bottom-10 z-10 flex flex-col items-center pointer-events-none">
+            <div className="absolute -right-2 md:-right-4 bottom-8 sm:bottom-12 z-10 flex flex-col items-center pointer-events-none">
               <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
@@ -799,7 +799,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Height Percentage Ruler Ticks (0%, 25%, 50%, 75%, 100%) */}
-            <div className="absolute right-4 md:right-7 top-[10%] bottom-[15%] flex flex-col justify-between items-start text-[11px] sm:text-xs md:text-sm font-orbitron font-bold text-[#802434] pointer-events-none z-10">
+            <div className="absolute right-4 md:right-7 top-[8%] bottom-[12%] flex flex-col justify-between items-start text-[11px] sm:text-xs md:text-sm font-orbitron font-bold text-[#802434] pointer-events-none z-10">
               <div className="flex items-center gap-1 sm:gap-1.5">
                 <span className="w-3 sm:w-4 h-0.5 bg-[#802434]" />
                 <span className={voltage >= 95 ? 'text-white font-bold text-glow-red text-xs sm:text-base' : ''}>100%</span>
@@ -832,7 +832,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Bottom Reactor Base Chassis & Status Button */}
-            <div className="absolute -bottom-3 inset-x-2 sm:inset-x-4 md:inset-x-6 z-20 flex flex-col items-center">
+            <div className="absolute -bottom-2 inset-x-2 sm:inset-x-4 md:inset-x-6 z-20 flex flex-col items-center">
               <div className="w-full py-1.5 sm:py-2 px-4 sm:px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
                 <Zap size={16} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
                 <span className="font-orbitron font-black text-[11px] sm:text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">

@@ -49,13 +49,13 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
 
       ctx.clearRect(0, 0, width, height);
 
-      // Reactor Chamber Boundaries (Balanced & Contained)
-      const chamberX = width * 0.11;
-      const chamberWidth = width * 0.78;
-      const chamberTop = height * 0.04;
-      const chamberHeight = height * 0.88;
+      // Reactor Chamber Boundaries (Full Height & Majestic)
+      const chamberX = width * 0.08;
+      const chamberWidth = width * 0.84;
+      const chamberTop = height * 0.015;
+      const chamberHeight = height * 0.96;
       const chamberBottom = chamberTop + chamberHeight;
-      const cornerRadius = 24;
+      const cornerRadius = 26;
 
       // Current Liquid Fill Height
       const currentFill = Math.min(100, Math.max(0, voltage)) / 100;
