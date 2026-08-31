@@ -750,12 +750,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* CENTER COLUMN: Central High-Voltage Reactor Core   */}
         {/* -------------------------------------------------- */}
-        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-0.5 sm:py-1 ${
+        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-start relative order-1 md:order-2 h-full pt-1 sm:pt-2 md:pt-3 -mt-2 sm:-mt-4 md:-mt-6 ${
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
           {/* Centered System Charge Percentage Display (Directly Aligned Above Voltage Chamber) */}
-          <div className="flex flex-col items-center mb-1 sm:mb-2 z-20">
+          <div className="flex flex-col items-center mb-1 sm:mb-1.5 z-20 shrink-0">
             <span className="text-[10px] sm:text-xs md:text-sm tracking-widest font-orbitron font-bold text-[#ff8095] uppercase drop-shadow-[0_0_8px_#ff1f43]">
               {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
             </span>
@@ -767,7 +767,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Main Heavy Reactor Assembly */}
-          <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] h-full max-h-[66vh] sm:max-h-[70vh] md:max-h-[74vh] flex items-center justify-center">
+          <div className="relative w-full max-w-[340px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] h-[54vh] sm:h-[58vh] md:h-[62vh] max-h-[580px] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
