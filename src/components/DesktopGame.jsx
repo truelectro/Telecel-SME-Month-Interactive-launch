@@ -506,13 +506,13 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {/* 1. TOP HEADER                                       */}
       {/* ==================================================== */}
-      <header className={`relative z-20 flex items-center justify-between px-2 sm:px-4 md:px-6 py-1.5 sm:py-2 shrink-0 ${
+      <header className={`relative z-20 flex items-center justify-between px-2 sm:px-4 md:px-6 py-1 shrink-0 ${
         isBooting || status === 'playing' ? 'animate-cyber-down' : ''
       }`}>
-        {/* Left: Telecel SME Month Official Brand Logo (Large, Prominent) */}
+        {/* Left: Telecel SME Month Official Brand Logo */}
         <div className="flex items-center min-w-0 pr-2">
           <LaunchLogo 
-            className="w-auto h-14 sm:h-18 md:h-22 lg:h-28 max-w-[220px] sm:max-w-[290px] md:max-w-[360px] lg:max-w-[440px] object-contain drop-shadow-[0_0_24px_rgba(255,31,67,0.95)]" 
+            className="w-auto h-11 sm:h-13 md:h-15 lg:h-16 max-w-[190px] sm:max-w-[240px] md:max-w-[290px] object-contain drop-shadow-[0_0_20px_rgba(255,31,67,0.9)]" 
             animate={false} 
           />
         </div>
@@ -750,12 +750,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* CENTER COLUMN: Central High-Voltage Reactor Core   */}
         {/* -------------------------------------------------- */}
-        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-between relative order-1 md:order-2 h-full py-0.5 sm:py-1 ${
+        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-0.5 sm:py-1 ${
           isBooting || status === 'playing' ? 'animate-cyber-core' : ''
         }`}>
           
           {/* Centered System Charge Percentage Display (Directly Aligned Above Voltage Chamber) */}
-          <div className="flex flex-col items-center mb-0.5 sm:mb-1 z-20 shrink-0">
+          <div className="flex flex-col items-center mb-1 sm:mb-1.5 z-20 shrink-0">
             <span className="text-[10px] sm:text-xs md:text-sm tracking-widest font-orbitron font-bold text-[#ff8095] uppercase drop-shadow-[0_0_8px_#ff1f43]">
               {status === 'playing' ? 'SYSTEM CHARGE' : 'MAX VOLTAGE'}
             </span>
@@ -766,12 +766,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
-          {/* Main Heavy Reactor Assembly (Tall & Large) */}
-          <div className="relative w-full max-w-[380px] sm:max-w-[440px] md:max-w-[500px] lg:max-w-[560px] flex-1 min-h-0 h-full max-h-[76vh] sm:max-h-[80vh] md:max-h-[84vh] flex items-center justify-center my-auto">
+          {/* Main Heavy Reactor Assembly */}
+          <div className="relative w-full max-w-[340px] sm:max-w-[380px] md:max-w-[440px] lg:max-w-[480px] h-[52vh] sm:h-[56vh] md:h-[60vh] max-h-[520px] flex items-center justify-center">
             
             {/* Left & Right Insulator Coils & Heavy Conduit Cables */}
             {/* Left Insulator Coil */}
-            <div className="absolute -left-2 md:-left-4 bottom-10 sm:bottom-14 z-10 flex flex-col items-center pointer-events-none">
+            <div className="absolute -left-2 md:-left-4 bottom-8 sm:bottom-10 z-10 flex flex-col items-center pointer-events-none">
               <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
@@ -785,7 +785,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Right Insulator Coil */}
-            <div className="absolute -right-2 md:-right-4 bottom-10 sm:bottom-14 z-10 flex flex-col items-center pointer-events-none">
+            <div className="absolute -right-2 md:-right-4 bottom-8 sm:bottom-10 z-10 flex flex-col items-center pointer-events-none">
               <div className="w-8 sm:w-10 h-14 sm:h-16 md:w-11 md:h-18 bg-gradient-to-b from-[#2a0b12] to-[#120407] border-2 border-[#631826] rounded-t-md flex flex-col justify-evenly items-center shadow-[0_0_20px_rgba(255,31,67,0.4)]">
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
                 <div className="w-6 sm:w-8 md:w-9 h-1.5 sm:h-2 bg-[#ff1f43]/80 rounded-full shadow-[0_0_8px_#ff1f43]" />
@@ -832,8 +832,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Bottom Reactor Base Chassis & Status Button */}
-            <div className="absolute bottom-1 inset-x-4 sm:inset-x-6 md:inset-x-8 z-10 flex flex-col items-center">
-              <div className="w-full py-1.5 sm:py-2 md:py-2.5 px-4 sm:px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
+            <div className="absolute -bottom-3 inset-x-2 sm:inset-x-4 md:inset-x-6 z-20 flex flex-col items-center">
+              <div className="w-full py-1.5 sm:py-2 px-4 sm:px-6 bg-gradient-to-r from-[#2a0a10] via-[#47111b] to-[#2a0a10] border-2 border-[#7a1c2d] sci-fi-cut flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(255,31,67,0.45)]">
                 <Zap size={16} className={`text-[#ff1f43] ${voltage > 0 ? 'animate-bounce' : ''}`} />
                 <span className="font-orbitron font-black text-[11px] sm:text-xs md:text-sm tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,31,67,0.9)]">
                   {status === 'playing' ? (voltage > 70 ? 'CRITICAL SURGE' : 'VOLTAGE RISING') : 'STANDBY MODE'}
