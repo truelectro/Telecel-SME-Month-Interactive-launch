@@ -1,13 +1,13 @@
 import React from 'react';
 
-export default function LaunchLogo({ className = "w-full max-w-[480px] h-auto", animate = true }) {
+export default function LaunchLogo({ className = "w-full h-full max-h-[85vh] max-w-[1300px]", animate = true }) {
   return (
-    <div className={`relative flex items-center justify-center ${animate ? 'animate-logo-surge' : ''}`}>
+    <div className={`relative w-full h-full flex items-center justify-center ${animate ? 'animate-logo-surge' : ''}`}>
       {/* Dynamic Radial Energy Shockwave Backdrop */}
       {animate && (
         <>
-          <div className="absolute w-[140%] h-[140%] rounded-full bg-gradient-to-r from-[#d03b33]/35 via-[#ff1f43]/25 to-transparent blur-3xl animate-pulse pointer-events-none" />
-          <div className="absolute w-[90%] h-[90%] rounded-full bg-[#ff4d6d]/30 blur-2xl animate-ping pointer-events-none" style={{ animationDuration: '2.5s' }} />
+          <div className="absolute w-[120vw] h-[120vh] max-w-[1600px] max-h-[1600px] rounded-full bg-gradient-to-r from-[#d03b33]/40 via-[#ff1f43]/30 to-transparent blur-3xl animate-pulse pointer-events-none" />
+          <div className="absolute w-[80vw] h-[80vh] max-w-[1100px] max-h-[1100px] rounded-full bg-[#ff4d6d]/35 blur-2xl animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
         </>
       )}
 
@@ -17,7 +17,7 @@ export default function LaunchLogo({ className = "w-full max-w-[480px] h-auto", 
         xmlns="http://www.w3.org/2000/svg" 
         version="1.1" 
         viewBox="0 0 1112.3 1016"
-        className={`${className} relative z-10 transition-all duration-700 filter drop-shadow-[0_0_30px_rgba(208,59,51,0.9)] drop-shadow-[0_0_60px_rgba(255,255,255,0.45)]`}
+        className={`${className} relative z-10 transition-all duration-700 filter drop-shadow-[0_0_35px_rgba(208,59,51,0.95)] drop-shadow-[0_0_70px_rgba(255,255,255,0.55)]`}
       >
         <defs>
           <style>
