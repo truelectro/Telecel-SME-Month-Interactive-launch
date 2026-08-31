@@ -205,16 +205,37 @@ export default function MobileController({ socket, gameState }) {
     }
   };
 
-  // Attach Hardware Listeners on Mount (Android & Standard Web)
+  // Attach Hardware Listeners on Mount (Automatic iOS & Android)
   useEffect(() => {
     const isIOS = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
 
     if (isIOS) {
       setNeedsIOSPermission(true);
-      return;
+
+      // 1. Attempt immediate automatic permission prompt on load
+      unlockIOSPermissions();
+
+      // 2. Fallback: prompt immediately on the very first touch/tap anywhere on the page
+      const autoPromptOnTouch = () => {
+        unlockIOSPermissions();
+      };
+
+      window.addEventListener('touchstart', autoPromptOnTouch, { once: true, passive: true });
+      window.addEventListener('touchend', autoPromptOnTouch, { once: true, passive: true });
+      window.addEventListener('pointerdown', autoPromptOnTouch, { once: true, passive: true });
+      window.addEventListener('click', autoPromptOnTouch, { once: true, passive: true });
+
+      return () => {
+        window.removeEventListener('touchstart', autoPromptOnTouch);
+        window.removeEventListener('touchend', autoPromptOnTouch);
+        window.removeEventListener('pointerdown', autoPromptOnTouch);
+        window.removeEventListener('click', autoPromptOnTouch);
+        window.removeEventListener('devicemotion', handleDeviceMotionEvent);
+        window.removeEventListener('deviceorientation', handleDeviceOrientationEvent);
+      };
     }
 
-    // Android / Standard Browsers
+    // Android / Standard Browsers (no prompt required)
     window.addEventListener('devicemotion', handleDeviceMotionEvent, { passive: true });
     window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
     setSensorActive(true);
@@ -320,22 +341,6 @@ export default function MobileController({ socket, gameState }) {
       {/* 2. MAIN CONTROLLER INTERACTION AREA                  */}
       {/* ==================================================== */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center gap-3 py-2">
-        
-        {/* iOS Sensor Unlock Prompt Card */}
-        {needsIOSPermission && !sensorActive && (
-          <div 
-            onClick={unlockIOSPermissions}
-            className="w-full bg-[#380e16] border-2 border-[#ff1f43] rounded-xl p-3 text-center cursor-pointer shadow-neon-red animate-pulse"
-          >
-            <div className="flex items-center justify-center gap-2 text-white font-orbitron font-black text-sm uppercase">
-              <Zap size={16} className="text-[#ff1f43]" />
-              <span>TAP HERE TO ENABLE MOTION SENSORS</span>
-            </div>
-            <p className="text-[11px] text-[#ffccd5] mt-1">
-              iOS requires permission to detect phone shakes
-            </p>
-          </div>
-        )}
 
         {/* Hardware Motion Sensor Active Pill */}
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#140407] border border-[#4d131d] rounded-full text-xs">
