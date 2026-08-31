@@ -1,4 +1,4 @@
-# ⚡ VOLTAGE SURGE - Telecel SME Month Launch Interactive Experience
+# ⚡ SME Surge - Telecel SME Month Launch Interactive Experience
 
 A high-intensity, crowd-interactive launch event activation where hundreds of audience members scan a QR code with their smartphones and shake their phones using accelerometer & gyroscope sensors to collectively surge the voltage reactor to 100% for the official launch reveal!
 

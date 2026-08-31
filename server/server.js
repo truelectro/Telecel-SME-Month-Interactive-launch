@@ -130,7 +130,7 @@ app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      res.send(`<h1>VOLTAGE SURGE Game Server</h1><p>Run <code>npm run dev</code> for development or <code>npm run build</code> for production.</p>`);
+      res.send(`<h1>SME Surge Game Server</h1><p>Run <code>npm run dev</code> for development or <code>npm run build</code> for production.</p>`);
     }
   });
 });
@@ -524,7 +524,7 @@ io.on('connection', (socket) => {
 // Start Servers
 httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log(`\n========================================`);
-  console.log(`⚡ VOLTAGE SURGE Real-time Game Server`);
+  console.log(`⚡ SME Surge Real-time Game Server`);
   console.log(`========================================`);
   console.log(`💻 Desktop Screen : http://localhost:${HTTP_PORT}`);
   console.log(`📱 Mobile LAN HTTP: http://${LAN_IP}:${HTTP_PORT}/controller`);
