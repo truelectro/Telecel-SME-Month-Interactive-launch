@@ -41,16 +41,40 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     return () => clearTimeout(timer);
   }, []);
 
+  const MOTIVATIONAL_PROMPTS = [
+    'KEEP SHAKING! ⚡',
+    "DON'T STOP! ⚡",
+    'SURGE THE VOLTAGE! 🔥',
+    'MORE POWER! ⚡',
+    'FASTER! ACCELERATE! 🚀',
+    'ALMOST AT 100%! 💥',
+    'MAXIMUM EFFORT! ⚡',
+    'FEEL THE SURGE! ⚡',
+  ];
+
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+  const [promptPulse, setPromptPulse] = useState(false);
+
+  // Automatically cycle motivational prompts randomly every 2.4s during active gameplay
+  useEffect(() => {
+    if (status !== 'playing') return;
+
+    const interval = setInterval(() => {
+      setCurrentPromptIndex((prev) => (prev + Math.floor(Math.random() * (MOTIVATIONAL_PROMPTS.length - 1) + 1)) % MOTIVATIONAL_PROMPTS.length);
+      setPromptPulse(true);
+      setTimeout(() => setPromptPulse(false), 500);
+    }, 2400);
+
+    return () => clearInterval(interval);
+  }, [status]);
+
   const {
     status = 'lobby',
     voltage = 0,
     score = 0,
-    highScore = 25000,
+    highScore = 50000,
     multiplier = 1,
     multiplierProgress = 0,
-    boostCharges = 3,
-    timeRemaining = 60,
-    slots = { p1: null, p2: null },
   } = gameState || {};
 
   // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
@@ -123,9 +147,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         } else if (status === 'playing' && socket) {
           socket.emit('shake_pulse', { intensity: 1.2 });
         }
-      } else if (e.code === 'KeyB') {
-        e.preventDefault();
-        handleBoost();
       } else if (e.code === 'KeyS' && status === 'lobby') {
         e.preventDefault();
         handleStartGame();
@@ -137,7 +158,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [socket, status, boostCharges]);
+  }, [socket, status]);
 
   const handleStartGame = () => {
     audioEngine.ensureRunning();
@@ -147,13 +168,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const handleResetGame = () => {
     audioEngine.ensureRunning();
     if (socket) socket.emit('reset_game');
-  };
-
-  const handleBoost = () => {
-    audioEngine.ensureRunning();
-    if (socket && boostCharges > 0 && status === 'playing') {
-      socket.emit('trigger_boost');
-    }
   };
 
   const handleToggleMute = () => {
@@ -459,48 +473,48 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
-          {/* ROUND TIMER DISPLAY (WHEN PLAYING) */}
-          {status === 'playing' && (
-            <div className="hud-panel p-3 sci-fi-cut flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-[#ff4d6d] uppercase">
-                TIME REMAINING
-              </span>
-              <span className={`font-orbitron font-black text-xl ${
-                timeRemaining <= 10 ? 'text-red-500 animate-pulse text-glow-red' : 'text-white'
-              }`}>
-                {timeRemaining}s
+          {/* AUDIENCE MOTIVATION / KEEP SHAKING DIRECTIVE CARD */}
+          <div className="hud-panel p-5 sci-fi-cut flex flex-col items-center justify-center text-center relative overflow-hidden border-2 border-[#801b2a] shadow-neon-red min-h-[140px]">
+            {/* Background Ambient Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-b from-[#ff1f43]/25 via-[#ff1f43]/10 to-transparent transition-opacity duration-300 pointer-events-none ${
+              promptPulse || shakeFlash ? 'opacity-100' : 'opacity-40'
+            }`} />
+
+            <span className="text-[11px] font-bold tracking-[0.25em] text-[#ff8095] uppercase block mb-1.5 z-10">
+              AUDIENCE DIRECTIVE
+            </span>
+
+            {/* Glowing Dynamic Prompt */}
+            <div className={`font-orbitron font-black text-2xl md:text-3xl tracking-wider uppercase text-glow-red transition-all duration-300 z-10 ${
+              promptPulse || shakeFlash ? 'scale-110 brightness-150 text-white' : 'text-[#ffccd5]'
+            }`}>
+              {status === 'playing' ? MOTIVATIONAL_PROMPTS[currentPromptIndex] : 'READY TO SURGE'}
+            </div>
+
+            <p className="text-xs text-[#ff99aa] mt-2 z-10">
+              {status === 'playing'
+                ? 'Everyone shake continuously to surge power to 100%!'
+                : 'Scan QR code with your phone to join'}
+            </p>
+          </div>
+
+          {/* REAL-TIME SYSTEM CORE STATUS CARD */}
+          <div className="hud-panel p-3.5 sci-fi-cut flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap size={18} className="text-[#ff1f43] animate-pulse" />
+              <span className="font-orbitron font-bold text-xs text-gray-200 uppercase tracking-wider">
+                CORE STATUS
               </span>
             </div>
-          )}
-
-          {/* DYNAMIC BOOST BUTTON */}
-          <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={handleBoost}
-              disabled={boostCharges <= 0 || status !== 'playing'}
-              className={`w-full py-4 px-6 sci-fi-cut font-orbitron font-black text-xl tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-3 ${
-                boostCharges > 0 && status === 'playing'
-                  ? 'bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/50 cursor-pointer'
-                  : 'bg-[#22080d] text-[#6e222e] border border-[#3d1119] cursor-not-allowed opacity-60'
-              } ${boostAnimating ? 'scale-105 brightness-150 ring-4 ring-[#ff1f43]' : ''}`}
-            >
-              <Zap size={22} className={boostCharges > 0 && status === 'playing' ? 'animate-bounce text-white' : ''} />
-              <span>BOOST</span>
-            </button>
-
-            {/* Boost Charges Counter Badge */}
-            <div className="flex items-center gap-1.5 mt-1 px-4 py-0.5 bg-[#180509] border border-[#4d131d] rounded-full">
-              <Zap size={13} className="text-[#ff1f43]" />
-              <span className="font-orbitron font-bold text-xs text-[#ff99aa]">
-                {boostCharges} CHARGES
-              </span>
-            </div>
+            <span className="font-orbitron font-black text-sm text-[#ff4d6d] tracking-widest uppercase">
+              {status === 'playing' ? (voltage > 75 ? 'MAX OVERCHARGE' : 'POWER RISING') : 'LOBBY STANDBY'}
+            </span>
           </div>
 
           {/* Quick Keyboard Hint */}
           <div className="text-[10px] text-center text-[#7a2c39] flex items-center justify-center gap-1 mt-1">
             <Keyboard size={12} />
-            <span>Dev shortcuts: [Space] Shake • [B] Boost • [S] Start</span>
+            <span>Dev shortcuts: [Space] Shake • [S] Start • [R] Reset</span>
           </div>
 
         </div>

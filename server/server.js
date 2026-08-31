@@ -191,10 +191,7 @@ setInterval(() => {
   gameState.connectedCount = Object.keys(gameState.players).length;
 
   if (gameState.status === 'playing') {
-    // 1. Countdown timer
-    gameState.timeRemaining = Math.max(0, gameState.timeRemaining - dt);
-    
-    // 2. Voltage Decay: drains smoothly if the audience stops shaking
+    // 1. Voltage Decay: drains smoothly if the audience stops shaking
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
@@ -208,7 +205,7 @@ setInterval(() => {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
-    // 3. Multiplier combo progress
+    // 2. Multiplier combo progress
     if (timeSinceShake > EVENT_CONFIG.COMBO_DECAY_TIME_MS) {
       if (gameState.multiplier > 1) {
         gameState.multiplierProgress -= 30 * dt;
@@ -221,7 +218,7 @@ setInterval(() => {
       }
     }
 
-    // 4. Score accumulation
+    // 3. Score accumulation
     if (gameState.voltage > 1) {
       const scoreGain = Math.round((gameState.voltage * 2 * gameState.multiplier) * dt * 10);
       gameState.score += scoreGain;
@@ -230,22 +227,15 @@ setInterval(() => {
       }
     }
 
-    // 5. Reveal / Maximum Overcharge Activation condition
+    // 4. Reveal / Maximum Overcharge Activation condition
     if (gameState.voltage >= 100) {
       gameState.voltage = 100;
       gameState.status = 'victory';
-      gameState.score += Math.round(gameState.timeRemaining * 1000 * gameState.multiplier);
+      gameState.score += Math.round(10000 * gameState.multiplier);
       io.emit('game_victory', { 
         score: gameState.score, 
-        timeRemaining: gameState.timeRemaining,
         participantCount: gameState.connectedCount,
       });
-    }
-
-    // 6. Timeout condition
-    if (gameState.timeRemaining <= 0 && gameState.voltage < 100) {
-      gameState.status = 'gameover';
-      io.emit('game_over', { score: gameState.score, participantCount: gameState.connectedCount });
     }
   }
 

@@ -75,9 +75,6 @@ class BrowserHostEngine {
       this.gameState.connectedCount = Object.keys(this.gameState.players).length;
 
       if (this.gameState.status === 'playing') {
-        // Countdown timer
-        this.gameState.timeRemaining = Math.max(0, this.gameState.timeRemaining - dt);
-
         // Voltage Decay
         const timeSinceShake = now - this.gameState.lastActiveShakeTime;
         let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
@@ -118,18 +115,8 @@ class BrowserHostEngine {
         if (this.gameState.voltage >= 100) {
           this.gameState.voltage = 100;
           this.gameState.status = 'victory';
-          this.gameState.score += Math.round(this.gameState.timeRemaining * 1000 * this.gameState.multiplier);
+          this.gameState.score += Math.round(10000 * this.gameState.multiplier);
           this.broadcast('game_victory', {
-            score: this.gameState.score,
-            timeRemaining: this.gameState.timeRemaining,
-            participantCount: this.gameState.connectedCount,
-          });
-        }
-
-        // Timeout condition
-        if (this.gameState.timeRemaining <= 0 && this.gameState.voltage < 100) {
-          this.gameState.status = 'gameover';
-          this.broadcast('game_over', {
             score: this.gameState.score,
             participantCount: this.gameState.connectedCount,
           });

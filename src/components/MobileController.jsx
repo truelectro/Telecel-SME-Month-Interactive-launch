@@ -16,7 +16,6 @@ export default function MobileController({ socket, gameState }) {
   const [needsIOSPermission, setNeedsIOSPermission] = useState(false);
   const [shakeCount, setShakeCount] = useState(0);
   const [shakeIntensity, setShakeIntensity] = useState(0);
-  const [isBoosting, setIsBoosting] = useState(false);
   const [touchActive, setTouchActive] = useState(false);
   const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
 
@@ -24,8 +23,6 @@ export default function MobileController({ socket, gameState }) {
     status = 'lobby',
     voltage = 0,
     multiplier = 1,
-    boostCharges = 5,
-    timeRemaining = 90,
     connectedCount = 1,
   } = gameState || {};
 
@@ -270,25 +267,6 @@ export default function MobileController({ socket, gameState }) {
     };
   }, []);
 
-  // Boost Trigger
-  const handleBoost = () => {
-    if (needsIOSPermission) {
-      unlockIOSPermissions();
-    }
-
-    if (boostCharges > 0 && status === 'playing') {
-      setIsBoosting(true);
-      if (navigator.vibrate) {
-        try { navigator.vibrate([60, 30, 80, 30, 150]); } catch (e) {}
-      }
-      const s = socketRef.current;
-      if (s) {
-        s.emit('trigger_boost');
-      }
-      setTimeout(() => setIsBoosting(false), 500);
-    }
-  };
-
   // Screen Tap Fallback
   const handleTapSurge = () => {
     if (needsIOSPermission) {
@@ -309,74 +287,64 @@ export default function MobileController({ socket, gameState }) {
         <div className={`absolute inset-0 bg-[#ff1f43]/25 transition-opacity duration-100 ${
           shakeIntensity > 0 || touchActive ? 'opacity-100' : 'opacity-0'
         }`} />
-        <div className="absolute inset-0 scanlines opacity-40" />
       </div>
 
       {/* ==================================================== */}
-      {/* 1. HEADER & SENSOR STATUS                            */}
+      {/* 1. CONTROLLER HEADER & STATUS BAR                    */}
       {/* ==================================================== */}
       <header className="relative z-10 flex items-center justify-between border-b border-[#4d131d] pb-2">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#330c14] border border-[#ff1f43] flex items-center justify-center shadow-[0_0_10px_#ff1f43]">
-            <Zap size={18} className="text-[#ff1f43]" />
+          <div className="w-8 h-8 rounded bg-[#330c14] border border-[#ff1f43] flex items-center justify-center shadow-[0_0_10px_#ff1f43]">
+            <Smartphone size={16} className="text-[#ff1f43]" />
           </div>
           <div className="flex flex-col">
-            <span className="font-orbitron font-black text-sm text-white tracking-wider">
-              LAUNCH SURGE
-            </span>
-            <span className="text-[10px] font-bold text-[#ff4d6d] uppercase tracking-widest">
+            <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase">
               OPERATIVE #{operativeNumber}
+            </span>
+            <span className="text-[10px] text-[#ff8095] uppercase">
+              {status === 'playing' ? 'SYSTEM OVERCHARGE ACTIVE' : 'TELECEL LAUNCH UNIT'}
             </span>
           </div>
         </div>
 
-        {/* Multiplier Badge */}
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-[#22070c] border border-[#6b1a28] rounded-full">
-          <Flame size={14} className="text-[#ff1f43]" />
-          <span className="font-orbitron font-black text-sm text-white">
-            {multiplier}X
+        {/* Live Audience Count Badge */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#1a0408] border border-[#661827] rounded-full">
+          <Users size={12} className="text-[#ff1f43]" />
+          <span className="font-orbitron font-bold text-xs text-[#ffccd5]">
+            {connectedCount} LIVE
           </span>
         </div>
       </header>
 
-      {/* iOS Safari Tap-To-Unlock Banner */}
-      {needsIOSPermission && (
-        <div 
-          onClick={unlockIOSPermissions}
-          className="relative z-20 my-2 bg-gradient-to-r from-[#3b0d18] via-[#591423] to-[#3b0d18] border-2 border-[#ff1f43] p-4 rounded-xl shadow-neon-red flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform animate-bounce"
-        >
-          <Smartphone size={32} className="text-white mb-1 drop-shadow-[0_0_8px_#ff1f43]" />
-          <h3 className="font-orbitron font-black text-sm text-white uppercase tracking-wider">
-            TAP HERE TO ENABLE MOTION SENSORS ⚡
-          </h3>
-          <p className="text-[11px] text-[#ffccd5] mt-1 font-semibold">
-            Tap once to allow iPhone Safari shake permissions
-          </p>
-        </div>
-      )}
+      {/* ==================================================== */}
+      {/* 2. MAIN CONTROLLER INTERACTION AREA                  */}
+      {/* ==================================================== */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center gap-3 py-2">
+        
+        {/* iOS Sensor Unlock Prompt Card */}
+        {needsIOSPermission && !sensorActive && (
+          <div 
+            onClick={unlockIOSPermissions}
+            className="w-full bg-[#380e16] border-2 border-[#ff1f43] rounded-xl p-3 text-center cursor-pointer shadow-neon-red animate-pulse"
+          >
+            <div className="flex items-center justify-center gap-2 text-white font-orbitron font-black text-sm uppercase">
+              <Zap size={16} className="text-[#ff1f43]" />
+              <span>TAP HERE TO ENABLE MOTION SENSORS</span>
+            </div>
+            <p className="text-[11px] text-[#ffccd5] mt-1">
+              iOS requires permission to detect phone shakes
+            </p>
+          </div>
+        )}
 
-      {/* Live Crowd & Sensor Status */}
-      <div className="relative z-10 flex items-center justify-between bg-[#140407] border border-[#3b0e16] px-3 py-1.5 rounded-lg text-[11px]">
-        <div className="flex items-center gap-1.5 text-gray-300">
-          <Users size={12} className="text-[#ff1f43] animate-pulse" />
-          <span className="font-semibold text-[#ff99aa]">
-            {connectedCount} Connected Audience
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-gray-300">
+        {/* Hardware Motion Sensor Active Pill */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#140407] border border-[#4d131d] rounded-full text-xs">
           <Activity size={12} className={sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500'} />
           <span className={sensorActive ? 'text-green-300 font-bold' : 'text-yellow-400'}>
-            {sensorActive ? 'Sensors Active ⚡' : 'Listening...'}
+            {sensorActive ? 'MOTION ACCELEROMETER ACTIVE' : 'TOUCH & TAP CONTROLLER READY'}
           </span>
         </div>
-      </div>
 
-      {/* ==================================================== */}
-      {/* 2. MAIN REACTOR STATUS & SHAKE ORB                   */}
-      {/* ==================================================== */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center my-2 gap-2.5">
-        
         {status === 'victory' ? (
           /* Victory / Launch Revealed Logo Screen */
           <div className="flex flex-col items-center text-center p-2 animate-logo-surge w-full">
@@ -405,11 +373,6 @@ export default function MobileController({ socket, gameState }) {
               <div className="font-orbitron font-black text-5xl text-white text-glow-red tracking-wider my-0.5">
                 {Math.floor(voltage)}%
               </div>
-              {status === 'playing' && (
-                <span className="text-xs font-semibold text-[#ff8095] uppercase tracking-wide">
-                  {timeRemaining}s REMAINING
-                </span>
-              )}
             </div>
 
             {/* Mini Voltage Gauge */}
@@ -468,20 +431,15 @@ export default function MobileController({ socket, gameState }) {
       </main>
 
       {/* ==================================================== */}
-      {/* 3. CONTROLLER FOOTER & BOOST BUTTON                  */}
+      {/* 3. CONTROLLER FOOTER & TAP TO CHARGE BUTTON          */}
       {/* ==================================================== */}
       <footer className="relative z-10 flex flex-col gap-2">
         <button
-          onClick={handleBoost}
-          disabled={boostCharges <= 0 || status !== 'playing'}
-          className={`w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-base tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-2 ${
-            boostCharges > 0 && status === 'playing'
-              ? 'bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] active:scale-95 text-white shadow-neon-red border border-white/40 cursor-pointer'
-              : 'bg-[#1c060b] text-[#521721] border border-[#2e0b11] cursor-not-allowed opacity-50'
-          } ${isBoosting ? 'scale-105 brightness-150' : ''}`}
+          onClick={handleTapSurge}
+          className="w-full py-3.5 px-4 sci-fi-cut font-orbitron font-black text-base tracking-widest uppercase transition-all duration-150 flex items-center justify-center gap-2 bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] active:scale-95 text-white shadow-neon-red border border-white/40 cursor-pointer"
         >
-          <Zap size={18} className={boostCharges > 0 && status === 'playing' ? 'animate-bounce' : ''} />
-          <span>BOOST SURGE ({boostCharges})</span>
+          <Zap size={18} className="animate-bounce" />
+          <span>TAP OR SHAKE TO SURGE! ⚡</span>
         </button>
       </footer>
     </div>
