@@ -53,15 +53,19 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     slots = { p1: null, p2: null },
   } = gameState || {};
 
-  // Tunnel URL is required for mobile sensor access (HTTPS secure context)
-  const tunnelReady = !!serverInfo?.tunnelUrl;
+  // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
+  const roomCode = serverInfo?.roomCode || 'telecel-launch';
+  const isHttps = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname.includes('vercel.app') || window.location.hostname !== 'localhost');
+  const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
   
-  // Construct mobile controller QR link — MUST be HTTPS for accelerometer/gyroscope
-  let controllerUrl = serverInfo?.tunnelUrl || `${window.location.origin}/controller`;
-  if (!serverInfo?.tunnelUrl && serverInfo?.lanIp) {
-    // Fallback to LAN (sensors won't work but tap/swipe will)
-    controllerUrl = `http://${serverInfo.lanIp}:${serverInfo.httpPort || 3001}/controller`;
+  // Construct mobile controller QR link
+  let controllerUrl = serverInfo?.tunnelUrl;
+  if (!controllerUrl) {
+    controllerUrl = `${window.location.origin}/controller?room=${encodeURIComponent(roomCode)}`;
   }
+  
+  // On Vercel / HTTPS or when tunnel is active, QR code is immediately ready
+  const tunnelReady = isHttps || !!serverInfo?.tunnelUrl;
 
   // Trigger sound engine updates on voltage changes
   useEffect(() => {

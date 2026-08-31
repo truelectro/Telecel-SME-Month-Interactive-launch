@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import DesktopGame from './components/DesktopGame';
 import MobileController from './components/MobileController';
+import { RealtimeNetwork } from './utils/realtimeEngine';
 
 export default function App() {
-  const [socket, setSocket] = useState(null);
+  const [network, setNetwork] = useState(null);
   const [gameState, setGameState] = useState({
     status: 'lobby',
     voltage: 0,
     score: 0,
-    highScore: 25000,
+    highScore: 50000,
     multiplier: 1,
     multiplierProgress: 0,
-    boostCharges: 3,
-    timeRemaining: 60,
-    slots: { p1: null, p2: null },
+    boostCharges: 5,
+    timeRemaining: 90,
+    connectedCount: 0,
+    maxCapacity: 200,
   });
   const [serverInfo, setServerInfo] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -23,87 +24,84 @@ export default function App() {
   const isController = window.location.pathname.startsWith('/controller');
 
   useEffect(() => {
-    // When opened via tunnel (loca.lt, etc.) or production: connect to same origin.
-    // When opened via Vite dev (port 5173): connect to Express on port 3001.
-    const socketUrl = window.location.port === '5173'
-      ? `http://${window.location.hostname}:3001`
-      : window.location.origin;
+    const queryParams = new URLSearchParams(window.location.search);
+    const roomCode = queryParams.get('room') || 'telecel-launch';
 
-    const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 50,
-      reconnectionDelay: 1000,
-      timeout: 10000,
+    const net = new RealtimeNetwork({
+      isController,
+      roomCode,
+      socketUrl: import.meta.env.VITE_SOCKET_URL,
     });
 
-    newSocket.on('connect', () => {
-      console.log('Connected to game server socket:', newSocket.id);
+    net.on('connect', () => {
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from game server');
+    net.on('disconnect', () => {
       setIsConnected(false);
     });
 
-    newSocket.on('init_sync', (data) => {
-      if (data.gameState) setGameState(data.gameState);
+    net.on('init_sync', (data) => {
+      if (data?.gameState) setGameState(data.gameState);
       setServerInfo((prev) => ({
         ...prev,
-        lanIp: data.lanIp,
-        httpPort: data.httpPort,
-        httpsPort: data.httpsPort,
-        tunnelUrl: data.tunnelUrl ? `${data.tunnelUrl}/controller` : prev?.tunnelUrl || null,
+        roomCode: data?.roomCode || roomCode,
+        lanIp: data?.lanIp,
+        httpPort: data?.httpPort,
+        httpsPort: data?.httpsPort,
+        tunnelUrl: data?.tunnelUrl ? `${data.tunnelUrl}/controller` : prev?.tunnelUrl || null,
       }));
     });
 
-    // When the tunnel comes online after initial connect
-    newSocket.on('tunnel_ready', ({ tunnelUrl }) => {
+    net.on('tunnel_ready', ({ tunnelUrl }) => {
       setServerInfo((prev) => ({
         ...prev,
         tunnelUrl: `${tunnelUrl}/controller`,
       }));
     });
 
-    newSocket.on('game_state_update', (updatedState) => {
+    net.on('game_state_update', (updatedState) => {
       setGameState((prev) => ({ ...prev, ...updatedState }));
     });
 
-    newSocket.on('players_changed', (slots) => {
-      setGameState((prev) => ({ ...prev, slots }));
+    net.init();
+    setNetwork(net);
+
+    setServerInfo({
+      roomCode,
     });
 
-    setSocket(newSocket);
-
-    // Fetch server info via REST API as fallback (picks up tunnelUrl if already established)
     fetch('/api/info')
       .then((res) => res.json())
       .then((info) => {
         setServerInfo((prev) => ({
           ...prev,
           ...info,
+          roomCode: prev?.roomCode || roomCode,
         }));
       })
-      .catch((err) => console.log('Info fetch error:', err.message));
+      .catch(() => {
+        // Expected when running purely serverless on Vercel
+      });
 
     return () => {
-      newSocket.disconnect();
+      net.destroy();
     };
-  }, []);
+  }, [isController]);
 
   return (
     <div className="w-full min-h-screen bg-[#070204]">
-      {/* Connection Indicator if server drops */}
+      {/* Connection Indicator if disconnected */}
       {!isConnected && (
         <div className="fixed top-0 inset-x-0 z-50 bg-red-900/90 text-white text-center py-1 text-xs font-bold font-orbitron border-b border-red-500 animate-pulse">
-          CONNECTING TO GAME SERVER...
+          {isController ? 'CONNECTING TO EVENT REACTOR...' : 'STARTING LAUNCH REACTOR...'}
         </div>
       )}
 
       {isController ? (
-        <MobileController socket={socket} gameState={gameState} serverInfo={serverInfo} />
+        <MobileController socket={network} gameState={gameState} serverInfo={serverInfo} />
       ) : (
-        <DesktopGame socket={socket} gameState={gameState} serverInfo={serverInfo} />
+        <DesktopGame socket={network} gameState={gameState} serverInfo={serverInfo} />
       )}
     </div>
   );

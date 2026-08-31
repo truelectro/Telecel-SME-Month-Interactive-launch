@@ -29,7 +29,7 @@ export default function MobileController({ socket, gameState }) {
     maxCapacity = 200,
   } = gameState || {};
 
-  const isConnected = !!socket?.connected;
+  const [isConnected, setIsConnected] = useState(!!socket?.connected);
 
   // Windowed History Buffers for frequency-independent shake detection (120Hz Pixel, 60Hz iPhone)
   const accelHistoryRef = useRef([]); // array of { x, y, z, mag, time }
@@ -39,21 +39,38 @@ export default function MobileController({ socket, gameState }) {
 
   useEffect(() => {
     socketRef.current = socket;
+    if (socket?.connected) setIsConnected(true);
   }, [socket]);
 
-  // Handle socket registration
+  // Handle socket registration and connection events
   useEffect(() => {
     if (!socket) return;
 
-    socket.emit('join_controller', { playerName: '' });
+    const onConnect = () => {
+      setIsConnected(true);
+      socket.emit('join_controller', { playerName: '' });
+    };
+
+    const onDisconnect = () => {
+      setIsConnected(false);
+    };
+
+    if (socket.connected) {
+      setIsConnected(true);
+      socket.emit('join_controller', { playerName: '' });
+    }
 
     const onAssigned = ({ operativeNumber: num }) => {
       if (num) setOperativeNumber(num);
     };
 
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
     socket.on('controller_assigned', onAssigned);
 
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('controller_assigned', onAssigned);
     };
   }, [socket]);
