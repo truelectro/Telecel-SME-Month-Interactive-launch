@@ -25,11 +25,11 @@ const ICE_SERVERS = [
 ];
 
 const EVENT_CONFIG = {
-  MAX_CAPACITY: 200,
+  MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.6,       // Responsive decay
-  SHAKE_VOLTAGE_BASE: 0.038,     // Higher difficulty: requires sustained crowd effort
-  COMBO_DECAY_TIME_MS: 1300,
+  DECAY_RATE_PER_SEC: 2.5,       // Responsive decay
+  SHAKE_VOLTAGE_BASE: 0.52,     // Calibrated for 30s-35s across 1 to 300 players
+  COMBO_DECAY_TIME_MS: 1500,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -104,7 +104,7 @@ class BrowserHostEngine {
           currentDecay *= 1.25;
         }
 
-        if (timeSinceShake > 200) {
+        if (timeSinceShake > 1500) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
@@ -303,26 +303,25 @@ class BrowserHostEngine {
       }
 
       const activeCount = Math.max(1, Object.keys(this.gameState.players).length);
-      const clampedIntensity = Math.min(2.0, Math.max(0.5, intensity));
+      const clampedIntensity = Math.min(2.0, Math.max(0.6, intensity));
 
-      const crowdDampener = activeCount > 1
-        ? Math.max(0.015, 0.90 / Math.pow(activeCount, 0.58))
-        : 1.0;
+      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(Math.max(1, activeCount), 0.92);
 
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.35;
-      } else if (currentVolt > 60) {
-        resistanceFactor = 0.60;
-      } else if (currentVolt > 35) {
-        resistanceFactor = 0.82;
+        resistanceFactor = 0.65;
+      } else if (currentVolt > 65) {
+        resistanceFactor = 0.80;
+      } else if (currentVolt > 40) {
+        resistanceFactor = 0.90;
       }
 
-      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.08);
+      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.05);
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 
-      this.gameState.multiplierProgress += (2.2 * clampedIntensity * crowdDampener);
+      const multGain = 1.4 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
+      this.gameState.multiplierProgress += multGain;
       if (this.gameState.multiplierProgress >= 100) {
         if (this.gameState.multiplier < 5) {
           this.gameState.multiplier += 1;
