@@ -195,6 +195,35 @@ class AudioEngine {
     osc.stop(t + 0.35);
   }
 
+  // High-Energy Activation Alarm / Power Surge for Game Start
+  playGameStart() {
+    if (!this.isInitialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    // Siren / Rising Power Sweep
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(130, t);
+    osc.frequency.exponentialRampToValueAtTime(950, t + 0.55);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, t);
+    filter.frequency.exponentialRampToValueAtTime(3800, t + 0.55);
+
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.7);
+  }
+
   // Triumphant Victory Fanfare
   playVictory() {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
