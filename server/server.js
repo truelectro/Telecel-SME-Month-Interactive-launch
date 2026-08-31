@@ -210,22 +210,9 @@ setInterval(() => {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
-    // 2. Multiplier combo progress
-    if (timeSinceShake > EVENT_CONFIG.COMBO_DECAY_TIME_MS) {
-      if (gameState.multiplier > 1) {
-        gameState.multiplierProgress -= 30 * dt;
-        if (gameState.multiplierProgress <= 0) {
-          gameState.multiplier = Math.max(1, gameState.multiplier - 1);
-          gameState.multiplierProgress = 70;
-        }
-      } else {
-        gameState.multiplierProgress = Math.max(0, gameState.multiplierProgress - (15 * dt));
-      }
-    }
-
-    // 3. Score accumulation
+    // 2. Score accumulation
     if (gameState.voltage > 1) {
-      const scoreGain = Math.round((gameState.voltage * 2 * gameState.multiplier) * dt * 10);
+      const scoreGain = Math.round((gameState.voltage * 2) * dt * 10);
       gameState.score += scoreGain;
       if (gameState.score > gameState.highScore) {
         gameState.highScore = gameState.score;
@@ -407,22 +394,9 @@ io.on('connection', (socket) => {
         resistanceFactor = 0.78;
       }
 
-      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.04);
+      const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       
       gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
-
-      // Multiplier progress requires sustained momentum
-      const multGain = 0.95 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
-      gameState.multiplierProgress += multGain;
-      if (gameState.multiplierProgress >= 100) {
-        if (gameState.multiplier < 5) {
-          gameState.multiplier += 1;
-          gameState.multiplierProgress = 0;
-          io.emit('multiplier_up', { multiplier: gameState.multiplier });
-        } else {
-          gameState.multiplierProgress = 100;
-        }
-      }
 
       // Broadcast surge event EXCLUSIVELY to stage display screens (avoids O(N^2) mobile network flood)
       io.to('stage_display').emit('surge_pulse', {
@@ -440,7 +414,6 @@ io.on('connection', (socket) => {
       gameState.boostCharges -= 1;
       gameState.voltage = Math.min(100, gameState.voltage + EVENT_CONFIG.BOOST_AMOUNT);
       gameState.lastActiveShakeTime = Date.now();
-      gameState.multiplierProgress = Math.min(100, gameState.multiplierProgress + 35);
 
       io.emit('boost_activated', {
         boostCharges: gameState.boostCharges,

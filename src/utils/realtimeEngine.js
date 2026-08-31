@@ -108,22 +108,9 @@ class BrowserHostEngine {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
-        // Multiplier combo progress
-        if (timeSinceShake > EVENT_CONFIG.COMBO_DECAY_TIME_MS) {
-          if (this.gameState.multiplier > 1) {
-            this.gameState.multiplierProgress -= 30 * dt;
-            if (this.gameState.multiplierProgress <= 0) {
-              this.gameState.multiplier = Math.max(1, this.gameState.multiplier - 1);
-              this.gameState.multiplierProgress = 70;
-            }
-          } else {
-            this.gameState.multiplierProgress = Math.max(0, this.gameState.multiplierProgress - (15 * dt));
-          }
-        }
-
         // Score accumulation
         if (this.gameState.voltage > 1) {
-          const scoreGain = Math.round((this.gameState.voltage * 2 * this.gameState.multiplier) * dt * 10);
+          const scoreGain = Math.round((this.gameState.voltage * 2) * dt * 10);
           this.gameState.score += scoreGain;
           if (this.gameState.score > this.gameState.highScore) {
             this.gameState.highScore = this.gameState.score;
@@ -317,20 +304,8 @@ class BrowserHostEngine {
         resistanceFactor = 0.78;
       }
 
-      const voltageGain = basePerShake * clampedIntensity * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.04);
+      const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
-
-      const multGain = 0.95 * clampedIntensity * (1.0 / Math.pow(Math.max(1, activeCount), 0.85));
-      this.gameState.multiplierProgress += multGain;
-      if (this.gameState.multiplierProgress >= 100) {
-        if (this.gameState.multiplier < 5) {
-          this.gameState.multiplier += 1;
-          this.gameState.multiplierProgress = 0;
-          this.broadcast('multiplier_up', { multiplier: this.gameState.multiplier });
-        } else {
-          this.gameState.multiplierProgress = 100;
-        }
-      }
 
       this.broadcast('surge_pulse', {
         operativeNumber: player?.number || 1,
@@ -346,7 +321,6 @@ class BrowserHostEngine {
       this.gameState.boostCharges -= 1;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + EVENT_CONFIG.BOOST_AMOUNT);
       this.gameState.lastActiveShakeTime = Date.now();
-      this.gameState.multiplierProgress = Math.min(100, this.gameState.multiplierProgress + 35);
 
       this.broadcast('boost_activated', {
         boostCharges: this.gameState.boostCharges,

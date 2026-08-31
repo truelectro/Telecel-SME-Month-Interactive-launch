@@ -195,13 +195,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
       socket.emit('join_controller', { playerName: playerNameRef.current });
     }
 
-    const onMultiplierUp = ({ multiplier: newMult } = {}) => {
-      try { audioEngine.playMultiplierUp(newMult || 2); } catch (e) {}
-      if (navigator.vibrate) {
-        try { navigator.vibrate([60, 40, 80]); } catch (e) {}
-      }
-    };
-
     const onBoostActivated = () => {
       try { audioEngine.playBoostSurge(); } catch (e) {}
       if (navigator.vibrate) {
@@ -216,7 +209,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
     socket.on('game_state_update', onSync);
     socket.on('game_started', onGameStarted);
     socket.on('game_reset', onGameReset);
-    socket.on('multiplier_up', onMultiplierUp);
     socket.on('boost_activated', onBoostActivated);
 
     return () => {
@@ -227,7 +219,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
       socket.off('game_state_update', onSync);
       socket.off('game_started', onGameStarted);
       socket.off('game_reset', onGameReset);
-      socket.off('multiplier_up', onMultiplierUp);
       socket.off('boost_activated', onBoostActivated);
     };
   }, [socket, sensorActive]);

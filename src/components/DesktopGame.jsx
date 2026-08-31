@@ -23,7 +23,6 @@ import {
   Radio
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
-import MultiplierGauge from './MultiplierGauge';
 import LaunchLogo from './LaunchLogo';
 import { audioEngine } from '../utils/audioEngine';
 
@@ -337,15 +336,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       }, 2500);
     };
 
-    const onMultiplierUp = ({ multiplier: newMult }) => {
-      audioEngine.playMultiplierUp(newMult);
-      const toast = { id: Date.now(), text: `${newMult}X MULTIPLIER ACTIVE`, type: 'multiplier' };
-      setAudienceToasts((prev) => [...prev.slice(-2), toast]);
-      setTimeout(() => {
-        setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
-      }, 2500);
-    };
-
     const onGameReset = () => {
       audioEngine.resetAudio();
     };
@@ -353,14 +343,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     socket.on('surge_pulse', onSurgePulse);
     socket.on('participant_joined', onParticipantJoined);
     socket.on('boost_activated', onBoostActivated);
-    socket.on('multiplier_up', onMultiplierUp);
     socket.on('game_reset', onGameReset);
 
     return () => {
       socket.off('surge_pulse', onSurgePulse);
       socket.off('participant_joined', onParticipantJoined);
       socket.off('boost_activated', onBoostActivated);
-      socket.off('multiplier_up', onMultiplierUp);
       socket.off('game_reset', onGameReset);
     };
   }, [socket]);
@@ -648,7 +636,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     LIVE SURGES
                   </span>
                   <span className="font-orbitron font-bold text-white">
-                    {multiplier}X MULTIPLIER
+                    {gameState.connectedCount || 1} OPERATIVES
                   </span>
                 </div>
               </div>
