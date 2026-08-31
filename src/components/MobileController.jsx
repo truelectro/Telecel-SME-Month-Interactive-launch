@@ -238,23 +238,20 @@ export default function MobileController({ socket, gameState }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Immediate disconnect when screen turns off / user leaves page, and reconnect when returning
+  // Immediate leave on page unload / navigation away, and refresh on visible
   useEffect(() => {
-    const handleLeave = () => {
+    const handleUnload = () => {
       if (socketRef.current) {
         socketRef.current.emit('leave_controller');
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // Screen turned off, phone locked, or switched tabs -> disconnect immediately
-        handleLeave();
-      } else if (document.visibilityState === 'visible') {
-        // Screen turned on / tab opened -> reconnect immediately
+      if (document.visibilityState === 'visible') {
+        // Screen turned on / tab reopened -> verify connection and re-join
         if (socketRef.current) {
           if (!socketRef.current.connected) {
-            socketRef.current.init();
+            socketRef.current.connectToHost();
           } else {
             socketRef.current.emit('join_controller', { playerName: '' });
           }
@@ -262,13 +259,13 @@ export default function MobileController({ socket, gameState }) {
       }
     };
 
-    window.addEventListener('pagehide', handleLeave);
-    window.addEventListener('beforeunload', handleLeave);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('pagehide', handleLeave);
-      window.removeEventListener('beforeunload', handleLeave);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

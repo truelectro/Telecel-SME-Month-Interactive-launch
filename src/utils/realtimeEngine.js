@@ -4,11 +4,7 @@ import { io } from 'socket.io-client';
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:global.stun.twilio.com:3478' },
 ];
 
 const EVENT_CONFIG = {
@@ -146,7 +142,7 @@ class BrowserHostEngine {
         let countChanged = false;
         for (const id in this.gameState.players) {
           const p = this.gameState.players[id];
-          if (now - (p.lastSeen || 0) > 2800) {
+          if (now - (p.lastSeen || 0) > 5000) {
             delete this.gameState.players[id];
             countChanged = true;
           }
@@ -483,7 +479,6 @@ export class RealtimeNetwork {
       this.peer = new Peer(peerId, {
         config: {
           iceServers: ICE_SERVERS,
-          iceCandidatePoolSize: 10,
         },
         debug: 1,
       });
@@ -615,41 +610,47 @@ export class RealtimeNetwork {
 
   connectToHost() {
     if (!this.peer || this.peer.destroyed) return;
+    if (this.clientConn && this.clientConn.open) return;
+
     console.log(`Connecting to Host Room: ${this.roomCode}...`);
 
-    this.clientConn = this.peer.connect(this.roomCode, {
-      reliable: true,
-      serialization: 'json',
-    });
+    try {
+      this.clientConn = this.peer.connect(this.roomCode, {
+        reliable: true,
+      });
 
-    this.clientConn.on('open', () => {
-      console.log(`✅ WebRTC connected to Host: ${this.roomCode}`);
-      this.connected = true;
-      this.emitLocal('connect', { id: this.peer.id });
+      this.clientConn.on('open', () => {
+        console.log(`✅ WebRTC connected to Host: ${this.roomCode}`);
+        this.connected = true;
+        this.emitLocal('connect', { id: this.peer.id });
 
-      // Automatically register controller
-      this.emit('join_controller', { playerName: '' });
-    });
+        // Automatically register controller
+        this.emit('join_controller', { playerName: '' });
+      });
 
-    this.clientConn.on('data', (msg) => {
-      if (!msg || typeof msg !== 'object') return;
-      const { event, data } = msg;
-      this.emitLocal(event, data);
-    });
+      this.clientConn.on('data', (msg) => {
+        if (!msg || typeof msg !== 'object') return;
+        const { event, data } = msg;
+        this.emitLocal(event, data);
+      });
 
-    this.clientConn.on('close', () => {
-      console.log('Disconnected from Host');
-      this.connected = false;
-      this.emitLocal('disconnect');
+      this.clientConn.on('close', () => {
+        console.log('Disconnected from Host');
+        this.connected = false;
+        this.emitLocal('disconnect');
+        this.scheduleClientReconnect();
+      });
+
+      this.clientConn.on('error', (err) => {
+        console.warn('Host connection error:', err);
+        this.connected = false;
+        this.emitLocal('disconnect');
+        this.scheduleClientReconnect();
+      });
+    } catch (err) {
+      console.warn('Error connecting to host:', err);
       this.scheduleClientReconnect();
-    });
-
-    this.clientConn.on('error', (err) => {
-      console.warn('Host connection error:', err);
-      this.connected = false;
-      this.emitLocal('disconnect');
-      this.scheduleClientReconnect();
-    });
+    }
   }
 
   scheduleClientReconnect() {
