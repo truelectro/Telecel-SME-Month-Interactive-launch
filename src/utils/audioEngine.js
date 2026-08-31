@@ -258,6 +258,8 @@ class AudioEngine {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
+    
+    // 1. High-Tech Electrical Arc Zap
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
@@ -282,6 +284,22 @@ class AudioEngine {
 
     osc.start(t);
     osc.stop(t + 0.1);
+
+    // 2. Punchy Sub-Bass Physical Impulse (Acoustic Haptic rumble through phone speaker)
+    const kickOsc = this.ctx.createOscillator();
+    const kickGain = this.ctx.createGain();
+    kickOsc.type = 'sine';
+    kickOsc.frequency.setValueAtTime(130, t);
+    kickOsc.frequency.exponentialRampToValueAtTime(45, t + 0.08);
+
+    kickGain.gain.setValueAtTime(0.38, t);
+    kickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    kickOsc.connect(kickGain);
+    kickGain.connect(this.masterGain);
+
+    kickOsc.start(t);
+    kickOsc.stop(t + 0.09);
   }
 
   playBoostSurge() {
