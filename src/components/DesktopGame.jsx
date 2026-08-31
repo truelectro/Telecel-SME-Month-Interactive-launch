@@ -540,21 +540,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
         {/* Right: Utility & Audio Buttons */}
         <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
-          {/* 150-Crowd Simulator Toggle */}
-          <button
-            onClick={() => setSimulatingCrowd(!simulatingCrowd)}
-            title="Toggle 150-Operative Crowd Simulator (Key: C)"
-            aria-label="Toggle Crowd Simulation"
-            className={`px-2 sm:px-2.5 h-8 sm:h-9 flex items-center justify-center gap-1.5 border transition-all sci-fi-cut-sm font-orbitron font-bold text-[10px] sm:text-xs cursor-pointer ${
-              simulatingCrowd 
-                ? 'bg-[#ff1f43] border-white text-white shadow-neon-red animate-pulse' 
-                : 'bg-[#25080e]/80 border-[#521520] hover:border-[#ff2a4b] text-[#ff8095] hover:text-white'
-            }`}
-          >
-            <Users size={14} className={simulatingCrowd ? 'animate-bounce' : ''} />
-            <span className="hidden sm:inline">{simulatingCrowd ? '150 CROWD ON' : 'SIM 150'}</span>
-          </button>
-
           {/* Audio Mute Toggle */}
           <button
             onClick={handleToggleMute}
