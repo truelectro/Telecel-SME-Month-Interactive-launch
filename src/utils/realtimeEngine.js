@@ -49,6 +49,7 @@ class BrowserHostEngine {
       lastTickTime: Date.now(),
     };
 
+    this.lastPruneTime = Date.now();
     this.startLoop();
   }
 
@@ -139,6 +140,27 @@ class BrowserHostEngine {
         }
       }
 
+      // Prune inactive/disconnected players (e.g. screen turned off, tab closed) every 1s
+      if (now - this.lastPruneTime > 1000) {
+        this.lastPruneTime = now;
+        let countChanged = false;
+        for (const id in this.gameState.players) {
+          const p = this.gameState.players[id];
+          if (now - (p.lastSeen || 0) > 2800) {
+            delete this.gameState.players[id];
+            countChanged = true;
+          }
+        }
+        if (countChanged) {
+          this.gameState.connectedCount = Object.keys(this.gameState.players).length;
+          this.broadcast('game_state_update', {
+            connectedCount: this.gameState.connectedCount,
+            status: this.gameState.status,
+            voltage: Number(this.gameState.voltage.toFixed(2)),
+          });
+        }
+      }
+
       // Broadcast state update (30Hz)
       const payload = {
         status: this.gameState.status,
@@ -171,6 +193,7 @@ class BrowserHostEngine {
       lastShakeTime: 0,
       intensity: 0,
       sensorActive: false,
+      lastSeen: Date.now(),
     };
 
     this.gameState.connectedCount = Object.keys(this.gameState.players).length;
@@ -203,6 +226,14 @@ class BrowserHostEngine {
     return assignedData;
   }
 
+  handlePlayerHeartbeat(senderId) {
+    if (this.gameState.players[senderId]) {
+      this.gameState.players[senderId].lastSeen = Date.now();
+    } else {
+      this.handlePlayerJoin(senderId, '');
+    }
+  }
+
   handlePlayerLeave(senderId) {
     if (this.gameState.players[senderId]) {
       const p = this.gameState.players[senderId];
@@ -213,6 +244,12 @@ class BrowserHostEngine {
         operativeNumber: p.number,
         connectedCount: this.gameState.connectedCount,
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+
+      this.broadcast('game_state_update', {
+        connectedCount: this.gameState.connectedCount,
+        status: this.gameState.status,
+        voltage: Number(this.gameState.voltage.toFixed(2)),
       });
     }
   }
@@ -542,6 +579,14 @@ export class RealtimeNetwork {
 
         if (event === 'join_controller') {
           this.hostEngine.handlePlayerJoin(connId, data?.playerName);
+        } else if (event === 'ping_heartbeat') {
+          this.hostEngine.handlePlayerHeartbeat(connId);
+        } else if (event === 'leave_controller') {
+          this.hostEngine.handlePlayerLeave(connId);
+          if (this.connections.has(connId)) {
+            try { this.connections.get(connId).close(); } catch (e) {}
+            this.connections.delete(connId);
+          }
         } else if (event === 'shake_pulse') {
           this.hostEngine.handleShakePulse(connId, data?.intensity);
         } else if (event === 'trigger_boost') {
@@ -549,6 +594,7 @@ export class RealtimeNetwork {
         } else if (event === 'sensor_status') {
           if (this.hostEngine.gameState.players[connId]) {
             this.hostEngine.gameState.players[connId].sensorActive = data?.active;
+            this.hostEngine.gameState.players[connId].lastSeen = Date.now();
           }
         }
       });

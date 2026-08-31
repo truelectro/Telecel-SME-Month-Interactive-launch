@@ -228,19 +228,49 @@ export default function MobileController({ socket, gameState }) {
     };
   }, [handleDeviceMotionEvent, handleDeviceOrientationEvent]);
 
-  // Keep connection alive on screen unlock / tab switch
+  // Active liveness heartbeat (1s interval)
   useEffect(() => {
+    const timer = setInterval(() => {
+      if (socketRef.current) {
+        socketRef.current.emit('ping_heartbeat', { time: Date.now() });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Immediate disconnect when screen turns off / user leaves page, and reconnect when returning
+  useEffect(() => {
+    const handleLeave = () => {
+      if (socketRef.current) {
+        socketRef.current.emit('leave_controller');
+      }
+    };
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && socketRef.current) {
-        if (!socketRef.current.connected) {
-          socketRef.current.init();
-        } else {
-          socketRef.current.emit('join_controller', { playerName: '' });
+      if (document.visibilityState === 'hidden') {
+        // Screen turned off, phone locked, or switched tabs -> disconnect immediately
+        handleLeave();
+      } else if (document.visibilityState === 'visible') {
+        // Screen turned on / tab opened -> reconnect immediately
+        if (socketRef.current) {
+          if (!socketRef.current.connected) {
+            socketRef.current.init();
+          } else {
+            socketRef.current.emit('join_controller', { playerName: '' });
+          }
         }
       }
     };
+
+    window.addEventListener('pagehide', handleLeave);
+    window.addEventListener('beforeunload', handleLeave);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', handleLeave);
+      window.removeEventListener('beforeunload', handleLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Boost Trigger

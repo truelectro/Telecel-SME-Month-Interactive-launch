@@ -578,7 +578,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
               {/* Live Connection Feed */}
               <div className="text-xs text-[#ff99aa] flex items-center justify-center gap-2 mt-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
                 <span>
                   {gameState.connectedCount > 0 
                     ? `Live: ${gameState.connectedCount} device${gameState.connectedCount > 1 ? 's' : ''} ready to shake!` 

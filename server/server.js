@@ -249,6 +249,20 @@ setInterval(() => {
     }
   }
 
+  // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 2.8s
+  for (const socketId in gameState.players) {
+    const p = gameState.players[socketId];
+    if (now - (p.lastSeen || 0) > 2800) {
+      delete gameState.players[socketId];
+      gameState.connectedCount = Object.keys(gameState.players).length;
+      io.emit('participant_left', {
+        operativeNumber: p.number,
+        connectedCount: gameState.connectedCount,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+    }
+  }
+
   // Broadcast state update (30Hz throttled for network efficiency)
   io.emit('game_state_update', {
     status: gameState.status,
@@ -432,6 +446,32 @@ io.on('connection', (socket) => {
     io.emit('game_reset');
   });
 
+  // Heartbeat ping from mobile controller
+  socket.on('ping_heartbeat', () => {
+    if (gameState.players[socket.id]) {
+      gameState.players[socket.id].lastSeen = Date.now();
+    }
+  });
+
+  // Explicit leave from mobile controller (screen turned off or left page)
+  socket.on('leave_controller', () => {
+    if (gameState.players[socket.id]) {
+      const p = gameState.players[socket.id];
+      delete gameState.players[socket.id];
+      gameState.connectedCount = Object.keys(gameState.players).length;
+      io.emit('participant_left', {
+        operativeNumber: p.number,
+        connectedCount: gameState.connectedCount,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+      io.emit('game_state_update', {
+        connectedCount: gameState.connectedCount,
+        status: gameState.status,
+        voltage: Number(gameState.voltage.toFixed(2)),
+      });
+    }
+  });
+
   // Disconnect handler
   socket.on('disconnect', () => {
     if (gameState.players[socket.id]) {
@@ -442,6 +482,11 @@ io.on('connection', (socket) => {
         operativeNumber: p.number,
         connectedCount: gameState.connectedCount,
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      });
+      io.emit('game_state_update', {
+        connectedCount: gameState.connectedCount,
+        status: gameState.status,
+        voltage: Number(gameState.voltage.toFixed(2)),
       });
     }
     console.log(`Socket disconnected: ${socket.id} (Active: ${Object.keys(gameState.players).length})`);
