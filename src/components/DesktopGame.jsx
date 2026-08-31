@@ -274,7 +274,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     if (!socket) return;
 
     const onSurgePulse = ({ intensity, operativeNumber, name, playerName }) => {
-      audioEngine.playShakeZap(intensity);
       setShakeFlash(true);
       setTimeout(() => setShakeFlash(false), 80);
 
