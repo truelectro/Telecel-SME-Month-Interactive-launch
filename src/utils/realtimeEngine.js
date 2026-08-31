@@ -483,6 +483,34 @@ export class RealtimeNetwork {
     }
 
     this.initSocketIO(socketUrl);
+
+    // Setup global visibility & device wake reconnection triggers
+    if (typeof window !== 'undefined') {
+      const handleDeviceWake = () => {
+        this.reconnect();
+      };
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') handleDeviceWake();
+      });
+      window.addEventListener('pageshow', handleDeviceWake);
+      window.addEventListener('focus', handleDeviceWake);
+      window.addEventListener('online', handleDeviceWake);
+    }
+  }
+
+  reconnect() {
+    if (this.transport === 'socket.io' && this.socket) {
+      if (!this.socket.connected) {
+        console.log('⚡ Device awake: Reconnecting Socket.io connection...');
+        try {
+          this.socket.connect();
+        } catch (e) {}
+      }
+    } else if (this.transport === 'webrtc') {
+      if (!this.connected && this.isController) {
+        this.connectToHost();
+      }
+    }
   }
 
   initSocketIO(url) {
@@ -491,28 +519,16 @@ export class RealtimeNetwork {
 
     try {
       this.socket = io(url, {
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,
-        reconnectionDelay: 500,
-        reconnectionDelayMax: 2000,
-        timeout: 5000,
+        reconnectionDelay: 200,
+        reconnectionDelayMax: 1200,
+        timeout: 8000,
+        autoConnect: true,
       });
 
-      // If not connected within 3.5s and running in a browser without explicit VITE_SOCKET_URL, fall back to WebRTC
-      const socketTimeoutTimer = setTimeout(() => {
-        if (!this.connected && !this.socketFailed && !this.options.socketUrl && !import.meta.env.VITE_SOCKET_URL) {
-          console.warn('Socket.io connection timed out, attempting WebRTC fallback...');
-          this.socketFailed = true;
-          if (this.socket) {
-            try { this.socket.disconnect(); } catch (e) {}
-          }
-          this.initWebRTC();
-        }
-      }, 3500);
-
       this.socket.on('connect', () => {
-        clearTimeout(socketTimeoutTimer);
         console.log(`✅ Socket.io connected (ID: ${this.socket.id})`);
         this.connected = true;
         this.socketFailed = false;
@@ -520,7 +536,9 @@ export class RealtimeNetwork {
         this.emitLocal('connect', { id: this.socket.id });
 
         if (this.isController) {
-          this.socket.emit('join_controller', { playerName: '' });
+          let savedName = '';
+          try { savedName = sessionStorage.getItem('operative_name') || ''; } catch (e) {}
+          this.socket.emit('join_controller', { playerName: savedName });
         } else {
           this.socket.emit('join_display');
         }
@@ -530,19 +548,13 @@ export class RealtimeNetwork {
         console.warn(`Socket.io disconnected: ${reason}`);
         this.connected = false;
         this.emitLocal('disconnect');
+        if (reason === 'io server disconnect') {
+          this.socket.connect();
+        }
       });
 
       this.socket.on('connect_error', (err) => {
-        console.warn('Socket.io connection error:', err?.message || err);
-        if (!this.connected && !this.socketFailed && !this.options.socketUrl && !import.meta.env.VITE_SOCKET_URL) {
-          clearTimeout(socketTimeoutTimer);
-          this.socketFailed = true;
-          if (this.socket) {
-            try { this.socket.disconnect(); } catch (e) {}
-          }
-          console.log('Falling back to WebRTC PeerJS...');
-          this.initWebRTC();
-        }
+        console.warn('Socket.io connection notice:', err?.message || err);
       });
 
       // Forward all socket events to local listeners

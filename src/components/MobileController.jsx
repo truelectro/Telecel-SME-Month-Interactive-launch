@@ -451,23 +451,23 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        audioEngine.ensureRunning();
         if (socketRef.current) {
-          if (!socketRef.current.connected) {
-            socketRef.current.connectToHost?.();
-          } else if (playerNameRef.current) {
+          socketRef.current.reconnect?.();
+          if (playerNameRef.current) {
             socketRef.current.emit('join_controller', { playerName: playerNameRef.current });
           }
         }
       }
     };
 
-    window.addEventListener('pagehide', handleUnload);
-    window.addEventListener('beforeunload', handleUnload);
+    window.addEventListener('pageshow', handleVisibilityChange);
+    window.addEventListener('focus', handleVisibilityChange);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('pagehide', handleUnload);
-      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pageshow', handleVisibilityChange);
+      window.removeEventListener('focus', handleVisibilityChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
