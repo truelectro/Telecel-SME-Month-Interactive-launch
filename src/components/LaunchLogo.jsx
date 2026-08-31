@@ -6,8 +6,8 @@ export default function LaunchLogo({ className = "w-full max-w-[640px] max-h-[58
       {/* Dynamic Radial Energy Shockwave Backdrop */}
       {animate && (
         <>
-          <div className="absolute w-[110vw] h-[110vh] max-w-[1400px] max-h-[1400px] rounded-full bg-gradient-to-r from-[#d03b33]/35 via-[#ff1f43]/25 to-transparent blur-3xl animate-pulse pointer-events-none" />
-          <div className="absolute w-[70vw] h-[70vh] max-w-[900px] max-h-[900px] rounded-full bg-[#ff4d6d]/30 blur-2xl animate-ping pointer-events-none" style={{ animationDuration: '3s' }} />
+          <div className="absolute w-[180%] h-[180%] rounded-full bg-gradient-to-r from-[#d03b33]/40 via-[#ff1f43]/30 to-transparent blur-3xl animate-pulse pointer-events-none" />
+          <div className="absolute w-[120%] h-[120%] rounded-full bg-[#ff4d6d]/35 blur-2xl animate-ping pointer-events-none" style={{ animationDuration: '3.5s' }} />
         </>
       )}
 

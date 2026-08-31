@@ -620,17 +620,25 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {status === 'victory' && (
         <div 
-          className="fixed inset-0 z-50 w-screen h-screen bg-gradient-to-b from-[#1f050b] via-[#0c0205] to-[#040102] flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden select-none animate-fade-in"
+          className="fixed inset-0 z-50 w-screen h-screen bg-[#100204] flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden select-none animate-fade-in"
         >
-          {/* Immersive Ambient Energy & Radial Shockwave */}
-          <div className="absolute inset-0 pointer-events-none z-0">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vh] max-w-[1400px] max-h-[1400px] rounded-full bg-gradient-to-r from-[#d03b33]/30 via-[#ff1f43]/20 to-transparent blur-3xl animate-pulse pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[65vw] h-[65vh] max-w-[950px] max-h-[950px] rounded-full bg-[#ff4d6d]/25 blur-2xl pointer-events-none animate-ping" style={{ animationDuration: '4s' }} />
-            <div className="absolute inset-0 scanlines opacity-30 pointer-events-none" />
+          {/* Fullscreen Seamless Radial Red Background Field (Edge-to-Edge) */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+            {/* Deep Rich Radial Red Gradient spanning the entire display */}
+            <div 
+              className="absolute inset-0 w-full h-full"
+              style={{
+                background: 'radial-gradient(ellipse 130% 95% at 50% 50%, #7a1222 0%, #460914 45%, #220409 75%, #0f0103 100%)'
+              }}
+            />
+            {/* Ambient Animated Red Energy Shockwaves */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160vw] h-[160vh] rounded-full bg-[#ff1f43]/15 blur-[100px] animate-pulse" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vh] rounded-full bg-[#ff4d6d]/20 blur-[80px]" />
+            <div className="absolute inset-0 scanlines opacity-15" />
           </div>
 
           {/* Fullscreen Outer Sci-Fi Border */}
-          <div className="absolute inset-3 md:inset-6 border-2 border-[#801b2a]/80 pointer-events-none z-10 sci-fi-cut shadow-[0_0_50px_rgba(208,59,51,0.3)]">
+          <div className="absolute inset-3 md:inset-6 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
             <div className="absolute top-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
             <div className="absolute top-2 right-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
             <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
@@ -646,8 +654,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
-          {/* Center: Hero Animated Launch Logo (Balanced Stage Proportion) */}
-          <div className="relative z-20 flex-1 flex items-center justify-center w-full max-w-6xl px-4 my-auto overflow-hidden">
+          {/* Center: Hero Animated Launch Logo (Edge-to-Edge Stage Flow) */}
+          <div className="relative z-20 flex-1 flex items-center justify-center w-full px-4 my-auto">
             <LaunchLogo className="w-full h-auto max-w-[680px] md:max-w-[780px] lg:max-w-[880px] max-h-[58vh] object-contain" animate={true} />
           </div>
 
