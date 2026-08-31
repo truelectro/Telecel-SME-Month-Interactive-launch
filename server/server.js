@@ -132,18 +132,16 @@ app.get('*', (req, res) => {
 });
 
 // ----------------------------------------------------
-// LAUNCH EVENT ACTIVATION ENGINE (UP TO 200 PARTICIPANTS)
-// ----------------------------------------------------
 // ----------------------------------------------------
 // LAUNCH EVENT ACTIVATION ENGINE (UP TO 200 PARTICIPANTS)
 // ----------------------------------------------------
 const EVENT_CONFIG = {
   MAX_CAPACITY: 200,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.2,       // Increased resistance & responsive decay
-  SHAKE_VOLTAGE_BASE: 0.055,     // Lower base sensitivity to require sustained collective effort
-  COMBO_DECAY_TIME_MS: 1400,
-  BOOST_AMOUNT: 4.5,
+  DECAY_RATE_PER_SEC: 3.6,       // Responsive decay
+  SHAKE_VOLTAGE_BASE: 0.038,     // Higher difficulty: requires sustained crowd effort
+  COMBO_DECAY_TIME_MS: 1300,
+  BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
 
@@ -392,14 +390,14 @@ io.on('connection', (socket) => {
 
       // Exponential High-Voltage Resistance: As voltage rises above 60-80%, each remaining % requires more effort
       const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
-      const resistanceFactor = 1.0 - (Math.pow(currentVolt / 100, 1.6) * 0.62);
+      const resistanceFactor = 1.0 - (Math.pow(currentVolt / 100, 1.45) * 0.70);
 
-      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.12);
+      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.10);
       
       gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
 
       // Multiplier progress requires sustained crowd momentum
-      gameState.multiplierProgress += (3.0 * clampedIntensity * crowdDampener);
+      gameState.multiplierProgress += (2.2 * clampedIntensity * crowdDampener);
       if (gameState.multiplierProgress >= 100) {
         if (gameState.multiplier < 5) {
           gameState.multiplier += 1;

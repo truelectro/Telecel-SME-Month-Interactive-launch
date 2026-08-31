@@ -44,8 +44,10 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [simulatingCrowd, setSimulatingCrowd] = useState(false);
   const [floatingSurges, setFloatingSurges] = useState([]);
   const [recentOperativeNames, setRecentOperativeNames] = useState([]);
+  const [joinedOperatives, setJoinedOperatives] = useState([]);
   const lastFloatingSurgeTimeRef = useRef(0);
   const simIntervalRef = useRef(null);
+  const rosterListRef = useRef(null);
 
   // Check if viewing desktop screen on a mobile device
   useEffect(() => {
@@ -276,6 +278,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       const opName = name || playerName || (operativeNumber ? `Operative #${operativeNumber}` : 'Audience Operative');
       const now = Date.now();
 
+      // Ensure operative is in roster list
+      if (opName && !opName.startsWith('Audience Operative')) {
+        setJoinedOperatives((prev) => {
+          if (prev.some((p) => p.name === opName)) return prev;
+          return [...prev, { id: `${now}-${Math.random()}`, name: opName, time: now }];
+        });
+      }
+
       // Spawn floating surge name tag
       if (now - lastFloatingSurgeTimeRef.current > 110) {
         lastFloatingSurgeTimeRef.current = now;
@@ -301,6 +311,10 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     const onParticipantJoined = (data) => {
       const name = data?.name || data?.playerName || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
+      setJoinedOperatives((prev) => {
+        if (prev.some((p) => p.name === name)) return prev;
+        return [...prev, { id: `${Date.now()}-${Math.random()}`, name, time: Date.now() }];
+      });
       setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
       const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE SURGE! ⚡`, type: 'join' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
@@ -341,6 +355,24 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       socket.off('multiplier_up', onMultiplierUp);
     };
   }, [socket]);
+
+  // Auto-scroll joined operatives roster container when new members join
+  useEffect(() => {
+    if (rosterListRef.current) {
+      rosterListRef.current.scrollTop = rosterListRef.current.scrollHeight;
+    }
+  }, [joinedOperatives.length]);
+
+  // Sync simulated operatives when crowd simulator is active
+  useEffect(() => {
+    if (simulatingCrowd) {
+      setJoinedOperatives(SIMULATED_NAMES.map((name, i) => ({
+        id: `sim-${i}`,
+        name: `${name} (#${i + 1})`,
+        time: Date.now(),
+      })));
+    }
+  }, [simulatingCrowd]);
 
   // Clean up floating surges after animation completes
   useEffect(() => {
@@ -1019,29 +1051,77 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               )}
             </div>
 
-            {/* Right: Live Audience Counter Box (Matching Height) */}
+            {/* Right: Live Audience Roster Box (Matching Height) */}
             <div className="flex items-center justify-center w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[390px] h-full max-h-[38vh] sm:max-h-[42vh] md:max-h-[46vh] min-h-[180px]">
-              <div className="w-full h-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-2xl sm:rounded-3xl p-3 sm:p-5 md:p-6 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
+              <div className="w-full h-full bg-gradient-to-b from-[#2a0a12]/95 via-[#180408]/95 to-[#0d0205]/95 border-2 border-[#ff1f43]/70 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col justify-between sci-fi-cut relative overflow-hidden">
                 
-                {/* Massive Live Counter Number */}
-                <div className="font-orbitron font-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white tracking-wider text-glow-red drop-shadow-[0_0_30px_#ff1f43] leading-none mb-1 sm:mb-2">
-                  {gameState.connectedCount || 0}
+                {/* Header: Title & Live Count Badge */}
+                <div className="flex items-center justify-between pb-1.5 border-b border-[#4d131d] shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Users size={15} className="text-[#ff1f43] animate-pulse shrink-0" />
+                    <span className="font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase text-white drop-shadow-[0_0_8px_#ff1f43]">
+                      CONNECTED OPERATIVES
+                    </span>
+                  </div>
+                  <div className="px-2 py-0.5 rounded-full bg-[#3d0d17] border border-[#ff1f43] flex items-center gap-1 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
+                    <span className="font-orbitron font-black text-[10px] sm:text-xs text-[#ffccd5]">
+                      {gameState.connectedCount || joinedOperatives.length}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Connected Audience Label */}
-                <div className="flex items-center gap-1.5 sm:gap-2 text-[#ff8095] mb-1 sm:mb-2">
-                  <Users size={18} className="text-[#ff1f43] animate-pulse shrink-0" />
-                  <span className="font-orbitron font-bold text-xs sm:text-sm md:text-base tracking-[0.2em] uppercase text-white">
-                    CONNECTED AUDIENCE
+                {/* Real-Time Scrolling List of Joined Participants */}
+                <div 
+                  ref={rosterListRef}
+                  className="flex-1 min-h-0 overflow-y-auto my-2 pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-[#ff1f43]/40 scrollbar-track-transparent select-none"
+                >
+                  {joinedOperatives.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-3 text-center text-[#ff8095]/70 animate-pulse my-auto">
+                      <Smartphone size={24} className="text-[#ff1f43] mb-1.5 animate-bounce" />
+                      <span className="font-orbitron font-bold text-xs uppercase tracking-wider text-white">
+                        SCAN QR TO JOIN ROSTER
+                      </span>
+                      <span className="text-[10px] text-[#ff8095]/80 mt-0.5">
+                        Your name will appear here in real-time!
+                      </span>
+                    </div>
+                  ) : (
+                    joinedOperatives.map((op, idx) => (
+                      <div
+                        key={op.id || idx}
+                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#24060c]/90 border border-[#ff1f43]/50 shadow-[0_0_10px_rgba(255,31,67,0.2)] animate-fade-in"
+                      >
+                        <div className="flex items-center gap-2 truncate min-w-0 pr-2">
+                          <div className="w-5 h-5 rounded-full bg-[#ff1f43]/20 border border-[#ff1f43] flex items-center justify-center shrink-0">
+                            <Smartphone size={11} className="text-[#ff1f43]" />
+                          </div>
+                          <span className="font-orbitron font-bold text-xs sm:text-sm text-white truncate drop-shadow-[0_0_6px_#ff1f43]">
+                            {op.name}
+                          </span>
+                        </div>
+                        <span className="font-orbitron text-[9px] text-green-400 font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                          READY
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Footer Status Pill */}
+                <div className="pt-1.5 border-t border-[#4d131d] flex items-center justify-between text-[10px] text-[#ff8095] shrink-0">
+                  <span className="truncate font-semibold flex items-center gap-1">
+                    <Zap size={11} className="text-[#ff1f43] animate-bounce shrink-0" />
+                    {(gameState.connectedCount || joinedOperatives.length) > 0 
+                      ? `${gameState.connectedCount || joinedOperatives.length} operative${(gameState.connectedCount || joinedOperatives.length) > 1 ? 's' : ''} ready to surge` 
+                      : 'Waiting for attendees...'}
+                  </span>
+                  <span className="font-orbitron text-[9px] text-[#ffccd5] shrink-0 uppercase">
+                    STAGE SYNCED
                   </span>
                 </div>
 
-                {/* Live Feed Pill */}
-                <div className="px-3 sm:px-4 py-0.5 sm:py-1 bg-[#140306] border border-[#ff1f43]/40 rounded-full text-[10px] sm:text-xs md:text-sm text-[#ff99aa] font-semibold truncate max-w-full">
-                  {gameState.connectedCount > 0 
-                    ? `⚡ Live: ${gameState.connectedCount} device${gameState.connectedCount > 1 ? 's' : ''} ready to shake!` 
-                    : 'Scan the QR code with your phone to join'}
-                </div>
               </div>
             </div>
 
