@@ -306,13 +306,20 @@ class BrowserHostEngine {
       const clampedIntensity = Math.min(2.0, Math.max(0.5, intensity));
 
       const crowdDampener = activeCount > 1
-        ? Math.max(0.02, 0.88 / Math.pow(activeCount, 0.55))
+        ? Math.max(0.015, 0.90 / Math.pow(activeCount, 0.58))
         : 1.0;
 
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
-      const resistanceFactor = 1.0 - (Math.pow(currentVolt / 100, 1.45) * 0.70);
+      let resistanceFactor = 1.0;
+      if (currentVolt > 85) {
+        resistanceFactor = 0.35;
+      } else if (currentVolt > 60) {
+        resistanceFactor = 0.60;
+      } else if (currentVolt > 35) {
+        resistanceFactor = 0.82;
+      }
 
-      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.10);
+      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (this.gameState.multiplier - 1) * 0.08);
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 
       this.gameState.multiplierProgress += (2.2 * clampedIntensity * crowdDampener);

@@ -391,20 +391,30 @@ io.on('connection', (socket) => {
       player.lastShakeTime = now;
       player.intensity = intensity;
 
-      // HIGH-RESISTANCE & CHALLENGING VOLTAGE SCALING:
+      // HIGH-RESISTANCE & BALANCED 3-TIER STAGE PACING:
       const activeCount = Math.max(1, Object.keys(gameState.players).length);
       const clampedIntensity = Math.min(2.0, Math.max(0.5, intensity));
       
-      // Dynamic crowd dampener: balances 1 tester up to 200+ live attendees
+      // Dynamic crowd dampener: scales evenly across 20 to 500 attendees
       const crowdDampener = activeCount > 1 
-        ? Math.max(0.02, 0.88 / Math.pow(activeCount, 0.55))
+        ? Math.max(0.015, 0.90 / Math.pow(activeCount, 0.58))
         : 1.0;
 
-      // Exponential High-Voltage Resistance: As voltage rises above 60-80%, each remaining % requires more effort
+      // 3-Tier Electromagnetic Resistance:
+      // 0-35%: Fast initial responsiveness
+      // 35-70%: High resistance, multipliers climb (2X-4X)
+      // 70-100%: Climax tension, requires full crowd effort to punch through 90% -> 100%
       const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
-      const resistanceFactor = 1.0 - (Math.pow(currentVolt / 100, 1.45) * 0.70);
+      let resistanceFactor = 1.0;
+      if (currentVolt > 85) {
+        resistanceFactor = 0.35; // Final 15% requires sustained intense crowd effort
+      } else if (currentVolt > 60) {
+        resistanceFactor = 0.60;
+      } else if (currentVolt > 35) {
+        resistanceFactor = 0.82;
+      }
 
-      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.10);
+      const voltageGain = EVENT_CONFIG.SHAKE_VOLTAGE_BASE * clampedIntensity * crowdDampener * resistanceFactor * (1 + (gameState.multiplier - 1) * 0.08);
       
       gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
 
