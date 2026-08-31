@@ -163,9 +163,9 @@ app.get('*', (req, res) => {
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '5.5'),       // Responsive high-stakes decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.13'),     // Hardened calibration requiring sustained, high-intensity crowd power
-  COMBO_DECAY_TIME_MS: 250,
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '2.8'),       // Responsive calibrated decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '1.8'),     // Calibrated crowd scaling base
+  COMBO_DECAY_TIME_MS: 500,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -218,19 +218,17 @@ setInterval(() => {
   gameState.connectedCount = Object.keys(gameState.players).length;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Drains quickly if audience pauses shaking for > 250ms)
+    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 500ms)
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
-    if (gameState.voltage > 80) {
-      currentDecay *= 2.4; // Rapid drain at high voltage if shaking slows down
-    } else if (gameState.voltage > 60) {
-      currentDecay *= 1.8;
-    } else if (gameState.voltage > 35) {
-      currentDecay *= 1.3;
+    if (gameState.voltage > 85) {
+      currentDecay *= 1.8; // Drain at high voltage if shaking stops
+    } else if (gameState.voltage > 65) {
+      currentDecay *= 1.4;
     }
 
-    if (timeSinceShake > 250) {
+    if (timeSinceShake > 500) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
@@ -395,51 +393,41 @@ io.on('connection', (socket) => {
       let player = gameState.players[socket.id];
 
       if (!player) {
-        participantCounter += 1;
-        gameState.players[socket.id] = {
-          id: socket.id,
-          number: participantCounter,
-          name: playerName || `Operative #${participantCounter}`,
-          shakes: 0,
-          lastShakeTime: 0,
-          intensity: 0,
-          sensorActive: true,
-          lastSeen: now,
+        player = {
+          number: 1,
+          name: playerName || 'Operative',
         };
-        player = gameState.players[socket.id];
-        gameState.connectedCount = Object.keys(gameState.players).length;
       } else if (playerName && (!player.name || player.name.startsWith('Operative #'))) {
         player.name = playerName;
       }
 
-      player.lastSeen = now;
+      if (gameState.players[socket.id]) {
+        gameState.players[socket.id].lastSeen = now;
+        gameState.players[socket.id].shakes += 1;
+        gameState.players[socket.id].lastShakeTime = now;
+        gameState.players[socket.id].intensity = intensity;
+      }
 
       // Only process shake voltage when the host has officially initiated the game
       if (gameState.status === 'playing') {
         gameState.lastActiveShakeTime = now;
 
-        player.shakes += 1;
-        player.lastShakeTime = now;
-        player.intensity = intensity;
-
-        // BALANCED PER-PLAYER DYNAMIC VOLTAGE SCALING:
+        // Dynamic crowd scaling (works smoothly for 1 phone and scales to 250 phones)
         const activeCount = Math.max(1, Object.keys(gameState.players).length);
-        const clampedIntensity = Math.min(2.0, Math.max(0.6, intensity));
+        const clampedIntensity = Math.min(2.2, Math.max(0.6, intensity));
         
-        // Hardened 4-tier electromagnetic resistance curve (demands sustained crowd power)
+        // Progressive electromagnetic resistance curve
         const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
         let resistanceFactor = 1.0;
-        if (currentVolt > 85) {
-          resistanceFactor = 0.24; // Final 15% requires maximum sustained crowd effort
-        } else if (currentVolt > 70) {
-          resistanceFactor = 0.44;
+        if (currentVolt > 90) {
+          resistanceFactor = 0.50; // Dramatic climax resistance
+        } else if (currentVolt > 75) {
+          resistanceFactor = 0.70;
         } else if (currentVolt > 50) {
-          resistanceFactor = 0.65;
-        } else if (currentVolt > 25) {
           resistanceFactor = 0.85;
         }
 
-        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(Math.max(1, activeCount), 0.92);
+        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.72);
         const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
         
         gameState.voltage = Math.min(100, gameState.voltage + voltageGain);
