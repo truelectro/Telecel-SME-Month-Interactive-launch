@@ -344,7 +344,7 @@ io.on('connection', (socket) => {
   });
 
   // Physical shake impulse received (calibrated for mass crowd scaling)
-  socket.on('shake_pulse', ({ intensity = 1.0 } = {}) => {
+  socket.on('shake_pulse', ({ intensity = 1.0, playerName } = {}) => {
     const now = Date.now();
     let player = gameState.players[socket.id];
 
@@ -353,7 +353,7 @@ io.on('connection', (socket) => {
       gameState.players[socket.id] = {
         id: socket.id,
         number: participantCounter,
-        name: `Operative #${participantCounter}`,
+        name: playerName?.trim() || `Operative #${participantCounter}`,
         shakes: 0,
         lastShakeTime: 0,
         intensity: 0,
@@ -362,6 +362,8 @@ io.on('connection', (socket) => {
       };
       player = gameState.players[socket.id];
       gameState.connectedCount = Object.keys(gameState.players).length;
+    } else if (playerName && (!player.name || player.name.startsWith('Operative #'))) {
+      player.name = playerName.trim();
     }
 
     player.lastSeen = now;

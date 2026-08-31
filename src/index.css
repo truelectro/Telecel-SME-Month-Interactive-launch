@@ -173,3 +173,32 @@
 .animate-cyber-core {
   animation: cyber-core-boot 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
+
+/* Floating Names Surge Stream Animation */
+@keyframes float-up-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(25px) scale(0.88);
+    filter: brightness(2.2) drop-shadow(0 0 15px #ff1f43);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0px) scale(1);
+    filter: brightness(1.3) drop-shadow(0 0 8px #ff1f43);
+  }
+  75% {
+    opacity: 0.85;
+    transform: translateY(-90px) scale(0.96);
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-145px) scale(0.88);
+    filter: brightness(0.5) blur(2px);
+  }
+}
+
+.animate-float-up {
+  animation: float-up-fade 2.2s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+

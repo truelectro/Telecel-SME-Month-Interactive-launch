@@ -8,12 +8,22 @@ import {
   ShieldAlert, 
   Radio,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  UserCheck
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
 import { audioEngine } from '../utils/audioEngine';
 
 export default function MobileController({ socket, gameState, isConnected: propConnected }) {
+  const [playerName, setPlayerName] = useState(() => {
+    try { return sessionStorage.getItem('operative_name') || ''; } catch (e) { return ''; }
+  });
+  const [isRegistered, setIsRegistered] = useState(() => {
+    try { return !!sessionStorage.getItem('operative_name'); } catch (e) { return false; }
+  });
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState('');
+
   const [operativeNumber, setOperativeNumber] = useState(1);
   const [sensorActive, setSensorActive] = useState(false);
   const [needsIOSPermission, setNeedsIOSPermission] = useState(false);
@@ -40,6 +50,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const socketRef = useRef(socket);
   const statusRef = useRef(status);
   statusRef.current = status;
+  const playerNameRef = useRef(playerName);
+  playerNameRef.current = playerName;
 
   useEffect(() => {
     socketRef.current = socket;
@@ -82,7 +94,9 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
     const onConnect = () => {
       setIsConnected(true);
-      socket.emit('join_controller', { playerName: '' });
+      if (playerNameRef.current) {
+        socket.emit('join_controller', { playerName: playerNameRef.current });
+      }
       if (sensorActive) {
         socket.emit('sensor_status', { active: true });
       }
@@ -116,9 +130,9 @@ export default function MobileController({ socket, gameState, isConnected: propC
       setIsConnected(true);
     };
 
-    if (socket.connected) {
+    if (socket.connected && playerNameRef.current) {
       setIsConnected(true);
-      socket.emit('join_controller', { playerName: '' });
+      socket.emit('join_controller', { playerName: playerNameRef.current });
     }
 
     socket.on('connect', onConnect);
@@ -158,7 +172,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
     const s = socketRef.current;
     if (s) {
-      s.emit('shake_pulse', { intensity });
+      s.emit('shake_pulse', { intensity, playerName: playerNameRef.current });
     }
 
     setTimeout(() => {
@@ -169,7 +183,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const sendShakeImpulseRef = useRef(sendShakeImpulse);
   sendShakeImpulseRef.current = sendShakeImpulse;
 
-  // Manual screen tap support (subtle backup while keeping UI 100% shake focused)
+  // Manual screen tap support
   const handleTapSurge = useCallback(() => {
     audioEngine.ensureRunning();
     sendShakeImpulse(1.3);
@@ -237,7 +251,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const processMotionRef = useRef(processMotion);
   processMotionRef.current = processMotion;
 
-  // Stable, Permanent Hardware Event Handlers (Never recreated)
+  // Stable, Permanent Hardware Event Handlers
   const handleDeviceMotion = useCallback((e) => {
     const a = e.acceleration;
     const ag = e.accelerationIncludingGravity;
@@ -287,15 +301,13 @@ export default function MobileController({ socket, gameState, isConnected: propC
     }
   };
 
-  // Check iOS vs Standard Browsers on Mount & Maintain Continuous Listeners
+  // Check iOS vs Standard Browsers on Mount
   useEffect(() => {
     const isIOS = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
 
     if (isIOS) {
-      // On iOS Safari, display the activation prompt gate
       setNeedsIOSPermission(true);
     } else {
-      // Android & standard desktop/mobile browsers (no prompt required)
       window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
       window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true });
       setSensorActive(true);
@@ -317,6 +329,31 @@ export default function MobileController({ socket, gameState, isConnected: propC
     return () => clearInterval(timer);
   }, []);
 
+  // Handle Name Registration Form Submission
+  const handleRegisterSubmit = (e) => {
+    if (e) e.preventDefault();
+    const clean = nameInput.trim();
+    if (!clean) {
+      setNameError('Please enter your name to connect');
+      return;
+    }
+
+    try {
+      sessionStorage.setItem('operative_name', clean);
+    } catch (err) {}
+
+    setPlayerName(clean);
+    setIsRegistered(true);
+    setNameError('');
+
+    // Trigger iOS permission synchronously on submit button click
+    unlockIOSPermissions();
+
+    if (socketRef.current) {
+      socketRef.current.emit('join_controller', { playerName: clean });
+    }
+  };
+
   // Immediate leave on page unload / navigation away, and refresh on visible
   useEffect(() => {
     const handleUnload = () => {
@@ -330,8 +367,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
         if (socketRef.current) {
           if (!socketRef.current.connected) {
             socketRef.current.connectToHost?.();
-          } else {
-            socketRef.current.emit('join_controller', { playerName: '' });
+          } else if (playerNameRef.current) {
+            socketRef.current.emit('join_controller', { playerName: playerNameRef.current });
           }
         }
       }
@@ -350,6 +387,92 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
   const isPlaying = status === 'playing';
 
+  // ====================================================
+  // SCREEN 1: ONBOARDING PARTICIPANT NAME ENTRY SCREEN
+  // ====================================================
+  if (!isRegistered) {
+    return (
+      <div className="relative min-h-screen w-full bg-[#070204] text-white flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none font-rajdhani">
+        {/* Dynamic Background Glow */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#25070e] via-[#0d0205] to-[#040102]" />
+          <div className="absolute inset-0 scanlines opacity-15" />
+        </div>
+
+        {/* Header Branding */}
+        <header className="relative z-10 flex flex-col items-center pt-2">
+          <LaunchLogo className="w-auto h-12 sm:h-14 max-w-[220px] object-contain drop-shadow-[0_0_18px_#ff1f43]" animate={false} />
+        </header>
+
+        {/* Center Card: Name Entry Box */}
+        <main className="relative z-10 flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full my-auto py-3">
+          <div className="w-full bg-[#180409]/95 border-2 border-[#ff1f43]/80 rounded-3xl p-5 sm:p-7 shadow-[0_0_40px_rgba(255,31,67,0.5)] sci-fi-cut flex flex-col items-center text-center">
+            
+            <div className="w-14 h-14 rounded-full bg-[#ff1f43]/20 border-2 border-[#ff1f43] flex items-center justify-center mb-3.5 shadow-[0_0_20px_#ff1f43] animate-pulse">
+              <Users size={28} className="text-[#ff1f43]" />
+            </div>
+
+            <h1 className="font-orbitron font-black text-xl sm:text-2xl text-white uppercase tracking-wider drop-shadow-[0_0_12px_#ff1f43]">
+              JOIN LAUNCH SURGE
+            </h1>
+            
+            <p className="text-xs sm:text-sm text-[#ffccd5] mt-1.5 mb-5 leading-relaxed">
+              Enter your name to connect your phone to the stage reactor
+            </p>
+
+            <form onSubmit={handleRegisterSubmit} className="w-full flex flex-col gap-3.5">
+              <div className="flex flex-col text-left">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-[#ff8095] mb-1.5">
+                  YOUR FULL NAME
+                </label>
+                <input
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => {
+                    setNameInput(e.target.value);
+                    if (nameError) setNameError('');
+                  }}
+                  placeholder="e.g. Kwame Mensah"
+                  autoFocus
+                  maxLength={40}
+                  className="w-full bg-[#0d0205] border-2 border-[#5a1824] focus:border-[#ff1f43] rounded-xl px-4 py-3.5 text-white text-base sm:text-lg font-orbitron placeholder-[#6b2531] outline-none shadow-panel-inset transition-all"
+                />
+                {nameError && (
+                  <span className="text-[11px] text-[#ff4d6d] font-bold mt-1.5 flex items-center gap-1">
+                    <AlertCircle size={12} />
+                    {nameError}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full mt-2 py-4 px-4 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all animate-pulse"
+              >
+                <Zap size={20} className="animate-bounce" />
+                <span>ENTER LAUNCH LOBBY ⚡</span>
+              </button>
+            </form>
+
+            <span className="text-[10px] text-[#ff8095]/70 mt-4 tracking-wider uppercase">
+              ⚡ INSTANT STAGE SYNCHRONIZATION
+            </span>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="relative z-10 text-center py-1.5">
+          <span className="font-orbitron text-[9px] sm:text-[10px] text-[#ff8095]/60 tracking-[0.2em] uppercase">
+            TELECEL SME MONTH • INTERACTIVE LAUNCH
+          </span>
+        </footer>
+      </div>
+    );
+  }
+
+  // ====================================================
+  // SCREEN 2: MAIN CONTROLLER (LOBBY & ACTIVE PLAYING)
+  // ====================================================
   return (
     <div 
       className={`relative min-h-screen w-full text-white flex flex-col justify-between p-3.5 sm:p-5 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
@@ -376,7 +499,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-fade-in">
           <div className="bg-[#1a0409]/95 border-2 border-[#ff1f43] shadow-[0_0_50px_rgba(255,31,67,0.7)] p-6 sm:p-8 rounded-3xl flex flex-col items-center text-center max-w-sm w-full sci-fi-cut">
             
-            {/* Animated Pulsing Icon */}
             <div className="w-16 h-16 rounded-full bg-[#ff1f43]/20 border-2 border-[#ff1f43] flex items-center justify-center mb-4 shadow-[0_0_24px_#ff1f43] animate-pulse">
               <Smartphone size={32} className="text-[#ff1f43] animate-bounce" />
             </div>
@@ -389,7 +511,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
               Tap below to grant motion access. When prompted by iPhone Safari, select <strong className="text-white">"Allow"</strong> so shaking your phone charges the launch reactor!
             </p>
 
-            {/* Direct Tap Button to Trigger Safari Permission Modal */}
             <button
               onClick={unlockIOSPermissions}
               className="mt-6 w-full py-4 px-6 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all animate-pulse"
@@ -437,8 +558,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
             }`} />
           </div>
           <div className="flex flex-col">
-            <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase">
-              OPERATIVE #{operativeNumber}
+            <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase truncate max-w-[170px] sm:max-w-[220px]">
+              {playerName ? playerName : `OPERATIVE #${operativeNumber}`}
             </span>
             <span className={`text-[10px] uppercase font-semibold tracking-wider ${
               isPlaying ? 'text-[#ff4d6d] animate-pulse' : 'text-[#8c2d3c]'
@@ -619,7 +740,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               ) : (
                 <>
                   <p className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-                    YOU ARE CONNECTED • GET READY
+                    {playerName ? `READY, ${playerName.toUpperCase()}` : 'YOU ARE CONNECTED • GET READY'}
                   </p>
                   <p className="text-[11px] text-[#ff8095] mt-0.5 leading-relaxed">
                     When the launch sequence begins on stage, shake your phone vigorously to generate power!

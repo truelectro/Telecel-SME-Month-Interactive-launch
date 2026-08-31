@@ -16,12 +16,20 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Keyboard
+  Keyboard,
+  Flame
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
 import MultiplierGauge from './MultiplierGauge';
 import LaunchLogo from './LaunchLogo';
 import { audioEngine } from '../utils/audioEngine';
+
+const SIMULATED_NAMES = [
+  'Kwame Mensah', 'Ama Serwaa', 'Kofi Boateng', 'Akua Osei', 'Yaw Appiah',
+  'Abena Darko', 'Kwadwo Frimpong', 'Yaa Asantewaa', 'Kwabena Agyeman', 'Afia Poku',
+  'Kweku Baah', 'Esi Sutherland', 'Kobina Ansah', 'Efua Sutherland', 'Poku Ware',
+  'Adjoa Kwarteng', 'Nana Yaw', 'Akosua Addo', 'Nii Armah', 'Naa Borkor'
+];
 
 export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [isMuted, setIsMuted] = useState(false);
@@ -34,6 +42,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [showLocalFallback, setShowLocalFallback] = useState(false);
   const [showMobilePrompt, setShowMobilePrompt] = useState(false);
   const [simulatingCrowd, setSimulatingCrowd] = useState(false);
+  const [floatingSurges, setFloatingSurges] = useState([]);
+  const [recentOperativeNames, setRecentOperativeNames] = useState([]);
+  const lastFloatingSurgeTimeRef = useRef(0);
   const simIntervalRef = useRef(null);
 
   // Check if viewing desktop screen on a mobile device
@@ -195,15 +206,29 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   useEffect(() => {
     if (!socket) return;
 
-    const onSurgePulse = ({ intensity, operativeNumber, name }) => {
+    const onSurgePulse = ({ intensity, operativeNumber, name, playerName }) => {
       audioEngine.playShakeZap(intensity);
       setShakeFlash(true);
       setTimeout(() => setShakeFlash(false), 80);
 
+      const opName = name || playerName || (operativeNumber ? `Operative #${operativeNumber}` : 'Audience Operative');
       const now = Date.now();
-      if (now - lastToastTimeRef.current > 1100) {
+
+      // Spawn floating surge name tag
+      if (now - lastFloatingSurgeTimeRef.current > 110) {
+        lastFloatingSurgeTimeRef.current = now;
+        const newSurge = {
+          id: `${now}-${Math.random()}`,
+          name: opName,
+          intensity: intensity || 1.0,
+          leftPercent: Math.floor(Math.random() * 55) + 5,
+          duration: (1.8 + Math.random() * 0.7).toFixed(2),
+        };
+        setFloatingSurges((prev) => [...prev.slice(-16), newSurge]);
+      }
+
+      if (now - lastToastTimeRef.current > 1200) {
         lastToastTimeRef.current = now;
-        const opName = name || (operativeNumber ? `Operative #${operativeNumber}` : 'Audience Operative');
         const toast = { id: now, text: `${opName} +SURGE ENERGY! ⚡`, type: 'surge' };
         setAudienceToasts((prev) => [...prev.slice(-2), toast]);
         setTimeout(() => {
@@ -213,7 +238,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     };
 
     const onParticipantJoined = (data) => {
-      const name = data?.name || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
+      const name = data?.name || data?.playerName || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
+      setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
       const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE SURGE! ⚡`, type: 'join' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
@@ -254,6 +280,19 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     };
   }, [socket]);
 
+  // Clean up floating surges after animation completes
+  useEffect(() => {
+    if (floatingSurges.length === 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setFloatingSurges((prev) => prev.filter((item) => {
+        const itemTimestamp = Number(item.id.split('-')[0]);
+        return now - itemTimestamp < 2600;
+      }));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [floatingSurges.length]);
+
   // In-Browser 150-Crowd Simulator Loop (Active when simulatingCrowd is ON)
   useEffect(() => {
     if (!simulatingCrowd || status !== 'playing' || !socket) {
@@ -264,11 +303,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       return;
     }
 
-    // 150 simulated operatives shaking at randomized realistic intervals
+    // 150 simulated operatives shaking at randomized realistic intervals with diverse Ghanaian names
     simIntervalRef.current = setInterval(() => {
       if (socket) {
         const randIntensity = Number((0.9 + Math.random() * 0.9).toFixed(2));
-        socket.emit('shake_pulse', { intensity: randIntensity });
+        const simName = SIMULATED_NAMES[Math.floor(Math.random() * SIMULATED_NAMES.length)];
+        socket.emit('shake_pulse', { intensity: randIntensity, playerName: simName });
       }
     }, 65);
 
@@ -453,56 +493,154 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       <main className="relative z-20 flex-1 min-h-0 grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 lg:gap-6 items-center px-1 sm:px-2 md:px-4 my-auto max-w-[1600px] mx-auto w-full h-full">
         
         {/* -------------------------------------------------- */}
-        {/* LEFT COLUMN: Objectives, Score, Best, Multiplier   */}
+        {/* LEFT COLUMN: Live Floating Surge Stream or Lobby HUD */}
         {/* -------------------------------------------------- */}
         <div className={`col-span-12 md:col-span-3 flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 order-2 md:order-1 justify-center ${
           isBooting || status === 'playing' ? 'animate-cyber-left' : ''
         }`}>
-          {/* OBJECTIVE CARD */}
-          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
-              LAUNCH MISSION
-            </span>
-            <p className="font-orbitron font-semibold text-xs md:text-sm text-gray-200 uppercase tracking-wide">
-              SURGE COLLECTIVE POWER TO 100%!
-            </p>
-          </div>
+          
+          {status === 'playing' ? (
+            /* ============================================== */
+            /* PLAYING MODE: LIVE FLOATING PARTICIPANT STREAM  */
+            /* ============================================== */
+            <>
+              {/* SURGE STREAM HEADER & AUDIENCE BADGE */}
+              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Activity size={15} className="text-[#ff1f43] animate-pulse shrink-0" />
+                  <span className="font-orbitron font-black text-[11px] sm:text-xs text-white uppercase tracking-wider drop-shadow-[0_0_8px_#ff1f43]">
+                    SURGE STREAM
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#3d0d17] border border-[#ff1f43]/70">
+                  <Users size={11} className="text-[#ff1f43] animate-bounce" />
+                  <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ffccd5]">
+                    {gameState.connectedCount || 0} LIVE
+                  </span>
+                </div>
+              </div>
 
-          {/* CONNECTED AUDIENCE CARD */}
-          <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
-              CONNECTED AUDIENCE
-            </span>
-            <div className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl text-white tracking-wider text-glow-red">
-              {gameState.connectedCount || 0}
-            </div>
-          </div>
+              {/* FLOATING NAMES SURGE CASCADE CONTAINER */}
+              <div className="hud-panel p-3 sci-fi-cut h-[260px] sm:h-[300px] md:h-[360px] relative overflow-hidden flex flex-col justify-end shadow-neon-red">
+                {/* Ambient Grid & Background Lightning Glow */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#3a0812]/75 via-[#180408]/40 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
 
-          {/* COLLECTIVE SCORE CARD */}
-          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut">
-            <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-[#a83244] uppercase block mb-0.5">
-              COLLECTIVE ENERGY
-            </span>
-            <div className="font-orbitron font-bold text-base sm:text-lg md:text-xl text-[#f08095] tracking-wider">
-              {score.toLocaleString()}
-            </div>
-          </div>
+                {/* Floating Participant Surge Badges */}
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  {floatingSurges.length === 0 ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 text-[#ff8095]/60 animate-pulse">
+                      <Zap size={24} className="text-[#ff1f43] mb-1.5 animate-bounce" />
+                      <span className="font-orbitron font-bold text-xs uppercase tracking-wider">
+                        SHAKE PHONES TO SURGE!
+                      </span>
+                    </div>
+                  ) : (
+                    floatingSurges.map((surge) => (
+                      <div
+                        key={surge.id}
+                        className="absolute bottom-2 animate-float-up pointer-events-none z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#440a15]/95 via-[#22060c]/95 to-[#440a15]/95 border border-[#ff1f43] shadow-[0_0_18px_rgba(255,31,67,0.7)] backdrop-blur-sm whitespace-nowrap"
+                        style={{
+                          left: `${surge.leftPercent}%`,
+                          animationDuration: `${surge.duration}s`,
+                        }}
+                      >
+                        <Zap size={13} className="text-[#ff1f43] animate-bounce shrink-0" />
+                        <span className="font-orbitron font-black text-xs sm:text-sm text-white tracking-wide drop-shadow-[0_0_8px_#ff1f43] max-w-[130px] sm:max-w-[160px] truncate">
+                          {surge.name}
+                        </span>
+                        <span className="font-mono text-[9px] text-[#ffccd5] font-bold">
+                          +SURGE
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-          {/* RADIAL MULTIPLIER CARD */}
-          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex flex-col items-center">
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-0.5">
-              MULTIPLIER
-            </span>
-            <MultiplierGauge multiplier={multiplier} progress={multiplierProgress} />
-          </div>
+                {/* Live Stream Base Indicator */}
+                <div className="relative z-10 w-full pt-2 border-t border-[#521520] flex items-center justify-between text-[10px] text-[#ff8095]">
+                  <span className="font-orbitron font-semibold uppercase tracking-wider flex items-center gap-1">
+                    <Zap size={11} className="text-[#ff1f43] animate-pulse" />
+                    LIVE AUDIENCE SURGES
+                  </span>
+                  <span className="font-orbitron font-bold text-white">
+                    {multiplier}X MULTIPLIER
+                  </span>
+                </div>
+              </div>
 
-          {/* STATUS FOOTER BADGE */}
-          <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
-            <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
-            <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase truncate">
-              {status === 'playing' ? 'KEEP THE VOLTAGE RISING!' : 'WAITING FOR SENSORS'}
-            </span>
-          </div>
+              {/* STATUS FOOTER BADGE */}
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
+                <Flame size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase truncate">
+                  AUDIENCE SHAKING LIVE • POWER RISING
+                </span>
+              </div>
+            </>
+          ) : (
+            /* ============================================== */
+            /* LOBBY MODE: AUDIENCE HUD & OBJECTIVES           */
+            /* ============================================== */
+            <>
+              {/* OBJECTIVE CARD */}
+              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
+                  LAUNCH MISSION
+                </span>
+                <p className="font-orbitron font-semibold text-xs md:text-sm text-gray-200 uppercase tracking-wide">
+                  SURGE COLLECTIVE POWER TO 100%!
+                </p>
+              </div>
+
+              {/* CONNECTED AUDIENCE CARD */}
+              <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-0.5">
+                    CONNECTED AUDIENCE
+                  </span>
+                  <span className="text-[9px] text-green-400 font-bold uppercase tracking-wider">
+                    ● READY
+                  </span>
+                </div>
+                <div className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl text-white tracking-wider text-glow-red">
+                  {gameState.connectedCount || 0}
+                </div>
+                {recentOperativeNames.length > 0 && (
+                  <div className="mt-1.5 pt-1.5 border-t border-[#4d131d] text-[10px] text-[#ff8095] truncate">
+                    <span className="text-gray-400">Joined: </span>
+                    <span className="text-white font-bold">{recentOperativeNames.slice(0, 3).join(', ')}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* COLLECTIVE SCORE CARD */}
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut">
+                <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-[#a83244] uppercase block mb-0.5">
+                  COLLECTIVE ENERGY
+                </span>
+                <div className="font-orbitron font-bold text-base sm:text-lg md:text-xl text-[#f08095] tracking-wider">
+                  {score.toLocaleString()}
+                </div>
+              </div>
+
+              {/* RADIAL MULTIPLIER CARD */}
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex flex-col items-center">
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase mb-0.5">
+                  MULTIPLIER
+                </span>
+                <MultiplierGauge multiplier={multiplier} progress={multiplierProgress} />
+              </div>
+
+              {/* STATUS FOOTER BADGE */}
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut flex items-center justify-center gap-2 border-[#801b2a]">
+                <Zap size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-bold tracking-widest text-[#ff99aa] uppercase truncate">
+                  WAITING FOR LAUNCH ACTIVATION
+                </span>
+              </div>
+            </>
+          )}
+
         </div>
 
         {/* -------------------------------------------------- */}

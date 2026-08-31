@@ -276,11 +276,14 @@ class BrowserHostEngine {
     });
   }
 
-  handleShakePulse(senderId, intensity = 1.0) {
+  handleShakePulse(senderId, intensity = 1.0, playerName = '') {
     if (!this.gameState.players[senderId]) {
-      this.handlePlayerJoin(senderId, '');
+      this.handlePlayerJoin(senderId, playerName || '');
     }
     const player = this.gameState.players[senderId];
+    if (player && playerName && (!player.name || player.name.startsWith('Operative #'))) {
+      player.name = playerName.trim();
+    }
     const now = Date.now();
 
     if (player) {
@@ -425,7 +428,7 @@ export class RealtimeNetwork {
   handleHostAction(event, data) {
     if (!this.hostEngine) return;
     if (event === 'shake_pulse') {
-      this.hostEngine.handleShakePulse(this.id || 'host', data?.intensity || 1.0);
+      this.hostEngine.handleShakePulse(this.id || 'host', data?.intensity || 1.0, data?.playerName || '');
     } else if (event === 'trigger_boost') {
       this.hostEngine.handleTriggerBoost();
     } else if (event === 'start_game') {
@@ -666,7 +669,7 @@ export class RealtimeNetwork {
             this.connections.delete(connId);
           }
         } else if (event === 'shake_pulse') {
-          this.hostEngine.handleShakePulse(connId, data?.intensity);
+          this.hostEngine.handleShakePulse(connId, data?.intensity, data?.playerName || '');
         } else if (event === 'trigger_boost') {
           this.hostEngine.handleTriggerBoost();
         } else if (event === 'sensor_status') {
