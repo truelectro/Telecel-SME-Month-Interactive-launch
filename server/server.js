@@ -136,15 +136,14 @@ app.get('*', (req, res) => {
 });
 
 // ----------------------------------------------------
-// ----------------------------------------------------
 // LAUNCH EVENT ACTIVATION ENGINE (CONFIGURABLE CAPACITY)
 // ----------------------------------------------------
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.5'),       // Responsive high-stakes decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.28'),     // Hardened calibration requiring synchronized crowd power
-  COMBO_DECAY_TIME_MS: 400,
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '5.5'),       // Responsive high-stakes decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.13'),     // Hardened calibration requiring sustained, high-intensity crowd power
+  COMBO_DECAY_TIME_MS: 250,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -181,9 +180,10 @@ function resetGame(newStatus = 'lobby') {
   gameState.lastTickTime = Date.now();
   
   // Reset player counters
-  for (const socketId in gameState.players) {
-    gameState.players[socketId].shakes = 0;
-    gameState.players[socketId].intensity = 0;
+  for (const p in gameState.players) {
+    gameState.players[p].shakes = 0;
+    gameState.players[p].lastShakeTime = 0;
+    gameState.players[p].intensity = 0;
   }
 }
 
@@ -196,17 +196,19 @@ setInterval(() => {
   gameState.connectedCount = Object.keys(gameState.players).length;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Drains if audience pauses shaking for > 400ms)
+    // 1. Progressive Voltage Decay (Drains quickly if audience pauses shaking for > 250ms)
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
-    if (gameState.voltage > 85) {
-      currentDecay *= 2.0; // Rapid drain at high voltage if shaking completely stops
-    } else if (gameState.voltage > 65) {
-      currentDecay *= 1.5;
+    if (gameState.voltage > 80) {
+      currentDecay *= 2.4; // Rapid drain at high voltage if shaking slows down
+    } else if (gameState.voltage > 60) {
+      currentDecay *= 1.8;
+    } else if (gameState.voltage > 35) {
+      currentDecay *= 1.3;
     }
 
-    if (timeSinceShake > 400) {
+    if (timeSinceShake > 250) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
@@ -380,18 +382,17 @@ io.on('connection', (socket) => {
       const activeCount = Math.max(1, Object.keys(gameState.players).length);
       const clampedIntensity = Math.min(2.0, Math.max(0.6, intensity));
       
-      // Dynamic per-shake gain scales with active players
-      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(Math.max(1, activeCount), 0.92);
-
-      // Hardened 3-tier resistance curve (high electromagnetic resistance above 65% and 85%)
+      // Hardened 4-tier electromagnetic resistance curve (demands sustained crowd power)
       const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.38; // Final 15% requires sustained intense crowd effort
-      } else if (currentVolt > 65) {
-        resistanceFactor = 0.60;
-      } else if (currentVolt > 40) {
-        resistanceFactor = 0.78;
+        resistanceFactor = 0.24; // Final 15% requires maximum sustained crowd effort
+      } else if (currentVolt > 70) {
+        resistanceFactor = 0.44;
+      } else if (currentVolt > 50) {
+        resistanceFactor = 0.65;
+      } else if (currentVolt > 25) {
+        resistanceFactor = 0.85;
       }
 
       const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
