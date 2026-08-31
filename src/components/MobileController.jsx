@@ -22,7 +22,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const [shakeIntensity, setShakeIntensity] = useState(0);
   const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
   const [gameStartOverlay, setGameStartOverlay] = useState(false);
-  const [tapEffect, setTapEffect] = useState(false);
 
   const {
     status = 'lobby',
@@ -39,6 +38,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const lastShakeTimeRef = useRef(0);
   const lastRawCoordsRef = useRef({ x: 0, y: 0, z: 0, time: 0 });
   const socketRef = useRef(socket);
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
   useEffect(() => {
     socketRef.current = socket;
@@ -139,9 +140,9 @@ export default function MobileController({ socket, gameState, isConnected: propC
     };
   }, [socket, sensorActive]);
 
-  // Send Shake / Tap Impulse to Server + Haptic Feedback
+  // Send Shake Impulse to Server + Haptic Feedback
   const sendShakeImpulse = useCallback((intensity = 1.0) => {
-    if (status !== 'playing') {
+    if (statusRef.current !== 'playing') {
       setShakeIntensity(0.5);
       setTimeout(() => setShakeIntensity(0), 100);
       return;
@@ -163,26 +164,24 @@ export default function MobileController({ socket, gameState, isConnected: propC
     setTimeout(() => {
       setShakeIntensity(0);
     }, 150);
-  }, [status]);
+  }, []);
 
-  // Manual Tap to Surge (Works everywhere, including when motion sensors are restricted)
+  const sendShakeImpulseRef = useRef(sendShakeImpulse);
+  sendShakeImpulseRef.current = sendShakeImpulse;
+
+  // Manual screen tap support (subtle backup while keeping UI 100% shake focused)
   const handleTapSurge = useCallback(() => {
     audioEngine.ensureRunning();
-    setTapEffect(true);
-    setTimeout(() => setTapEffect(false), 120);
     sendShakeImpulse(1.3);
   }, [sendShakeImpulse]);
 
-  // Motion Analyzer - Handles both Linear Acceleration & Gravity Vector (iOS Safari + Android)
-  const onRawMotion = useCallback((x, y, z) => {
+  // Motion Processing Function
+  const processMotion = useCallback((curX, curY, curZ) => {
     setSensorActive(true);
     const now = Date.now();
-    const curX = x || 0;
-    const curY = y || 0;
-    const curZ = z || 0;
     const mag = Math.sqrt(curX * curX + curY * curY + curZ * curZ);
 
-    // 1. Instant delta jerk from previous sample
+    // 1. Instant delta jerk
     const prev = lastRawCoordsRef.current;
     const dt = now - prev.time;
     let instantJerk = 0;
@@ -224,31 +223,33 @@ export default function MobileController({ socket, gameState, isConnected: propC
     const magRange = maxMag - minMag;
     const maxAxisRange = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
 
-    // Shake Trigger Criteria: Responsive threshold for iPhone and Android
-    const isShake = (magRange > 2.2 || maxAxisRange > 2.2 || instantJerk > 3.0);
+    // Responsive shake trigger for iPhone Safari & Android
+    const isShake = (magRange > 1.8 || maxAxisRange > 1.8 || instantJerk > 2.4);
 
-    if (isShake && now - lastShakeTimeRef.current > 85) {
+    if (isShake && now - lastShakeTimeRef.current > 70) {
       lastShakeTimeRef.current = now;
       const peak = Math.max(magRange, maxAxisRange, instantJerk);
-      const intensity = Math.min(2.0, Math.max(0.7, peak / 3.6));
-      sendShakeImpulse(intensity);
+      const intensity = Math.min(2.0, Math.max(0.7, peak / 3.2));
+      sendShakeImpulseRef.current(intensity);
     }
-  }, [sendShakeImpulse]);
+  }, []);
 
-  // Motion event listener dispatcher
-  const handleDeviceMotionEvent = useCallback((e) => {
+  const processMotionRef = useRef(processMotion);
+  processMotionRef.current = processMotion;
+
+  // Stable, Permanent Hardware Event Handlers (Never recreated)
+  const handleDeviceMotion = useCallback((e) => {
     const a = e.acceleration;
     const ag = e.accelerationIncludingGravity;
 
     if (a && (a.x !== null || a.y !== null || a.z !== null)) {
-      onRawMotion(a.x || 0, a.y || 0, a.z || 0);
+      processMotionRef.current(a.x || 0, a.y || 0, a.z || 0);
     } else if (ag && (ag.x !== null || ag.y !== null || ag.z !== null)) {
-      onRawMotion(ag.x || 0, ag.y || 0, ag.z || 0);
+      processMotionRef.current(ag.x || 0, ag.y || 0, ag.z || 0);
     }
-  }, [onRawMotion]);
+  }, []);
 
-  // Gyroscope orientation listener
-  const handleDeviceOrientationEvent = useCallback((e) => {
+  const handleDeviceOrientation = useCallback((e) => {
     if (e.gamma === null && e.beta === null) return;
     setSensorActive(true);
   }, []);
@@ -260,13 +261,12 @@ export default function MobileController({ socket, gameState, isConnected: propC
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         const motionRes = await DeviceMotionEvent.requestPermission();
         if (motionRes === 'granted') {
-          window.addEventListener('devicemotion', handleDeviceMotionEvent, { passive: true });
+          window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
           setSensorActive(true);
           setNeedsIOSPermission(false);
           setPermissionPromptDismissed(true);
           if (socketRef.current) socketRef.current.emit('sensor_status', { active: true });
         } else {
-          // User tapped cancel/deny
           setNeedsIOSPermission(false);
           setPermissionPromptDismissed(true);
         }
@@ -276,7 +276,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
         try {
           const orientRes = await DeviceOrientationEvent.requestPermission();
           if (orientRes === 'granted') {
-            window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
+            window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true });
           }
         } catch (err) {}
       }
@@ -287,26 +287,25 @@ export default function MobileController({ socket, gameState, isConnected: propC
     }
   };
 
-  // Check iOS vs Standard Browsers on Mount
+  // Check iOS vs Standard Browsers on Mount & Maintain Continuous Listeners
   useEffect(() => {
     const isIOS = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
 
     if (isIOS) {
-      // On iOS Safari, we MUST show an interactive button to trigger the permission prompt.
-      // Do NOT call requestPermission() automatically on mount, as Safari silently blocks it without a user gesture.
+      // On iOS Safari, display the activation prompt gate
       setNeedsIOSPermission(true);
     } else {
-      // Android & Desktop Browsers: Add listeners directly (no prompt required)
-      window.addEventListener('devicemotion', handleDeviceMotionEvent, { passive: true });
-      window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
+      // Android & standard desktop/mobile browsers (no prompt required)
+      window.addEventListener('devicemotion', handleDeviceMotion, { passive: true });
+      window.addEventListener('deviceorientation', handleDeviceOrientation, { passive: true });
       setSensorActive(true);
     }
 
     return () => {
-      window.removeEventListener('devicemotion', handleDeviceMotionEvent);
-      window.removeEventListener('deviceorientation', handleDeviceOrientationEvent);
+      window.removeEventListener('devicemotion', handleDeviceMotion);
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
     };
-  }, [handleDeviceMotionEvent, handleDeviceOrientationEvent]);
+  }, [handleDeviceMotion, handleDeviceOrientation]);
 
   // Active liveness heartbeat (2s interval)
   useEffect(() => {
@@ -365,7 +364,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             : 'from-[#140306] via-[#090204] to-[#040102]'
         }`} />
         <div className={`absolute inset-0 bg-[#ff1f43]/30 transition-opacity duration-150 ${
-          (shakeIntensity > 0 || tapEffect) && isPlaying ? 'opacity-100' : 'opacity-0'
+          shakeIntensity > 0 && isPlaying ? 'opacity-100' : 'opacity-0'
         }`} />
         <div className="absolute inset-0 scanlines opacity-10" />
       </div>
@@ -383,11 +382,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
             </div>
 
             <span className="font-orbitron font-black text-xl sm:text-2xl text-white uppercase tracking-wider drop-shadow-[0_0_12px_#ff1f43]">
-              ACTIVATE SENSORS
+              ACTIVATE SHAKE SENSORS
             </span>
 
             <p className="font-rajdhani text-sm sm:text-base text-[#ffccd5] tracking-wide mt-2.5 leading-relaxed">
-              Tap below to grant motion permission. When prompted by iPhone Safari, select <strong className="text-white">"Allow"</strong> to enable live shake synchronization!
+              Tap below to grant motion access. When prompted by iPhone Safari, select <strong className="text-white">"Allow"</strong> so shaking your phone charges the launch reactor!
             </p>
 
             {/* Direct Tap Button to Trigger Safari Permission Modal */}
@@ -396,17 +395,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               className="mt-6 w-full py-4 px-6 sci-fi-cut font-orbitron font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/80 cursor-pointer flex items-center justify-center gap-2 transition-all animate-pulse"
             >
               <Zap size={20} className="text-white animate-bounce" />
-              <span>TAP TO ACTIVATE ⚡</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setPermissionPromptDismissed(true);
-                setNeedsIOSPermission(false);
-              }}
-              className="mt-3 text-xs text-[#ff8095] hover:text-white underline cursor-pointer"
-            >
-              Skip & use tap-to-surge mode
+              <span>ENABLE SHAKE SENSORS ⚡</span>
             </button>
           </div>
         </div>
@@ -444,7 +433,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               : 'bg-[#22070c] border-[#661827]'
           }`}>
             <Smartphone size={16} className={`transition-all ${
-              isPlaying && (shakeIntensity > 0 || tapEffect) ? 'text-white animate-bounce' : (isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#a03d4c]')
+              isPlaying && shakeIntensity > 0 ? 'text-white animate-bounce' : (isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#a03d4c]')
             }`} />
           </div>
           <div className="flex flex-col">
@@ -494,7 +483,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             <span className={`font-bold tracking-wider uppercase ${
               isPlaying ? 'text-[#ffccd5]' : (sensorActive ? 'text-green-300' : 'text-yellow-400')
             }`}>
-              {isPlaying ? 'SHAKE SENSORS LIVE • SHAKE NOW!' : (sensorActive ? 'MOTION SENSORS SYNCHRONIZED' : 'CALIBRATING SENSORS...')}
+              {isPlaying ? 'SHAKE SENSORS LIVE • SHAKE NOW!' : (sensorActive ? 'SHAKE SENSORS SYNCHRONIZED' : 'CALIBRATING SENSORS...')}
             </span>
           </div>
         )}
@@ -547,7 +536,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               />
             </div>
 
-            {/* Interactive Motion Reactor Sphere (Touch/Click Enabled for Tap-to-Surge Fallback) */}
+            {/* Perfectly Centered Dynamic Physical Motion Reactor Circle */}
             <div 
               onClick={handleTapSurge}
               className={`relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center my-2 transition-transform active:scale-95 ${
@@ -558,7 +547,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
               {/* Outer Energy Aura Rings */}
               <div className={`absolute inset-0 rounded-full border-2 transition-all duration-300 ${
                 isPlaying 
-                  ? (shakeIntensity > 0 || tapEffect 
+                  ? (shakeIntensity > 0 
                       ? 'scale-115 opacity-100 shadow-[0_0_40px_#ff1f43] border-[#ff1f43]' 
                       : 'scale-100 opacity-60 shadow-[0_0_20px_rgba(255,31,67,0.3)] border-[#ff1f43]/60 animate-pulse')
                   : 'scale-100 opacity-30 border-[#521520]'
@@ -566,14 +555,14 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
               <div className={`absolute inset-3 rounded-full border transition-all duration-200 ${
                 isPlaying 
-                  ? (shakeIntensity > 0 || tapEffect ? 'scale-110 opacity-90 border-[#ff4d6d]' : 'opacity-40 border-[#ff1f43]/30')
+                  ? (shakeIntensity > 0 ? 'scale-110 opacity-90 border-[#ff4d6d]' : 'opacity-40 border-[#ff1f43]/30')
                   : 'opacity-15 border-[#3b0f17]'
               }`} />
 
-              {/* Inner Reactor Sphere with Centered Content */}
+              {/* Inner Reactor Sphere with Perfectly Centered Column Content */}
               <div className={`w-36 h-36 sm:w-40 sm:h-40 rounded-full flex flex-col items-center justify-center p-3 text-center transition-all duration-200 ${
                 isPlaying 
-                  ? (shakeIntensity > 0 || tapEffect 
+                  ? (shakeIntensity > 0 
                       ? 'bg-gradient-to-b from-[#52121f] to-[#1c0409] border-2 border-[#ff1f43] shadow-[0_0_30px_#ff1f43] scale-105' 
                       : 'bg-gradient-to-b from-[#330c14] to-[#140307] border-2 border-[#801b2a] shadow-[0_0_18px_rgba(255,31,67,0.35)]')
                   : 'bg-gradient-to-b from-[#20070c] to-[#0d0205] border-2 border-[#47121b]'
@@ -583,10 +572,10 @@ export default function MobileController({ socket, gameState, isConnected: propC
                   /* PLAYING: Live Motion Feedback */
                   <>
                     <Smartphone size={28} className={`transition-all duration-100 ${
-                      shakeIntensity > 0 || tapEffect ? 'text-white scale-120 animate-bounce' : 'text-[#ff1f43]'
+                      shakeIntensity > 0 ? 'text-white scale-120 animate-bounce' : 'text-[#ff1f43]'
                     }`} />
                     <span className="font-orbitron font-black text-xs sm:text-sm uppercase text-white tracking-widest mt-1.5 drop-shadow-[0_0_8px_#ff1f43] whitespace-nowrap">
-                      {shakeIntensity > 0 || tapEffect ? '⚡ SURGING!' : 'SHAKE PHONE!'}
+                      {shakeIntensity > 0 ? '⚡ SURGING!' : 'SHAKE PHONE!'}
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#ffccd5] font-mono font-bold mt-0.5 whitespace-nowrap">
                       {shakeCount} SURGES
@@ -621,10 +610,10 @@ export default function MobileController({ socket, gameState, isConnected: propC
               {isPlaying ? (
                 <>
                   <p className="text-xs font-bold text-white uppercase tracking-wide drop-shadow-[0_0_6px_#ff1f43]">
-                    SHAKE RAPIDLY OR TAP SCREEN! 🔥
+                    SHAKE YOUR PHONE RAPIDLY! 🔥
                   </p>
                   <p className="text-[11px] text-[#ff99aa] mt-0.5 leading-relaxed">
-                    All {connectedCount} connected phones combine power to push voltage to 100%!
+                    All {connectedCount} connected phones combine motion power to push voltage to 100%!
                   </p>
                 </>
               ) : (
@@ -647,22 +636,18 @@ export default function MobileController({ socket, gameState, isConnected: propC
       {/* 3. CONTROLLER FOOTER / TELEMETRY STATUS BAR          */}
       {/* ==================================================== */}
       <footer className="relative z-10 shrink-0">
-        {isPlaying ? (
-          <button
-            onClick={handleTapSurge}
-            className="w-full py-3 px-4 sci-fi-cut font-orbitron font-black text-sm tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red border-2 border-white/60 cursor-pointer flex items-center justify-center gap-2 transition-transform"
-          >
-            <Zap size={16} className="animate-bounce" />
-            <span>TAP TO SURGE POWER ⚡</span>
-          </button>
-        ) : (
-          <div className="w-full py-2 px-3 border sci-fi-cut flex items-center justify-center gap-2 bg-[#140306]/80 border-[#4d131d]">
-            <Zap size={13} className="text-[#8c2d3c]" />
-            <span className="font-orbitron font-bold text-[10px] tracking-[0.2em] uppercase text-[#ff8095]">
-              TELECEL SME MONTH • READY FOR LAUNCH
-            </span>
-          </div>
-        )}
+        <div className={`w-full py-2.5 px-3 border sci-fi-cut flex items-center justify-center gap-2 transition-colors duration-300 ${
+          isPlaying 
+            ? 'bg-[#22060c]/90 border-[#ff1f43]/60 shadow-[0_0_15px_rgba(255,31,67,0.3)]' 
+            : 'bg-[#140306]/80 border-[#4d131d]'
+        }`}>
+          <Zap size={14} className={isPlaying ? 'text-[#ff1f43] animate-pulse' : 'text-[#8c2d3c]'} />
+          <span className={`font-orbitron font-bold text-[10px] sm:text-xs tracking-[0.2em] uppercase ${
+            isPlaying ? 'text-[#ffccd5]' : 'text-[#ff8095]'
+          }`}>
+            {isPlaying ? 'SHAKE YOUR PHONE RAPIDLY TO SURGE POWER! ⚡' : 'TELECEL SME MONTH • READY FOR LAUNCH'}
+          </span>
+        </div>
       </footer>
     </div>
   );
