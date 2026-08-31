@@ -193,10 +193,72 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     audioEngine.updateVoltageHum(voltage, status === 'playing');
   }, [voltage, status]);
 
-  // Handle victory audio (confetti removed per user request)
+  // Handle victory audio & spectacular celebratory confetti explosion
   useEffect(() => {
     if (status === 'victory') {
       audioEngine.playVictory();
+
+      // Multi-stage celebratory confetti explosion
+      const duration = 5.5 * 1000;
+      const animationEnd = Date.now() + duration;
+      const colors = ['#e60000', '#ff1f43', '#ffffff', '#ffccd5', '#ffd700', '#ff4d6d'];
+
+      // 1. Instant massive center burst
+      try {
+        confetti({
+          particleCount: 140,
+          spread: 100,
+          origin: { y: 0.55 },
+          colors,
+          zIndex: 9999,
+        });
+      } catch (e) {}
+
+      // 2. Continuous left & right side cannons + star bursts throughout celebration
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 45 * (timeLeft / duration);
+
+        try {
+          // Left Cannon
+          confetti({
+            particleCount,
+            angle: 60,
+            spread: 70,
+            origin: { x: 0, y: 0.72 },
+            colors,
+            zIndex: 9999,
+          });
+          // Right Cannon
+          confetti({
+            particleCount,
+            angle: 120,
+            spread: 70,
+            origin: { x: 1, y: 0.72 },
+            colors,
+            zIndex: 9999,
+          });
+          // Star bursts
+          confetti({
+            particleCount: 12,
+            spread: 360,
+            ticks: 50,
+            gravity: 0.4,
+            decay: 0.94,
+            startVelocity: 28,
+            shapes: ['star'],
+            colors: ['#ffd700', '#ffffff', '#ff1f43'],
+            origin: { x: Math.random(), y: Math.random() * 0.4 + 0.2 },
+            zIndex: 9999,
+          });
+        } catch (e) {}
+      }, 250);
+
+      return () => clearInterval(interval);
     } else if (status === 'gameover') {
       audioEngine.playGameOver();
     }

@@ -1,5 +1,6 @@
-// Procedural Web Audio API Sound Synthesizer for VOLTAGE SURGE
-// Generates electric hums, spark crackles, boost surges, sirens, and fanfares without external audio files.
+// Procedural Web Audio API Sound & Music Synthesizer for VOLTAGE SURGE
+// Generates dramatic cinematic soundtracks, dynamic tension arpeggios, electric hums,
+// spark crackles, sub-bass drops, and grand orchestral victory fanfares without external audio files.
 
 class AudioEngine {
   constructor() {
@@ -7,12 +8,17 @@ class AudioEngine {
     this.isMuted = false;
     this.isInitialized = false;
 
-    // Continuous ambient hum nodes
+    // Continuous ambient hum & sub-bass nodes
     this.humOsc1 = null;
     this.humOsc2 = null;
     this.humFilter = null;
     this.humGain = null;
     this.masterGain = null;
+
+    // Dramatic tension soundtrack sequencer
+    this.musicInterval = null;
+    this.musicStep = 0;
+    this.currentBpm = 126;
   }
 
   init() {
@@ -24,7 +30,7 @@ class AudioEngine {
 
       // Master Gain
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.65, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
 
       // Continuous Reactor Hum (Dual Oscillator with Lowpass Filter)
@@ -42,7 +48,7 @@ class AudioEngine {
       this.humFilter.Q.setValueAtTime(3.5, this.ctx.currentTime);
 
       this.humGain = this.ctx.createGain();
-      this.humGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+      this.humGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
 
       this.humOsc1.connect(this.humFilter);
       this.humOsc2.connect(this.humFilter);
@@ -70,38 +76,118 @@ class AudioEngine {
   toggleMute() {
     this.isMuted = !this.isMuted;
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.6, this.ctx.currentTime, 0.05);
+      this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.65, this.ctx.currentTime, 0.05);
     }
     return this.isMuted;
   }
 
-  // Update dynamic background reactor hum based on live voltage (0 - 100)
+  // ====================================================
+  // 1. DYNAMIC VOLTAGE HUM & RHYTHMIC MUSIC PROGRESSION
+  // ====================================================
   updateVoltageHum(voltage, isPlaying = true) {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
-    if (!isPlaying || voltage <= 0) {
-      this.humGain.gain.setTargetAtTime(0.02, this.ctx.currentTime, 0.1);
-      this.humFilter.frequency.setTargetAtTime(100, this.ctx.currentTime, 0.1);
+    if (!isPlaying) {
+      this.stopDramaticTrack();
+      this.humGain.gain.setTargetAtTime(0.02, this.ctx.currentTime, 0.15);
+      this.humFilter.frequency.setTargetAtTime(100, this.ctx.currentTime, 0.15);
       return;
+    }
+
+    if (!this.musicInterval) {
+      this.startDramaticTrack();
     }
 
     const norm = Math.min(1, Math.max(0, voltage / 100));
     
-    // Frequency rises from 55Hz to 165Hz as voltage rises
-    const baseFreq = 55 + (norm * 110);
+    // Frequency rises from 55Hz to 180Hz as voltage rises
+    const baseFreq = 55 + (norm * 125);
     this.humOsc1.frequency.setTargetAtTime(baseFreq, this.ctx.currentTime, 0.08);
     this.humOsc2.frequency.setTargetAtTime(baseFreq * 2.01, this.ctx.currentTime, 0.08);
 
-    // Filter opens up from 120Hz to 2800Hz revealing high-frequency electric crackle
-    const filterFreq = 120 + Math.pow(norm, 1.8) * 2600;
+    // Filter opens up from 120Hz to 3200Hz revealing energetic high-voltage harmonics
+    const filterFreq = 120 + Math.pow(norm, 1.7) * 3000;
     this.humFilter.frequency.setTargetAtTime(filterFreq, this.ctx.currentTime, 0.05);
 
-    // Volume intensifies slightly
-    const humVol = 0.05 + (norm * 0.18);
+    // Volume intensifies dynamically
+    const humVol = 0.04 + (norm * 0.16);
     this.humGain.gain.setTargetAtTime(humVol, this.ctx.currentTime, 0.08);
+
+    // Increase track BPM as voltage builds towards 100%
+    this.currentBpm = Math.floor(124 + norm * 24); // 124 -> 148 BPM
   }
 
-  // High-frequency electric spark / zap when players shake
+  // Start procedural pulse-pounding synthwave soundtrack
+  startDramaticTrack() {
+    if (this.musicInterval || !this.ctx || this.isMuted) return;
+
+    this.musicStep = 0;
+    const bassNotes = [110, 110, 130.81, 110, 146.83, 130.81, 164.81, 146.83]; // A minor driving arpeggio
+    const leadNotes = [440, 523.25, 587.33, 659.25, 880, 783.99, 659.25, 587.33];
+
+    const playTick = () => {
+      if (!this.ctx || this.isMuted) return;
+      const t = this.ctx.currentTime;
+      const step = this.musicStep % 8;
+
+      // 1. Driving Sub/Mid Bass Pulse
+      const bassFreq = bassNotes[step];
+      const bassOsc = this.ctx.createOscillator();
+      const bassGain = this.ctx.createGain();
+      const bassFilter = this.ctx.createBiquadFilter();
+
+      bassOsc.type = step % 2 === 0 ? 'sawtooth' : 'triangle';
+      bassOsc.frequency.setValueAtTime(bassFreq, t);
+
+      bassFilter.type = 'lowpass';
+      bassFilter.frequency.setValueAtTime(450 + (step * 80), t);
+      bassFilter.Q.setValueAtTime(3.0, t);
+
+      bassGain.gain.setValueAtTime(0.18, t);
+      bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+      bassOsc.connect(bassFilter);
+      bassFilter.connect(bassGain);
+      bassGain.connect(this.masterGain);
+
+      bassOsc.start(t);
+      bassOsc.stop(t + 0.18);
+
+      // 2. High-Tech Synth Arpeggio Layer (On alternate beats)
+      if (step % 2 === 1) {
+        const leadFreq = leadNotes[step];
+        const leadOsc = this.ctx.createOscillator();
+        const leadGain = this.ctx.createGain();
+        leadOsc.type = 'sine';
+        leadOsc.frequency.setValueAtTime(leadFreq, t);
+
+        leadGain.gain.setValueAtTime(0.08, t);
+        leadGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+        leadOsc.connect(leadGain);
+        leadGain.connect(this.masterGain);
+
+        leadOsc.start(t);
+        leadOsc.stop(t + 0.14);
+      }
+
+      this.musicStep++;
+    };
+
+    const intervalMs = Math.floor((60 / this.currentBpm / 2) * 1000);
+    this.musicInterval = setInterval(playTick, intervalMs);
+  }
+
+  stopDramaticTrack() {
+    if (this.musicInterval) {
+      clearInterval(this.musicInterval);
+      this.musicInterval = null;
+    }
+  }
+
+  // ====================================================
+  // 2. SOUND EFFECTS (SHAKE ZAPS, BOOSTS, ALARMS)
+  // ====================================================
   playShakeZap(intensity = 1.0) {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
@@ -111,17 +197,16 @@ class AudioEngine {
     const filter = this.ctx.createBiquadFilter();
 
     osc.type = 'sawtooth';
-    // Randomized pitch for realistic electric arc crackle
-    const startFreq = 400 + Math.random() * 800 * intensity;
-    const endFreq = 80 + Math.random() * 120;
+    const startFreq = 420 + Math.random() * 850 * intensity;
+    const endFreq = 90 + Math.random() * 120;
     osc.frequency.setValueAtTime(startFreq, t);
     osc.frequency.exponentialRampToValueAtTime(endFreq, t + 0.09);
 
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1200 + Math.random() * 1000, t);
+    filter.frequency.setValueAtTime(1300 + Math.random() * 1000, t);
     filter.Q.setValueAtTime(4.0, t);
 
-    const zapVol = Math.min(0.35, 0.12 * intensity);
+    const zapVol = Math.min(0.32, 0.11 * intensity);
     gain.gain.setValueAtTime(zapVol, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
 
@@ -133,36 +218,35 @@ class AudioEngine {
     osc.stop(t + 0.1);
   }
 
-  // Dramatic sub-bass explosion & high-energy electric burst for BOOST
   playBoostSurge() {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
 
-    // 1. Sub Bass Thump
+    // Sub Bass Thump
     const subOsc = this.ctx.createOscillator();
     const subGain = this.ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(140, t);
-    subOsc.frequency.exponentialRampToValueAtTime(30, t + 0.4);
+    subOsc.frequency.setValueAtTime(150, t);
+    subOsc.frequency.exponentialRampToValueAtTime(28, t + 0.45);
 
-    subGain.gain.setValueAtTime(0.6, t);
-    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    subGain.gain.setValueAtTime(0.65, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
 
     subOsc.connect(subGain);
     subGain.connect(this.masterGain);
     subOsc.start(t);
-    subOsc.stop(t + 0.55);
+    subOsc.stop(t + 0.6);
 
-    // 2. Rising Energy Sweep
+    // Rising Energy Sweep
     const sweepOsc = this.ctx.createOscillator();
     const sweepGain = this.ctx.createGain();
     sweepOsc.type = 'sawtooth';
-    sweepOsc.frequency.setValueAtTime(200, t);
-    sweepOsc.frequency.exponentialRampToValueAtTime(1600, t + 0.35);
+    sweepOsc.frequency.setValueAtTime(180, t);
+    sweepOsc.frequency.exponentialRampToValueAtTime(1800, t + 0.38);
 
-    sweepGain.gain.setValueAtTime(0.3, t);
-    sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    sweepGain.gain.setValueAtTime(0.32, t);
+    sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
 
     sweepOsc.connect(sweepGain);
     sweepGain.connect(this.masterGain);
@@ -170,11 +254,10 @@ class AudioEngine {
     sweepOsc.stop(t + 0.45);
   }
 
-  // Multiplier level up chime
   playMultiplierUp(mult = 2) {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
-    const notes = [440, 554.37, 659.25, 880, 1108.73]; // A major arpeggio
+    const notes = [440, 554.37, 659.25, 880, 1108.73];
     const baseFreq = notes[Math.min(notes.length - 1, mult - 1)] || 660;
 
     const t = this.ctx.currentTime;
@@ -195,7 +278,6 @@ class AudioEngine {
     osc.stop(t + 0.35);
   }
 
-  // High-Energy Activation Alarm / Power Surge for Game Start
   playGameStart() {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
     const t = this.ctx.currentTime;
@@ -207,55 +289,148 @@ class AudioEngine {
 
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(130, t);
-    osc.frequency.exponentialRampToValueAtTime(950, t + 0.55);
+    osc.frequency.exponentialRampToValueAtTime(1100, t + 0.6);
 
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(300, t);
-    filter.frequency.exponentialRampToValueAtTime(3800, t + 0.55);
+    filter.frequency.exponentialRampToValueAtTime(4200, t + 0.6);
 
-    gain.gain.setValueAtTime(0.4, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+    gain.gain.setValueAtTime(0.45, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(t);
-    osc.stop(t + 0.7);
+    osc.stop(t + 0.75);
+
+    this.startDramaticTrack();
   }
 
-  // Triumphant Victory Fanfare
+  // ====================================================
+  // 3. EPIC MAJESTIC ORCHESTRAL VICTORY SYMPHONY
+  // ====================================================
   playVictory() {
+    this.stopDramaticTrack();
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
-    const chords = [
-      [523.25, 659.25, 783.99], // C Major
-      [587.33, 739.99, 880.00], // D Major
-      [659.25, 830.61, 987.77], // E Major
-      [1046.50, 1318.51, 1567.98] // High C Power Chord
+    const now = this.ctx.currentTime;
+
+    // PHASE 1: MASSIVE SUB-BASS EARTHQUAKE IMPACT
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(160, now);
+    subOsc.frequency.exponentialRampToValueAtTime(26, now + 1.2);
+    subGain.gain.setValueAtTime(0.75, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+    subOsc.connect(subGain);
+    subGain.connect(this.masterGain);
+    subOsc.start(now);
+    subOsc.stop(now + 1.5);
+
+    // PHASE 2: GLORIOUS BRASS & SYNTH POWER CHORD FANFARE PROGRESSION
+    const chordProgression = [
+      { delay: 0.05, duration: 0.45, freqs: [261.63, 329.63, 392.00, 523.25], vol: 0.35 }, // C Major
+      { delay: 0.45, duration: 0.45, freqs: [349.23, 440.00, 523.25, 698.46], vol: 0.38 }, // F Major
+      { delay: 0.85, duration: 0.45, freqs: [392.00, 493.88, 587.33, 783.99], vol: 0.40 }, // G Major
+      { delay: 1.25, duration: 0.55, freqs: [440.00, 523.25, 659.25, 880.00], vol: 0.42 }, // A Minor
+      { delay: 1.75, duration: 4.50, freqs: [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98], vol: 0.50 } // GRAND HIGH C OVERDRIVE
     ];
 
-    chords.forEach((chord, step) => {
-      const startTime = this.ctx.currentTime + (step * 0.22);
-      chord.forEach(freq => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, startTime);
+    chordProgression.forEach(({ delay, duration, freqs, vol }) => {
+      const chordStart = now + delay;
+      freqs.forEach((freq) => {
+        // Primary Sawtooth Layer
+        const sawOsc = this.ctx.createOscillator();
+        const sawGain = this.ctx.createGain();
+        const sawFilter = this.ctx.createBiquadFilter();
 
-        gain.gain.setValueAtTime(0.2, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+        sawOsc.type = 'sawtooth';
+        sawOsc.frequency.setValueAtTime(freq, chordStart);
+        sawOsc.frequency.setValueAtTime(freq * 1.002, chordStart + 0.1); // subtle chorus detune
 
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-        osc.start(startTime);
-        osc.stop(startTime + 0.65);
+        sawFilter.type = 'lowpass';
+        sawFilter.frequency.setValueAtTime(2400, chordStart);
+        sawFilter.Q.setValueAtTime(2.5, chordStart);
+
+        const individualVol = vol / Math.sqrt(freqs.length);
+        sawGain.gain.setValueAtTime(individualVol, chordStart);
+        sawGain.gain.exponentialRampToValueAtTime(0.001, chordStart + duration);
+
+        sawOsc.connect(sawFilter);
+        sawFilter.connect(sawGain);
+        sawGain.connect(this.masterGain);
+
+        sawOsc.start(chordStart);
+        sawOsc.stop(chordStart + duration + 0.1);
+
+        // Secondary Warm Triangle Layer for Body
+        const triOsc = this.ctx.createOscillator();
+        const triGain = this.ctx.createGain();
+        triOsc.type = 'triangle';
+        triOsc.frequency.setValueAtTime(freq / 2, chordStart); // Octave below
+
+        triGain.gain.setValueAtTime(individualVol * 0.7, chordStart);
+        triGain.gain.exponentialRampToValueAtTime(0.001, chordStart + duration);
+
+        triOsc.connect(triGain);
+        triGain.connect(this.masterGain);
+
+        triOsc.start(chordStart);
+        triOsc.stop(chordStart + duration + 0.1);
       });
+    });
+
+    // PHASE 3: CRYSTALLINE SPARKLE CHIMES CASCADE (1.8s -> 4.5s)
+    const sparkleNotes = [1046.50, 1174.66, 1318.51, 1567.98, 1760.00, 2093.00, 2349.32, 2637.02];
+    sparkleNotes.forEach((pitch, idx) => {
+      const chimeTime = now + 1.85 + (idx * 0.09);
+      const chimeOsc = this.ctx.createOscillator();
+      const chimeGain = this.ctx.createGain();
+
+      chimeOsc.type = 'sine';
+      chimeOsc.frequency.setValueAtTime(pitch, chimeTime);
+
+      chimeGain.gain.setValueAtTime(0.12, chimeTime);
+      chimeGain.gain.exponentialRampToValueAtTime(0.0001, chimeTime + 0.5);
+
+      chimeOsc.connect(chimeGain);
+      chimeGain.connect(this.masterGain);
+
+      chimeOsc.start(chimeTime);
+      chimeOsc.stop(chimeTime + 0.55);
+    });
+
+    // PHASE 4: WARM SUSTAINED AMBIENT CELEBRATORY PAD (2.2s -> 6.5s)
+    const padFreqs = [130.81, 196.00, 261.63, 329.63, 392.00];
+    padFreqs.forEach((freq) => {
+      const padOsc = this.ctx.createOscillator();
+      const padGain = this.ctx.createGain();
+      const padFilter = this.ctx.createBiquadFilter();
+
+      padOsc.type = 'sine';
+      padOsc.frequency.setValueAtTime(freq, now + 2.0);
+
+      padFilter.type = 'lowpass';
+      padFilter.frequency.setValueAtTime(800, now + 2.0);
+
+      padGain.gain.setValueAtTime(0.001, now + 2.0);
+      padGain.gain.exponentialRampToValueAtTime(0.14, now + 2.8);
+      padGain.gain.exponentialRampToValueAtTime(0.001, now + 6.8);
+
+      padOsc.connect(padFilter);
+      padFilter.connect(padGain);
+      padGain.connect(this.masterGain);
+
+      padOsc.start(now + 2.0);
+      padOsc.stop(now + 7.0);
     });
   }
 
-  // Power shut down for Game Over
   playGameOver() {
+    this.stopDramaticTrack();
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 
     const t = this.ctx.currentTime;
