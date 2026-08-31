@@ -32,6 +32,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [boostAnimating, setBoostAnimating] = useState(false);
   const [shakeFlash, setShakeFlash] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
+  const [showMobilePrompt, setShowMobilePrompt] = useState(false);
+
+  // Check if viewing desktop screen on a mobile device
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (typeof window !== 'undefined' && window.innerWidth < 768);
+    if (isMobile) {
+      setShowMobilePrompt(true);
+    }
+  }, []);
 
   const {
     status = 'lobby',
@@ -280,16 +289,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       <header className={`relative z-20 flex items-center justify-between px-4 py-2 ${
         isBooting || status === 'playing' ? 'animate-cyber-down' : ''
       }`}>
-        {/* Left: VOLTAGE SURGE Metallic Red Title */}
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-2">
-            <h1 className="font-orbitron font-black text-3xl md:text-4xl tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white via-[#ff4d6d] to-[#ff0033] drop-shadow-[0_0_18px_rgba(255,31,67,0.8)] italic">
-              VOLTAGE
-            </h1>
-          </div>
-          <span className="font-orbitron font-bold text-xs md:text-sm tracking-[0.45em] text-[#ff8095] -mt-1 ml-0.5">
-            S U R G E
-          </span>
+        {/* Left: Telecel SME Month Official Brand Logo (Enlarged) */}
+        <div className="flex items-center">
+          <LaunchLogo className="w-auto h-16 sm:h-18 md:h-20 lg:h-22 max-w-[200px] sm:max-w-[240px] md:max-w-[280px] object-contain drop-shadow-[0_0_16px_rgba(255,31,67,0.85)]" animate={false} />
         </div>
 
         {/* Center: MAX VOLTAGE 100% Display */}
@@ -617,8 +619,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
           {/* Top: Telecel SME Month Logo & Headline */}
           <div className="relative z-20 flex flex-col items-center text-center mt-1">
-            <div className="w-full max-w-[260px] sm:max-w-[300px] md:max-w-[360px] max-h-[13vh] flex items-center justify-center mb-1">
-              <LaunchLogo className="w-full h-auto max-w-[340px] max-h-[12vh] object-contain" animate={false} />
+            <div className="w-full max-w-[420px] sm:max-w-[500px] md:max-w-[600px] lg:max-w-[680px] max-h-[20vh] flex items-center justify-center mb-2">
+              <LaunchLogo className="w-full h-auto max-w-[640px] max-h-[19vh] object-contain" animate={false} />
             </div>
             
             <h2 className="font-orbitron font-black text-2xl sm:text-3xl md:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-1">
@@ -629,26 +631,26 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </p>
           </div>
 
-          {/* Center Stage: Split Hero Presentation Area (Large QR Code + Connected Counter) */}
-          <div className="relative z-20 flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-12 items-center justify-center max-w-5xl mx-auto w-full my-auto px-4">
+          {/* Center Stage: Split Hero Presentation Area (Matching Height QR Code + Connected Counter) */}
+          <div className="relative z-20 flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center justify-items-center max-w-5xl mx-auto w-full my-auto px-4">
             
-            {/* Left: Large High-Contrast Stage QR Code */}
-            <div className="flex flex-col items-center justify-center">
+            {/* Left: Large High-Contrast Stage QR Code Box */}
+            <div className="flex items-center justify-center w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] h-[280px] sm:h-[330px] md:h-[360px] lg:h-[380px]">
               {tunnelReady || showLocalFallback ? (
-                <div className="relative p-4 sm:p-5 bg-white rounded-2xl shadow-[0_0_45px_rgba(255,31,67,0.8)] border-4 border-[#ff1f43]">
+                <div className="relative w-full h-full p-4 sm:p-5 md:p-6 bg-white rounded-3xl shadow-[0_0_45px_rgba(255,31,67,0.8)] border-4 border-[#ff1f43] flex items-center justify-center">
                   <QRCodeSVG
                     value={controllerUrl}
-                    size={280}
+                    size={300}
                     level="H"
                     includeMargin={false}
-                    className="w-[180px] h-[180px] sm:w-[230px] sm:h-[230px] md:w-[280px] md:h-[280px] lg:w-[310px] lg:h-[310px]"
+                    className="w-full h-full max-h-[85%] max-w-[85%] object-contain"
                   />
-                  <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-xs sm:text-sm px-5 py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43]">
+                  <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-xs sm:text-sm px-5 py-1.5 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
                     {tunnelReady ? 'SCAN TO SYNC ⚡' : 'LOCAL WI-FI (FALLBACK)'}
                   </div>
                 </div>
               ) : (
-                <div className="relative p-8 bg-[#170508] rounded-2xl border-2 border-[#521520] flex flex-col items-center justify-center gap-3 min-h-[260px] min-w-[260px]">
+                <div className="relative w-full h-full p-8 bg-[#170508] rounded-3xl border-2 border-[#521520] flex flex-col items-center justify-center gap-3">
                   <div className="w-10 h-10 border-4 border-[#ff1f43] border-t-transparent rounded-full animate-spin" />
                   <span className="font-orbitron font-bold text-sm text-[#ff8095] uppercase tracking-wider animate-pulse">
                     ESTABLISHING SECURE LINK...
@@ -663,9 +665,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               )}
             </div>
 
-            {/* Right: Live Audience Counter Box */}
-            <div className="flex flex-col items-center justify-center w-full">
-              <div className="w-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
+            {/* Right: Live Audience Counter Box (Matching Height) */}
+            <div className="flex items-center justify-center w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] h-[280px] sm:h-[330px] md:h-[360px] lg:h-[380px]">
+              <div className="w-full h-full bg-gradient-to-b from-[#2d0c14]/90 to-[#140407]/95 border-2 border-[#ff1f43]/70 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col items-center justify-center text-center sci-fi-cut">
                 
                 {/* Massive Live Counter Number */}
                 <div className="font-orbitron font-black text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-white tracking-wider text-glow-red drop-shadow-[0_0_30px_#ff1f43] leading-none mb-3">
@@ -823,6 +825,46 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               className="mt-6 w-full py-2 bg-[#ff1f43] hover:bg-[#ff3d5e] text-white font-orbitron font-bold text-sm uppercase sci-fi-cut-sm"
             >
               CLOSE
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* 7. MOBILE DEVICE OPTIMIZATION PROMPT MODAL          */}
+      {/* ==================================================== */}
+      {showMobilePrompt && (
+        <div className="fixed inset-0 z-[70] bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 select-none">
+          <div className="hud-panel max-w-md w-full p-6 sm:p-8 sci-fi-cut border-2 border-[#ff1f43] shadow-neon-red flex flex-col items-center text-center animate-fade-in">
+            <div className="w-full max-w-[220px] max-h-[80px] mb-3 flex items-center justify-center">
+              <LaunchLogo className="w-full h-auto object-contain" animate={false} />
+            </div>
+
+            <div className="w-14 h-14 rounded-full bg-[#330c14] border border-[#ff1f43] flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(255,31,67,0.7)]">
+              <Smartphone size={28} className="text-[#ff1f43] animate-bounce" />
+            </div>
+
+            <h3 className="font-orbitron font-black text-lg sm:text-xl uppercase text-white tracking-wider mb-2">
+              BEST EXPERIENCED ON DESKTOP
+            </h3>
+
+            <p className="text-xs sm:text-sm text-[#ffccd5] mb-6 leading-relaxed">
+              This screen is the main stage display designed for large projectors and desktop monitors. If you are participating as an audience member, please switch to the Mobile Controller to shake and surge power!
+            </p>
+
+            <a
+              href={`/controller?room=${encodeURIComponent(roomCode)}`}
+              className="w-full py-4 px-6 sci-fi-cut font-orbitron font-black text-sm tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] text-white shadow-neon-red border-2 border-white/60 flex items-center justify-center gap-2 mb-3 cursor-pointer transition-all"
+            >
+              <Zap size={18} className="animate-pulse" />
+              <span>SWITCH TO MOBILE CONTROLLER 📱</span>
+            </a>
+
+            <button
+              onClick={() => setShowMobilePrompt(false)}
+              className="text-xs text-[#ff8095] underline hover:text-white transition-colors cursor-pointer py-1 mt-1"
+            >
+              Continue viewing desktop screen anyway
             </button>
           </div>
         </div>
