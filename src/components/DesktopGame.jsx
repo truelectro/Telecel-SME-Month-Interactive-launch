@@ -116,6 +116,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [overlayMessage, setOverlayMessage] = useState(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [isBooting, setIsBooting] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(null);
   const [audienceToasts, setAudienceToasts] = useState([]);
   const prevStatusRef = useRef(status);
   const voltageRef = useRef(voltage);
@@ -336,19 +337,43 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       }, 2500);
     };
 
+    const onCountdownStarted = ({ count }) => {
+      setCountdownValue(count || 3);
+      try { audioEngine.playCountdownBeep(count || 3); } catch (e) {}
+    };
+
+    const onCountdownTick = ({ count }) => {
+      setCountdownValue(count);
+      try { audioEngine.playCountdownBeep(count); } catch (e) {}
+      if (count === 'LAUNCH!') {
+        setTimeout(() => setCountdownValue(null), 1000);
+      }
+    };
+
+    const onGameStarted = () => {
+      setCountdownValue(null);
+    };
+
     const onGameReset = () => {
+      setCountdownValue(null);
       audioEngine.resetAudio();
     };
 
     socket.on('surge_pulse', onSurgePulse);
     socket.on('participant_joined', onParticipantJoined);
     socket.on('boost_activated', onBoostActivated);
+    socket.on('countdown_started', onCountdownStarted);
+    socket.on('countdown_tick', onCountdownTick);
+    socket.on('game_started', onGameStarted);
     socket.on('game_reset', onGameReset);
 
     return () => {
       socket.off('surge_pulse', onSurgePulse);
       socket.off('participant_joined', onParticipantJoined);
       socket.off('boost_activated', onBoostActivated);
+      socket.off('countdown_started', onCountdownStarted);
+      socket.off('countdown_tick', onCountdownTick);
+      socket.off('game_started', onGameStarted);
       socket.off('game_reset', onGameReset);
     };
   }, [socket]);
@@ -973,6 +998,36 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </p>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* CINEMATIC 3-2-1 LAUNCH COUNTDOWN OVERLAY            */}
+      {/* ==================================================== */}
+      {(status === 'countdown' || countdownValue !== null) && (
+        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative flex flex-col items-center justify-center p-6 text-center">
+            {/* Glowing Pulsing Energy Rings */}
+            <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full border-2 border-[#ff1f43]/40 animate-ping" />
+            <div className="absolute w-60 h-60 sm:w-80 sm:h-80 rounded-full border border-[#ff1f43]/60 animate-pulse" />
+            <div className="absolute inset-0 bg-radial from-[#ff1f43]/30 via-transparent to-transparent blur-3xl" />
+
+            <span className="font-orbitron font-black text-sm sm:text-base md:text-xl text-[#ff8095] tracking-[0.3em] uppercase mb-4 animate-pulse drop-shadow-[0_0_12px_#ff1f43]">
+              INITIALIZING LAUNCH SURGE
+            </span>
+
+            {/* Giant Countdown Number / LAUNCH! */}
+            <div 
+              key={countdownValue}
+              className="font-orbitron font-black text-7xl sm:text-9xl md:text-[11rem] text-white tracking-wider text-glow-red animate-scale-up drop-shadow-[0_0_50px_#ff1f43]"
+            >
+              {countdownValue ?? 3}
+            </div>
+
+            <span className="font-orbitron font-bold text-sm sm:text-lg md:text-xl text-[#ffccd5] tracking-widest uppercase mt-6 drop-shadow-[0_0_10px_#ff1f43]">
+              {countdownValue === 'LAUNCH!' ? '🔥 SHAKE PHONES NOW! 🔥' : 'GET READY TO SHAKE!'}
+            </span>
           </div>
         </div>
       )}

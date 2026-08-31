@@ -246,16 +246,59 @@ class BrowserHostEngine {
   }
 
   handleStartGame() {
-    this.resetGame('playing');
-    this.broadcast('game_started');
+    if (this.gameState.status === 'playing' || this.gameState.status === 'countdown') return;
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    this.gameState.status = 'countdown';
+    this.gameState.countdownValue = 3;
+    this.gameState.voltage = 0.0;
+    this.gameState.timeRemaining = EVENT_CONFIG.ROUND_TIME_SECONDS;
+    this.gameState.lastActiveShakeTime = Date.now();
+
+    this.broadcast('countdown_started', { count: 3 });
     this.broadcast('game_state_update', {
-      status: 'playing',
+      status: 'countdown',
+      countdownValue: 3,
       voltage: 0,
       connectedCount: this.gameState.connectedCount,
     });
+
+    let currentCount = 3;
+    this.countdownTimer = setInterval(() => {
+      currentCount -= 1;
+      if (currentCount > 0) {
+        this.gameState.countdownValue = currentCount;
+        this.broadcast('countdown_tick', { count: currentCount });
+        this.broadcast('game_state_update', {
+          status: 'countdown',
+          countdownValue: currentCount,
+          voltage: 0,
+          connectedCount: this.gameState.connectedCount,
+        });
+      } else {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+        this.gameState.countdownValue = 0;
+        this.resetGame('playing');
+        this.broadcast('countdown_tick', { count: 'LAUNCH!' });
+        this.broadcast('game_started');
+        this.broadcast('game_state_update', {
+          status: 'playing',
+          voltage: 0,
+          connectedCount: this.gameState.connectedCount,
+        });
+      }
+    }, 1000);
   }
 
   handleResetGame() {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
     this.resetGame('lobby');
     this.broadcast('game_reset');
     this.broadcast('game_state_update', {
@@ -536,7 +579,8 @@ export class RealtimeNetwork {
         'init_sync', 'game_state_update', 'controller_assigned',
         'participant_joined', 'participant_left', 'surge_pulse',
         'boost_activated', 'multiplier_up', 'game_victory',
-        'game_over', 'game_started', 'game_reset', 'tunnel_ready'
+        'game_over', 'game_started', 'game_reset', 'tunnel_ready',
+        'countdown_started', 'countdown_tick'
       ];
 
       events.forEach(evt => {

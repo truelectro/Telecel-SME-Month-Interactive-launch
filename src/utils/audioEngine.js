@@ -48,7 +48,7 @@ class AudioEngine {
       this.humFilter.Q.setValueAtTime(3.5, this.ctx.currentTime);
 
       this.humGain = this.ctx.createGain();
-      this.humGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+      this.humGain.gain.setValueAtTime(0.0, this.ctx.currentTime); // Silent in standby mode
 
       this.humOsc1.connect(this.humFilter);
       this.humOsc2.connect(this.humFilter);
@@ -89,8 +89,9 @@ class AudioEngine {
 
     if (!isPlaying) {
       this.stopDramaticTrack();
-      this.humGain.gain.setTargetAtTime(0.02, this.ctx.currentTime, 0.15);
-      this.humFilter.frequency.setTargetAtTime(100, this.ctx.currentTime, 0.15);
+      if (this.humGain && this.ctx) {
+        this.humGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.1);
+      }
       return;
     }
 
@@ -220,8 +221,39 @@ class AudioEngine {
   }
 
   // ====================================================
-  // 2. SOUND EFFECTS (SHAKE ZAPS, BOOSTS, ALARMS)
+  // 2. SOUND EFFECTS (SHAKE ZAPS, BOOSTS, ALARMS, COUNTDOWN)
   // ====================================================
+  playCountdownBeep(count) {
+    if (!this.isInitialized || !this.ctx || this.isMuted) return;
+    const t = this.ctx.currentTime;
+
+    if (count === 'LAUNCH!' || count === 0) {
+      this.playGameStart();
+      return;
+    }
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sine';
+    const freq = count === 1 ? 920 : (count === 2 ? 680 : 520);
+    osc.frequency.setValueAtTime(freq, t);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, t);
+
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.26);
+  }
+
   playShakeZap(intensity = 1.0) {
     if (!this.isInitialized || !this.ctx || this.isMuted) return;
 

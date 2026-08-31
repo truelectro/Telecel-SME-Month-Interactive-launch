@@ -422,13 +422,48 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Start / Restart game trigger
+  let countdownTimer = null;
+
+  // Start / Countdown game trigger
   socket.on('start_game', () => {
-    resetGame('playing');
-    io.emit('game_started');
+    if (gameState.status === 'playing' || gameState.status === 'countdown') return;
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+
+    gameState.status = 'countdown';
+    gameState.countdownValue = 3;
+    gameState.voltage = 0.0;
+    gameState.timeRemaining = EVENT_CONFIG.ROUND_TIME_SECONDS;
+    gameState.lastActiveShakeTime = Date.now();
+
+    io.emit('countdown_started', { count: 3 });
+    io.emit('game_state_update', { status: 'countdown', countdownValue: 3, voltage: 0 });
+
+    let currentCount = 3;
+    countdownTimer = setInterval(() => {
+      currentCount -= 1;
+      if (currentCount > 0) {
+        gameState.countdownValue = currentCount;
+        io.emit('countdown_tick', { count: currentCount });
+        io.emit('game_state_update', { status: 'countdown', countdownValue: currentCount });
+      } else {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+        gameState.countdownValue = 0;
+        resetGame('playing');
+        io.emit('countdown_tick', { count: 'LAUNCH!' });
+        io.emit('game_started');
+      }
+    }, 1000);
   });
 
   socket.on('reset_game', () => {
+    if (countdownTimer) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
     resetGame('lobby');
     io.emit('game_reset');
   });

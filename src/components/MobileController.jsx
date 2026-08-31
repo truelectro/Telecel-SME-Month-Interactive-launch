@@ -34,6 +34,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const [shakeIntensity, setShakeIntensity] = useState(0);
   const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
   const [gameStartOverlay, setGameStartOverlay] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(null);
 
   const {
     status = 'lobby',
@@ -166,19 +167,44 @@ export default function MobileController({ socket, gameState, isConnected: propC
     };
 
     const onGameStarted = () => {
-      setShakeCount(0);
+      setCountdownValue(null);
       setGameStartOverlay(true);
-      if (navigator.vibrate) {
-        try { navigator.vibrate([120, 60, 180, 60, 250]); } catch (e) {}
-      }
+      audioEngine.ensureRunning();
       try { audioEngine.playGameStart(); } catch (e) {}
       setTimeout(() => setGameStartOverlay(false), 2200);
+      if (navigator.vibrate) {
+        try { navigator.vibrate([150, 50, 200]); } catch (e) {}
+      }
     };
 
     const onGameReset = () => {
+      setCountdownValue(null);
       setShakeCount(0);
       setGameStartOverlay(false);
       audioEngine.resetAudio();
+    };
+
+    const onCountdownStarted = ({ count }) => {
+      setCountdownValue(count || 3);
+      audioEngine.ensureRunning();
+      try { audioEngine.playCountdownBeep(count || 3); } catch (e) {}
+      if (navigator.vibrate) {
+        try { navigator.vibrate(80); } catch (e) {}
+      }
+    };
+
+    const onCountdownTick = ({ count }) => {
+      setCountdownValue(count);
+      audioEngine.ensureRunning();
+      try { audioEngine.playCountdownBeep(count); } catch (e) {}
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate(count === 'LAUNCH!' ? [150, 50, 200] : 80);
+        } catch (e) {}
+      }
+      if (count === 'LAUNCH!') {
+        setTimeout(() => setCountdownValue(null), 1000);
+      }
     };
 
     const onAssigned = ({ operativeNumber: num }) => {
@@ -207,6 +233,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
     socket.on('controller_assigned', onAssigned);
     socket.on('init_sync', onSync);
     socket.on('game_state_update', onSync);
+    socket.on('countdown_started', onCountdownStarted);
+    socket.on('countdown_tick', onCountdownTick);
     socket.on('game_started', onGameStarted);
     socket.on('game_reset', onGameReset);
     socket.on('boost_activated', onBoostActivated);
@@ -217,6 +245,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
       socket.off('controller_assigned', onAssigned);
       socket.off('init_sync', onSync);
       socket.off('game_state_update', onSync);
+      socket.off('countdown_started', onCountdownStarted);
+      socket.off('countdown_tick', onCountdownTick);
       socket.off('game_started', onGameStarted);
       socket.off('game_reset', onGameReset);
       socket.off('boost_activated', onBoostActivated);
@@ -856,6 +886,36 @@ export default function MobileController({ socket, gameState, isConnected: propC
           </span>
         </div>
       </footer>
+
+      {/* ==================================================== */}
+      {/* 4. CINEMATIC MOBILE COUNTDOWN OVERLAY                */}
+      {/* ==================================================== */}
+      {(status === 'countdown' || countdownValue !== null) && (
+        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/90 backdrop-blur-md animate-fade-in p-4 text-center">
+          <div className="relative flex flex-col items-center justify-center">
+            {/* Glowing Pulsing Energy Rings */}
+            <div className="absolute w-52 h-52 rounded-full border-2 border-[#ff1f43]/40 animate-ping" />
+            <div className="absolute w-44 h-44 rounded-full border border-[#ff1f43]/60 animate-pulse" />
+            <div className="absolute inset-0 bg-radial from-[#ff1f43]/30 via-transparent to-transparent blur-2xl" />
+
+            <span className="font-orbitron font-black text-xs sm:text-sm text-[#ff8095] tracking-[0.25em] uppercase mb-3 animate-pulse drop-shadow-[0_0_8px_#ff1f43]">
+              STAND BY TO SURGE
+            </span>
+
+            {/* Giant Countdown Number / LAUNCH! */}
+            <div 
+              key={countdownValue}
+              className="font-orbitron font-black text-7xl sm:text-8xl text-white tracking-wider text-glow-red animate-scale-up drop-shadow-[0_0_35px_#ff1f43]"
+            >
+              {countdownValue ?? 3}
+            </div>
+
+            <span className="font-orbitron font-bold text-xs sm:text-sm text-[#ffccd5] tracking-wider uppercase mt-4 drop-shadow-[0_0_8px_#ff1f43]">
+              {countdownValue === 'LAUNCH!' ? '🔥 SHAKE PHONE NOW! 🔥' : 'GET READY TO SHAKE!'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
