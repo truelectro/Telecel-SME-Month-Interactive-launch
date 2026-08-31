@@ -599,7 +599,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               </div>
 
               {/* FLOATING NAMES SURGE CASCADE CONTAINER */}
-              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut h-[140px] sm:h-[165px] md:h-[190px] relative overflow-hidden flex flex-col justify-end shadow-neon-red">
+              <div className="hud-panel p-2 sm:p-2.5 sci-fi-cut h-[100px] sm:h-[115px] md:h-[125px] relative overflow-hidden flex flex-col justify-end shadow-neon-red">
                 {/* Ambient Grid & Background Lightning Glow */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[#3a0812]/75 via-[#180408]/40 to-transparent pointer-events-none" />
                 <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
@@ -607,9 +607,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 {/* Floating Participant Surge Badges */}
                 <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   {floatingSurges.length === 0 ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3 text-[#ff8095]/60 animate-pulse">
-                      <Zap size={24} className="text-[#ff1f43] mb-1.5 animate-bounce" />
-                      <span className="font-orbitron font-bold text-xs uppercase tracking-wider">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 text-[#ff8095]/60 animate-pulse">
+                      <Zap size={20} className="text-[#ff1f43] mb-1 animate-bounce" />
+                      <span className="font-orbitron font-bold text-[11px] uppercase tracking-wider">
                         SHAKE PHONES TO SURGE!
                       </span>
                     </div>
@@ -617,17 +617,17 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     floatingSurges.map((surge) => (
                       <div
                         key={surge.id}
-                        className="absolute bottom-2 animate-float-up pointer-events-none z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#440a15]/95 via-[#22060c]/95 to-[#440a15]/95 border border-[#ff1f43] shadow-[0_0_18px_rgba(255,31,67,0.7)] backdrop-blur-sm whitespace-nowrap"
+                        className="absolute bottom-1 animate-float-up pointer-events-none z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-[#440a15]/95 via-[#22060c]/95 to-[#440a15]/95 border border-[#ff1f43] shadow-[0_0_15px_rgba(255,31,67,0.7)] backdrop-blur-sm whitespace-nowrap"
                         style={{
                           left: `${surge.leftPercent}%`,
                           animationDuration: `${surge.duration}s`,
                         }}
                       >
-                        <Zap size={13} className="text-[#ff1f43] animate-bounce shrink-0" />
-                        <span className="font-orbitron font-black text-xs sm:text-sm text-white tracking-wide drop-shadow-[0_0_8px_#ff1f43] max-w-[130px] sm:max-w-[160px] truncate">
+                        <Zap size={11} className="text-[#ff1f43] animate-bounce shrink-0" />
+                        <span className="font-orbitron font-black text-[11px] sm:text-xs text-white tracking-wide drop-shadow-[0_0_8px_#ff1f43] max-w-[130px] sm:max-w-[150px] truncate">
                           {surge.name}
                         </span>
-                        <span className="font-mono text-[9px] text-[#ffccd5] font-bold">
+                        <span className="font-mono text-[8px] text-[#ffccd5] font-bold">
                           +SURGE
                         </span>
                       </div>
@@ -636,9 +636,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
 
                 {/* Live Stream Base Indicator */}
-                <div className="relative z-10 w-full pt-1 border-t border-[#521520] flex items-center justify-between text-[10px] text-[#ff8095]">
+                <div className="relative z-10 w-full pt-1 border-t border-[#521520] flex items-center justify-between text-[9px] text-[#ff8095]">
                   <span className="font-orbitron font-semibold uppercase tracking-wider flex items-center gap-1">
-                    <Zap size={11} className="text-[#ff1f43] animate-pulse" />
+                    <Zap size={10} className="text-[#ff1f43] animate-pulse" />
                     LIVE SURGES
                   </span>
                   <span className="font-orbitron font-bold text-white">
@@ -647,37 +647,37 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
               </div>
 
-              {/* MID-GAME LIVE QR CODE CARD: SCAN TO JOIN IN-PROGRESS (LARGE) */}
-              <div className="hud-panel p-2.5 sm:p-3.5 sci-fi-cut flex flex-col items-center bg-gradient-to-b from-[#2d0a14]/95 via-[#180408]/95 to-[#0e0205]/95 border-2 border-[#ff1f43]/70 shadow-[0_0_25px_rgba(255,31,67,0.4)]">
-                <div className="flex items-center justify-between w-full mb-1.5 pb-1 border-b border-[#4d131d]">
-                  <div className="flex items-center gap-1.5">
-                    <QrCode size={14} className="text-[#ff1f43] animate-pulse" />
-                    <span className="font-orbitron font-bold text-xs sm:text-sm text-white tracking-wider uppercase drop-shadow-[0_0_6px_#ff1f43]">
+              {/* MASSIVE MID-GAME STAGE QR CODE CARD: SCAN TO JOIN LIVE */}
+              <div className="hud-panel p-3 sm:p-4 sci-fi-cut flex flex-col items-center bg-gradient-to-b from-[#2d0a14]/95 via-[#180408]/95 to-[#0e0205]/95 border-2 border-[#ff1f43] shadow-[0_0_30px_rgba(255,31,67,0.5)]">
+                <div className="flex items-center justify-between w-full mb-2 pb-1.5 border-b border-[#4d131d]">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <QrCode size={16} className="text-[#ff1f43] animate-pulse" />
+                    <span className="font-orbitron font-black text-xs sm:text-sm md:text-base text-white tracking-wider uppercase drop-shadow-[0_0_8px_#ff1f43]">
                       SCAN TO JOIN LIVE
                     </span>
                   </div>
-                  <span className="font-orbitron text-[9px] sm:text-[10px] text-green-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                  <span className="font-orbitron text-[10px] text-green-400 font-bold uppercase tracking-wider flex items-center gap-1 bg-[#102416] px-2 py-0.5 rounded-full border border-green-500/40">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                     OPEN
                   </span>
                 </div>
 
-                {/* Larger High-Contrast QR Code Container */}
-                <div className="relative p-2 sm:p-2.5 bg-white rounded-2xl shadow-[0_0_20px_rgba(255,31,67,0.6)] border-2 sm:border-3 border-[#ff1f43] flex items-center justify-center my-1">
+                {/* Extra-Large High-Contrast QR Code Box */}
+                <div className="relative w-full max-w-[240px] sm:max-w-[270px] md:max-w-[300px] aspect-square p-3 sm:p-4 bg-white rounded-2xl sm:rounded-3xl shadow-[0_0_30px_rgba(255,31,67,0.75)] border-3 sm:border-4 border-[#ff1f43] flex items-center justify-center my-1.5">
                   <QRCodeSVG
                     value={controllerUrl}
-                    size={150}
-                    level="H"
+                    size={260}
+                    level="M"
                     includeMargin={false}
-                    className="w-28 h-28 sm:w-34 sm:h-34 md:w-38 md:h-38 object-contain"
+                    className="w-full h-full object-contain"
                   />
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[9px] sm:text-[10px] px-3 py-0.5 border border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_10px_#ff1f43]">
-                    JOIN ⚡
+                  <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-black text-[10px] sm:text-xs px-3.5 sm:px-4 py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
+                    SCAN TO SYNC ⚡
                   </div>
                 </div>
 
-                <span className="text-[10px] sm:text-[11px] text-[#ffccd5] text-center mt-1.5 font-semibold leading-tight">
-                  Point camera to jump into the action!
+                <span className="text-[11px] sm:text-xs text-[#ffccd5] text-center mt-3 font-semibold leading-tight">
+                  Point camera to jump straight into the live game!
                 </span>
               </div>
             </>

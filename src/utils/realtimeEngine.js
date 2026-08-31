@@ -559,6 +559,15 @@ export class RealtimeNetwork {
 
   initWebRTC() {
     this.transport = 'webrtc';
+    
+    // Clean up any existing peer before re-creating
+    if (this.peer) {
+      try {
+        this.peer.destroy();
+      } catch (e) {}
+      this.peer = null;
+    }
+
     const peerId = this.isController ? undefined : this.roomCode;
     console.log(`Initializing WebRTC Peer (${this.isController ? 'Client' : `Host: ${this.roomCode}`})...`);
 
@@ -568,12 +577,12 @@ export class RealtimeNetwork {
           iceServers: ICE_SERVERS,
           iceCandidatePoolSize: 10,
         },
-        debug: 1,
+        debug: 0, // suppress internal broker noise
       });
 
       this.peer.on('open', (id) => {
         this.id = id;
-        console.log(`Peer opened with ID: ${id}`);
+        console.log(`✅ WebRTC Peer opened with ID: ${id}`);
 
         if (this.isController) {
           this.connectToHost();
@@ -586,18 +595,23 @@ export class RealtimeNetwork {
       });
 
       this.peer.on('error', (err) => {
-        console.warn('Peer error:', err?.type || err);
-
-        if (err.type === 'unavailable-id' && !this.isController) {
-          console.log('Room ID taken, reconnecting with unique suffix...');
-          const altId = `${this.roomCode.split('-')[0]}-${Math.floor(Math.random() * 8999 + 1000)}`;
+        if (err?.type === 'unavailable-id' && !this.isController) {
+          const altId = `telecel-${Math.floor(Math.random() * 8999 + 1000)}`;
+          console.log(`Host ID busy on broker, switching to ${altId}...`);
           this.roomCode = altId;
+          try { sessionStorage.setItem('telecel_host_room', altId); } catch (e) {}
           this.emitLocal('room_code_changed', { roomCode: altId });
           this.emitLocal('init_sync', {
             gameState: this.hostEngine ? this.hostEngine.gameState : undefined,
             roomCode: altId,
           });
-          this.initWebRTC();
+
+          // Destroy old peer cleanly before retrying
+          if (this.peer) {
+            try { this.peer.destroy(); } catch (e) {}
+            this.peer = null;
+          }
+          setTimeout(() => this.initWebRTC(), 150);
           return;
         }
 
