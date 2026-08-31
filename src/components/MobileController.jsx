@@ -500,7 +500,13 @@ export default function MobileController({ socket, gameState, isConnected: propC
   // ====================================================
   if (!isRegistered) {
     return (
-      <div className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#070204] text-white flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none font-rajdhani">
+      <div 
+        style={{ 
+          paddingTop: 'max(env(safe-area-inset-top), 24px)', 
+          paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' 
+        }}
+        className="relative h-[100dvh] max-h-[100dvh] w-full bg-[#070204] text-white flex flex-col justify-between px-4 sm:px-6 overflow-hidden select-none font-rajdhani"
+      >
         {/* Dynamic Background Glow */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#25070e] via-[#0d0205] to-[#040102]" />
@@ -585,7 +591,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
     <div 
       onTouchStart={() => audioEngine.ensureRunning()}
       onPointerDown={() => audioEngine.ensureRunning()}
-      className={`relative h-[100dvh] max-h-[100dvh] w-full text-white flex flex-col justify-between p-2.5 sm:p-4 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
+      style={{ 
+        paddingTop: 'max(env(safe-area-inset-top), 24px)', 
+        paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' 
+      }}
+      className={`relative h-[100dvh] max-h-[100dvh] w-full text-white flex flex-col justify-between px-3.5 sm:px-5 overflow-hidden select-none font-rajdhani touch-none transition-colors duration-500 ${
         isPlaying ? 'bg-[#080204]' : 'bg-[#060203]'
       }`}
     >

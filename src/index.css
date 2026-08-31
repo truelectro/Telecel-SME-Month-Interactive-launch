@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
   * {
     box-sizing: border-box;
   }
@@ -13,6 +19,14 @@
     -webkit-user-select: none;
     -webkit-touch-callout: none;
   }
+}
+
+.safe-top {
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+}
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 12px));
 }
 
 /* Custom Sci-Fi UI Borders and Cyberpunk Panels */
