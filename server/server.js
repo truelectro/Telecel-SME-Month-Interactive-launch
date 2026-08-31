@@ -39,19 +39,21 @@ function getLocalLanIP() {
 }
 
 const LAN_IP = getLocalLanIP();
-const HTTP_PORT = process.env.HTTP_PORT || 3001;
+const HTTP_PORT = process.env.PORT || process.env.HTTP_PORT || 3001;
 const HTTPS_PORT = process.env.HTTPS_PORT || 3443;
 
 // Create HTTP server
 const httpServer = http.createServer(app);
 
-// Generate self-signed SSL cert for HTTPS (essential for iOS Safari motion sensors)
+// Generate self-signed SSL cert for HTTPS (essential for local iOS Safari testing)
 let pems = null;
-try {
-  const attrs = [{ name: 'commonName', value: LAN_IP }];
-  pems = selfsigned.generate(attrs, { days: 30, keySize: 2048 });
-} catch (e) {
-  console.warn('Could not generate self-signed cert, falling back to HTTP only:', e.message);
+if (process.env.ENABLE_LOCAL_HTTPS === 'true') {
+  try {
+    const attrs = [{ name: 'commonName', value: LAN_IP }];
+    pems = selfsigned.generate(attrs, { days: 30, keySize: 2048 });
+  } catch (e) {
+    console.warn('Could not generate self-signed cert, falling back to HTTP only:', e.message);
+  }
 }
 
 let httpsServer = null;
@@ -79,6 +81,7 @@ import { Tunnel } from 'cloudflared';
 let publicTunnelUrl = null;
 
 async function setupPublicTunnel() {
+  if (process.env.DISABLE_TUNNEL === 'true') return;
   try {
     const t = Tunnel.quick(`http://localhost:${HTTP_PORT}`);
     
@@ -89,6 +92,7 @@ async function setupPublicTunnel() {
       console.log(`========================================\n`);
 
       // Notify all already-connected desktop clients that the tunnel is ready
+      io.to('stage_display').emit('tunnel_ready', { tunnelUrl: publicTunnelUrl });
       io.emit('tunnel_ready', { tunnelUrl: publicTunnelUrl });
     });
 
@@ -133,13 +137,13 @@ app.get('*', (req, res) => {
 
 // ----------------------------------------------------
 // ----------------------------------------------------
-// LAUNCH EVENT ACTIVATION ENGINE (UP TO 200 PARTICIPANTS)
+// LAUNCH EVENT ACTIVATION ENGINE (CONFIGURABLE CAPACITY)
 // ----------------------------------------------------
 const EVENT_CONFIG = {
-  MAX_CAPACITY: 200,
-  ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.6,       // Responsive decay
-  SHAKE_VOLTAGE_BASE: 0.038,     // Higher difficulty: requires sustained crowd effort
+  MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
+  ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '3.6'),       // Responsive decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.038'),     // Higher difficulty: requires sustained crowd effort
   COMBO_DECAY_TIME_MS: 1300,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
@@ -291,8 +295,15 @@ io.on('connection', (socket) => {
     tunnelUrl: publicTunnelUrl,
   });
 
+  // Stage display (Desktop HUD) connects
+  socket.on('join_display', () => {
+    socket.join('stage_display');
+    console.log(`🖥️ Stage Display joined room: stage_display (${socket.id})`);
+  });
+
   // Participant joins as mobile controller
   socket.on('join_controller', ({ playerName } = {}) => {
+    socket.join('mobile_controllers');
     participantCounter += 1;
     const operativeNumber = participantCounter;
     const displayName = playerName?.trim() || `Operative #${operativeNumber}`;
@@ -328,6 +339,7 @@ io.on('connection', (socket) => {
       maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
     });
 
+    // Notify stage displays and controllers
     io.emit('participant_joined', {
       operativeNumber,
       name: displayName,
@@ -383,7 +395,7 @@ io.on('connection', (socket) => {
       const activeCount = Math.max(1, Object.keys(gameState.players).length);
       const clampedIntensity = Math.min(2.0, Math.max(0.5, intensity));
       
-      // Dynamic crowd dampener: balances 1 tester up to 200 live attendees
+      // Dynamic crowd dampener: balances 1 tester up to 200+ live attendees
       const crowdDampener = activeCount > 1 
         ? Math.max(0.02, 0.88 / Math.pow(activeCount, 0.55))
         : 1.0;
@@ -408,8 +420,8 @@ io.on('connection', (socket) => {
         }
       }
 
-      // Broadcast surge event
-      io.emit('surge_pulse', {
+      // Broadcast surge event EXCLUSIVELY to stage display screens (avoids O(N^2) mobile network flood)
+      io.to('stage_display').emit('surge_pulse', {
         operativeNumber: player.number || 1,
         name: player.name || 'Operative',
         intensity: clampedIntensity,

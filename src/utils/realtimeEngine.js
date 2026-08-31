@@ -515,6 +515,8 @@ export class RealtimeNetwork {
 
         if (this.isController) {
           this.socket.emit('join_controller', { playerName: '' });
+        } else {
+          this.socket.emit('join_display');
         }
       });
 

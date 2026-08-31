@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: voltage-surge-launch
+    env: node
+    plan: starter
+    region: fra
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISABLE_TUNNEL
+        value: "true"
+      - key: MAX_CAPACITY
+        value: "250"
+      - key: ROUND_TIME_SECONDS
+        value: "90"
