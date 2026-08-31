@@ -4,7 +4,24 @@ import { io } from 'socket.io-client';
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:stun2.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
+  { urls: 'stun:stun.services.mozilla.com' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelay',
+    credential: 'openrelay',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelay',
+    credential: 'openrelay',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelay',
+    credential: 'openrelay',
+  },
 ];
 
 const EVENT_CONFIG = {
@@ -420,15 +437,24 @@ export class RealtimeNetwork {
 
   init() {
     const queryParams = new URLSearchParams(window.location.search);
-    const forceWebRTC = queryParams.get('mode') === 'webrtc';
+    const forceMode = queryParams.get('mode'); // 'webrtc' | 'socket'
 
-    if (forceWebRTC) {
+    if (forceMode === 'webrtc') {
+      this.initWebRTC();
+      return;
+    }
+
+    const customSocketUrl = this.options.socketUrl || import.meta.env.VITE_SOCKET_URL;
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+
+    // On pure Vercel deployments without backend socket server, initialize WebRTC PeerJS directly
+    if (isVercel && !customSocketUrl && forceMode !== 'socket') {
+      console.log('⚡ Vercel environment detected: Initializing direct WebRTC PeerJS...');
       this.initWebRTC();
       return;
     }
 
     // Determine target Socket.io URL
-    const customSocketUrl = this.options.socketUrl || import.meta.env.VITE_SOCKET_URL;
     let socketUrl = customSocketUrl;
     if (!socketUrl) {
       if (typeof window !== 'undefined') {
@@ -456,7 +482,7 @@ export class RealtimeNetwork {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 500,
         reconnectionDelayMax: 2000,
-        timeout: 8000,
+        timeout: 6000,
       });
 
       this.socket.on('connect', () => {
@@ -479,9 +505,11 @@ export class RealtimeNetwork {
 
       this.socket.on('connect_error', (err) => {
         console.warn('Socket.io connection error:', err?.message || err);
-        // If on pure Vercel serverless without socket backend, fallback to WebRTC after timeout
         if (!this.connected && !this.socketFailed && typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
           this.socketFailed = true;
+          if (this.socket) {
+            try { this.socket.disconnect(); } catch (e) {}
+          }
           console.log('Falling back to WebRTC PeerJS for Vercel...');
           this.initWebRTC();
         }
@@ -513,6 +541,7 @@ export class RealtimeNetwork {
       this.peer = new Peer(peerId, {
         config: {
           iceServers: ICE_SERVERS,
+          iceCandidatePoolSize: 10,
         },
         debug: 1,
       });
@@ -536,8 +565,13 @@ export class RealtimeNetwork {
 
         if (err.type === 'unavailable-id' && !this.isController) {
           console.log('Room ID taken, reconnecting with unique suffix...');
-          const altId = `${this.roomCode}-${Math.floor(Math.random() * 8999 + 1000)}`;
+          const altId = `${this.roomCode.split('-')[0]}-${Math.floor(Math.random() * 8999 + 1000)}`;
           this.roomCode = altId;
+          this.emitLocal('room_code_changed', { roomCode: altId });
+          this.emitLocal('init_sync', {
+            gameState: this.hostEngine ? this.hostEngine.gameState : undefined,
+            roomCode: altId,
+          });
           this.initWebRTC();
           return;
         }
@@ -586,7 +620,11 @@ export class RealtimeNetwork {
       this.connections.set(connId, conn);
 
       conn.on('open', () => {
-        console.log(`Participant WebRTC connected: ${connId}`);
+        console.log(`✅ Participant WebRTC data channel opened: ${connId}`);
+        // Immediately register joined participant in game state
+        this.hostEngine.handlePlayerJoin(connId, '');
+
+        // Send immediate game state sync
         conn.send({
           event: 'init_sync',
           data: {
@@ -649,7 +687,10 @@ export class RealtimeNetwork {
         console.log(`✅ WebRTC connected to Host: ${this.roomCode}`);
         this.connected = true;
         this.emitLocal('connect', { id: this.peer.id });
-        this.emit('join_controller', { playerName: '' });
+        this.clientConn.send({
+          event: 'join_controller',
+          data: { playerName: '' },
+        });
       });
 
       this.clientConn.on('data', (msg) => {

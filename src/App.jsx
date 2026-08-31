@@ -78,6 +78,13 @@ export default function App() {
       }
     });
 
+    net.on('room_code_changed', ({ roomCode: newRoomCode }) => {
+      setServerInfo((prev) => ({
+        ...prev,
+        roomCode: newRoomCode,
+      }));
+    });
+
     net.on('game_state_update', (updatedState) => {
       setGameState((prev) => ({ ...prev, ...updatedState }));
     });
