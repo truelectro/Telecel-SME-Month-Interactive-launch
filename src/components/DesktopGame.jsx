@@ -99,7 +99,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [overlayMessage, setOverlayMessage] = useState(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [isBooting, setIsBooting] = useState(false);
+  const [audienceToasts, setAudienceToasts] = useState([]);
   const prevStatusRef = useRef(status);
+  const voltageRef = useRef(voltage);
+  const lastToastTimeRef = useRef(0);
+
+  useEffect(() => {
+    voltageRef.current = voltage;
+  }, [voltage]);
 
   // Hi-Tech screen element entrance animation trigger when game starts
   useEffect(() => {
@@ -115,29 +122,30 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   useEffect(() => {
     if (status !== 'playing') {
       setOverlayVisible(false);
+      setOverlayMessage(null);
       return;
     }
 
     const showMessage = () => {
-      const msg = getVoltageTierMessage(voltage);
+      const msg = getVoltageTierMessage(voltageRef.current);
       setOverlayMessage(msg);
       setOverlayVisible(true);
       setTimeout(() => {
         setOverlayVisible(false);
-      }, 1900);
+      }, 2200);
     };
 
-    // Initial popup shortly after game starts
-    const initTimer = setTimeout(showMessage, 900);
+    // Initial popup 500ms after game starts
+    const initTimer = setTimeout(showMessage, 500);
 
-    // Periodic popups tailored to current voltage every 4.2s
-    const interval = setInterval(showMessage, 4200);
+    // Periodic popups tailored to current voltage every 3.8s
+    const interval = setInterval(showMessage, 3800);
 
     return () => {
       clearTimeout(initTimer);
       clearInterval(interval);
     };
-  }, [status, voltage, getVoltageTierMessage]);
+  }, [status, getVoltageTierMessage]);
 
   // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
   const roomCode = serverInfo?.roomCode || 'telecel-launch';
@@ -172,32 +180,64 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     }
   }, [status]);
 
-  // Listen for socket sound effect events
+  // Listen for socket sound effect events and audience interactive toasts
   useEffect(() => {
     if (!socket) return;
 
-    const onSurgePulse = ({ intensity }) => {
+    const onSurgePulse = ({ intensity, operativeNumber, name }) => {
       audioEngine.playShakeZap(intensity);
       setShakeFlash(true);
       setTimeout(() => setShakeFlash(false), 80);
+
+      const now = Date.now();
+      if (now - lastToastTimeRef.current > 1100) {
+        lastToastTimeRef.current = now;
+        const opName = name || (operativeNumber ? `Operative #${operativeNumber}` : 'Audience Operative');
+        const toast = { id: now, text: `${opName} +SURGE ENERGY! ⚡`, type: 'surge' };
+        setAudienceToasts((prev) => [...prev.slice(-2), toast]);
+        setTimeout(() => {
+          setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
+        }, 2200);
+      }
+    };
+
+    const onParticipantJoined = (data) => {
+      const name = data?.name || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
+      const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE SURGE! ⚡`, type: 'join' };
+      setAudienceToasts((prev) => [...prev.slice(-2), toast]);
+      setTimeout(() => {
+        setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 3000);
     };
 
     const onBoostActivated = () => {
       audioEngine.playBoostSurge();
       setBoostAnimating(true);
       setTimeout(() => setBoostAnimating(false), 400);
+      const toast = { id: Date.now(), text: `🔥 SYSTEM BOOST ENGAGED! +25%`, type: 'boost' };
+      setAudienceToasts((prev) => [...prev.slice(-2), toast]);
+      setTimeout(() => {
+        setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 2500);
     };
 
     const onMultiplierUp = ({ multiplier: newMult }) => {
       audioEngine.playMultiplierUp(newMult);
+      const toast = { id: Date.now(), text: `⚡ ${newMult}X SURGE MULTIPLIER ACTIVE!`, type: 'multiplier' };
+      setAudienceToasts((prev) => [...prev.slice(-2), toast]);
+      setTimeout(() => {
+        setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 2500);
     };
 
     socket.on('surge_pulse', onSurgePulse);
+    socket.on('participant_joined', onParticipantJoined);
     socket.on('boost_activated', onBoostActivated);
     socket.on('multiplier_up', onMultiplierUp);
 
     return () => {
       socket.off('surge_pulse', onSurgePulse);
+      socket.off('participant_joined', onParticipantJoined);
       socket.off('boost_activated', onBoostActivated);
       socket.off('multiplier_up', onMultiplierUp);
     };
@@ -541,6 +581,33 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
+          {/* AUDIENCE MOTIVATION / KEEP SHAKING DIRECTIVE CARD */}
+          <div className="hud-panel p-2.5 sm:p-3.5 sci-fi-cut flex flex-col items-center justify-center text-center relative overflow-hidden border-2 border-[#801b2a] shadow-neon-red">
+            {/* Background Ambient Glow */}
+            <div className={`absolute inset-0 bg-gradient-to-b from-[#ff1f43]/25 via-[#ff1f43]/10 to-transparent transition-opacity duration-300 pointer-events-none ${
+              shakeFlash ? 'opacity-100' : 'opacity-40'
+            }`} />
+
+            <span className="text-[10px] sm:text-[11px] font-bold tracking-[0.2em] text-[#ff8095] uppercase block mb-1 z-10">
+              AUDIENCE DIRECTIVE
+            </span>
+
+            {/* Glowing Dynamic Prompt */}
+            <div className={`font-orbitron font-black text-base sm:text-lg md:text-xl tracking-wider uppercase text-glow-red transition-all duration-300 z-10 ${
+              shakeFlash ? 'scale-105 brightness-150 text-white' : 'text-[#ffccd5]'
+            }`}>
+              {status === 'playing' 
+                ? (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES! ⚡')) 
+                : 'READY TO SURGE'}
+            </div>
+
+            <p className="text-[10px] sm:text-[11px] text-[#ff99aa] mt-1 z-10">
+              {status === 'playing'
+                ? 'Everyone shake continuously to surge power to 100%!'
+                : 'Scan QR code with your phone to join'}
+            </p>
+          </div>
+
           {/* REAL-TIME SYSTEM CORE STATUS CARD */}
           <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -565,6 +632,33 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       </main>
 
       {/* ==================================================== */}
+      {/* LIVE AUDIENCE ACTIVITY TOAST OVERLAY FEED            */}
+      {/* ==================================================== */}
+      {audienceToasts.length > 0 && (
+        <div className="fixed top-18 sm:top-20 right-4 sm:right-6 z-50 pointer-events-none flex flex-col gap-2 max-w-xs sm:max-w-sm">
+          {audienceToasts.map((toast) => (
+            <div
+              key={toast.id}
+              className={`px-3.5 py-2 rounded-xl backdrop-blur-md border shadow-neon-red flex items-center gap-2.5 animate-cyber-down ${
+                toast.type === 'join'
+                  ? 'bg-[#25070d]/95 border-[#ff1f43] text-white'
+                  : toast.type === 'boost'
+                  ? 'bg-[#3b0914]/95 border-[#ff9900] text-yellow-300'
+                  : 'bg-[#180307]/95 border-[#ff4d6d]/80 text-[#ffccd5]'
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full bg-[#ff1f43]/25 flex items-center justify-center shrink-0 border border-[#ff1f43]/50">
+                <Zap size={13} className="text-[#ff1f43] animate-bounce" />
+              </div>
+              <span className="font-orbitron font-bold text-[11px] sm:text-xs tracking-wider uppercase">
+                {toast.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ==================================================== */}
       {/* CINEMATIC VOLTAGE-TIERED MOTIVATIONAL OVERLAY        */}
       {/* ==================================================== */}
       {status === 'playing' && overlayMessage && (
@@ -582,7 +676,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             <div className="absolute inset-x-0 h-0.5 bottom-0 bg-gradient-to-r from-transparent via-[#ff1f43] to-transparent shadow-[0_0_20px_#ff1f43]" />
 
             {/* Hi-Tech HUD Framing Box */}
-            <div className="relative z-10 bg-[#160307]/85 backdrop-blur-md px-6 md:px-12 py-4 md:py-6 rounded-2xl border-2 border-[#ff1f43]/70 shadow-[0_0_50px_rgba(255,31,67,0.5)] sci-fi-cut">
+            <div className="relative z-10 bg-[#160307]/90 backdrop-blur-md px-6 md:px-12 py-4 md:py-6 rounded-2xl border-2 border-[#ff1f43]/80 shadow-[0_0_50px_rgba(255,31,67,0.6)] sci-fi-cut">
               <div className="font-orbitron font-black text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-white tracking-widest uppercase text-glow-red drop-shadow-[0_0_25px_#ff1f43]">
                 {overlayMessage.title}
               </div>
