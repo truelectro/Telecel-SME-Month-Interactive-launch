@@ -15,7 +15,7 @@ const EVENT_CONFIG = {
   MAX_CAPACITY: 200,
   ROUND_TIME_SECONDS: 90,
   DECAY_RATE_PER_SEC: 1.8,
-  SHAKE_VOLTAGE_BASE: 0.10,
+  SHAKE_VOLTAGE_BASE: 0.18,
   COMBO_DECAY_TIME_MS: 2000,
   BOOST_AMOUNT: 8.0,
   INITIAL_BOOST_CHARGES: 5,
@@ -218,6 +218,9 @@ class BrowserHostEngine {
   }
 
   handleShakePulse(senderId, intensity = 1.0) {
+    if (!this.gameState.players[senderId]) {
+      this.handlePlayerJoin(senderId, '');
+    }
     const player = this.gameState.players[senderId];
     const now = Date.now();
 

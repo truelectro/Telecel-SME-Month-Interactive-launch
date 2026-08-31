@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Zap, 
   Smartphone, 
   RotateCw, 
   Flame, 
-  Radio, 
   Activity,
-  Users
+  Users,
+  CheckCircle2
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
 
@@ -18,6 +18,7 @@ export default function MobileController({ socket, gameState }) {
   const [shakeIntensity, setShakeIntensity] = useState(0);
   const [isBoosting, setIsBoosting] = useState(false);
   const [touchActive, setTouchActive] = useState(false);
+  const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
 
   const {
     status = 'lobby',
@@ -26,15 +27,14 @@ export default function MobileController({ socket, gameState }) {
     boostCharges = 5,
     timeRemaining = 90,
     connectedCount = 1,
-    maxCapacity = 200,
   } = gameState || {};
 
   const [isConnected, setIsConnected] = useState(!!socket?.connected);
 
-  // Windowed History Buffers for frequency-independent shake detection (120Hz Pixel, 60Hz iPhone)
-  const accelHistoryRef = useRef([]); // array of { x, y, z, mag, time }
-  const orientHistoryRef = useRef([]); // array of { gamma, beta, time }
+  // Buffer references for high-speed motion tracking
+  const accelHistoryRef = useRef([]);
   const lastShakeTimeRef = useRef(0);
+  const lastRawCoordsRef = useRef({ x: 0, y: 0, z: 0, time: 0 });
   const socketRef = useRef(socket);
 
   useEffect(() => {
@@ -49,6 +49,9 @@ export default function MobileController({ socket, gameState }) {
     const onConnect = () => {
       setIsConnected(true);
       socket.emit('join_controller', { playerName: '' });
+      if (sensorActive) {
+        socket.emit('sensor_status', { active: true });
+      }
     };
 
     const onDisconnect = () => {
@@ -73,29 +76,30 @@ export default function MobileController({ socket, gameState }) {
       socket.off('disconnect', onDisconnect);
       socket.off('controller_assigned', onAssigned);
     };
-  }, [socket]);
+  }, [socket, sensorActive]);
 
   // Send Shake Impulse to Server + Haptic Feedback
-  const sendShakeImpulse = (intensity = 1.0) => {
+  const sendShakeImpulse = useCallback((intensity = 1.0) => {
     setShakeCount(c => c + 1);
     setShakeIntensity(intensity);
+    setLastShakeTimestamp(Date.now());
 
     if (navigator.vibrate) {
-      try { navigator.vibrate(35); } catch (e) {}
+      try { navigator.vibrate(30); } catch (e) {}
     }
 
     const s = socketRef.current;
-    if (s && s.connected) {
+    if (s) {
       s.emit('shake_pulse', { intensity });
     }
 
     setTimeout(() => {
       setShakeIntensity(0);
     }, 120);
-  };
+  }, []);
 
-  // LOWER SENSITIVITY Sliding 160ms Window Acceleration Analyzer
-  const onRawAccel = (x, y, z) => {
+  // Motion Analyzer - Handles both Linear Acceleration & Gravity Vector (iOS Safari + Android)
+  const onRawMotion = useCallback((x, y, z) => {
     setSensorActive(true);
     const now = Date.now();
     const curX = x || 0;
@@ -103,11 +107,23 @@ export default function MobileController({ socket, gameState }) {
     const curZ = z || 0;
     const mag = Math.sqrt(curX * curX + curY * curY + curZ * curZ);
 
+    // 1. Check instant delta jerk from previous sample
+    const prev = lastRawCoordsRef.current;
+    const dt = now - prev.time;
+    let instantJerk = 0;
+    if (dt > 0 && dt < 150) {
+      const dx = Math.abs(curX - prev.x);
+      const dy = Math.abs(curY - prev.y);
+      const dz = Math.abs(curZ - prev.z);
+      instantJerk = dx + dy + dz;
+    }
+    lastRawCoordsRef.current = { x: curX, y: curY, z: curZ, time: now };
+
+    // 2. Sliding 200ms Window history
     const history = accelHistoryRef.current;
     history.push({ x: curX, y: curY, z: curZ, mag, time: now });
 
-    // Prune entries older than 160ms
-    while (history.length > 0 && now - history[0].time > 160) {
+    while (history.length > 0 && now - history[0].time > 200) {
       history.shift();
     }
 
@@ -133,56 +149,66 @@ export default function MobileController({ socket, gameState }) {
     const magRange = maxMag - minMag;
     const maxAxisRange = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
 
-    // CALIBRATED LOWER SENSITIVITY:
-    // Requires a firm, energetic shake stroke (magRange > 5.0 or maxAxisRange > 4.6)
-    // Filters out idle jitter and table bumps
-    if ((magRange > 5.0 || maxAxisRange > 4.6) && now - lastShakeTimeRef.current > 130) {
+    // Shake Trigger Criteria: Responsive threshold for iPhone and Android
+    // Detects wrist flicks, vertical pumps, and lateral shakes
+    const isShake = (magRange > 2.4 || maxAxisRange > 2.4 || instantJerk > 3.2);
+
+    if (isShake && now - lastShakeTimeRef.current > 90) {
       lastShakeTimeRef.current = now;
-      const peak = Math.max(magRange, maxAxisRange);
-      const intensity = Math.min(2.0, Math.max(0.8, peak / 4.5));
+      const peak = Math.max(magRange, maxAxisRange, instantJerk);
+      const intensity = Math.min(2.0, Math.max(0.7, peak / 3.8));
       sendShakeImpulse(intensity);
     }
-  };
+  }, [sendShakeImpulse]);
 
-  // Sliding 160ms Window Gyroscope Analyzer (Lower Sensitivity)
-  const onRawOrient = (gamma, beta) => {
-    if (gamma === null || beta === null) return;
+  // Motion event listener dispatcher
+  const handleDeviceMotionEvent = useCallback((e) => {
+    const a = e.acceleration;
+    const ag = e.accelerationIncludingGravity;
+
+    if (a && (a.x !== null || a.y !== null || a.z !== null)) {
+      onRawMotion(a.x || 0, a.y || 0, a.z || 0);
+    } else if (ag && (ag.x !== null || ag.y !== null || ag.z !== null)) {
+      // iPhone Safari returns full acceleration with gravity
+      onRawMotion(ag.x || 0, ag.y || 0, ag.z || 0);
+    }
+  }, [onRawMotion]);
+
+  // Gyroscope orientation listener
+  const handleDeviceOrientationEvent = useCallback((e) => {
+    if (e.gamma === null && e.beta === null) return;
     setSensorActive(true);
-    const now = Date.now();
+  }, []);
 
-    const history = orientHistoryRef.current;
-    history.push({ gamma, beta, time: now });
+  // iOS Safari Permission Unlock
+  const unlockIOSPermissions = async () => {
+    try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        const motionRes = await DeviceMotionEvent.requestPermission();
+        if (motionRes === 'granted') {
+          window.addEventListener('devicemotion', handleDeviceMotionEvent, { passive: true });
+          setNeedsIOSPermission(false);
+          setSensorActive(true);
+          if (socketRef.current) socketRef.current.emit('sensor_status', { active: true });
+        }
+      }
 
-    while (history.length > 0 && now - history[0].time > 160) {
-      history.shift();
-    }
-
-    if (history.length < 2) return;
-
-    let minG = Infinity, maxG = -Infinity;
-    let minB = Infinity, maxB = -Infinity;
-
-    for (let i = 0; i < history.length; i++) {
-      const s = history[i];
-      if (s.gamma < minG) minG = s.gamma;
-      if (s.gamma > maxG) maxG = s.gamma;
-      if (s.beta < minB) minB = s.beta;
-      if (s.beta > maxB) maxB = s.beta;
-    }
-
-    const gRange = maxG - minG;
-    const bRange = maxB - minB;
-
-    // Firm wrist flick / rotation > 12 degrees across 160ms
-    if ((gRange > 12.0 || bRange > 12.0) && now - lastShakeTimeRef.current > 130) {
-      lastShakeTimeRef.current = now;
-      const peak = Math.max(gRange, bRange);
-      const intensity = Math.min(2.0, Math.max(0.8, peak / 14.0));
-      sendShakeImpulse(intensity);
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const orientRes = await DeviceOrientationEvent.requestPermission();
+          if (orientRes === 'granted') {
+            window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
+          }
+        } catch (err) {
+          // Orientation permission is optional if motion is granted
+        }
+      }
+    } catch (e) {
+      console.warn('iOS sensor permission notice:', e);
     }
   };
 
-  // Attach Hardware Listeners
+  // Attach Hardware Listeners on Mount (Android & Standard Web)
   useEffect(() => {
     const isIOS = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
 
@@ -191,97 +217,45 @@ export default function MobileController({ socket, gameState }) {
       return;
     }
 
-    let genericSensor = null;
-
-    const handleMotion = (e) => {
-      const a = e.acceleration;
-      const ag = e.accelerationIncludingGravity;
-      
-      if (a && (a.x !== null || a.y !== null || a.z !== null)) {
-        onRawAccel(a.x || 0, a.y || 0, a.z || 0);
-      } else if (ag && (ag.x !== null || ag.y !== null || ag.z !== null)) {
-        const x = ag.x || 0;
-        const y = ag.y || 0;
-        const z = ag.z || 0;
-        const ax = Math.abs(x), ay = Math.abs(y), az = Math.abs(z);
-        if (az >= ax && az >= ay) {
-          onRawAccel(x, y, z > 0 ? z - 9.8 : z + 9.8);
-        } else if (ay >= ax) {
-          onRawAccel(x, y > 0 ? y - 9.8 : y + 9.8, z);
-        } else {
-          onRawAccel(x > 0 ? x - 9.8 : x + 9.8, y, z);
-        }
-      }
-    };
-
-    const handleOrient = (e) => {
-      onRawOrient(e.gamma, e.beta);
-    };
-
-    window.addEventListener('devicemotion', handleMotion, { passive: true });
-    window.addEventListener('deviceorientation', handleOrient, { passive: true });
-
-    if ('LinearAccelerationSensor' in window) {
-      try {
-        genericSensor = new window.LinearAccelerationSensor({ frequency: 60 });
-        genericSensor.addEventListener('reading', () => {
-          onRawAccel(genericSensor.x, genericSensor.y, genericSensor.z);
-        });
-        genericSensor.start();
-        setSensorActive(true);
-      } catch (err) {}
-    }
-
+    // Android / Standard Browsers
+    window.addEventListener('devicemotion', handleDeviceMotionEvent, { passive: true });
+    window.addEventListener('deviceorientation', handleDeviceOrientationEvent, { passive: true });
     setSensorActive(true);
 
     return () => {
-      window.removeEventListener('devicemotion', handleMotion);
-      window.removeEventListener('deviceorientation', handleOrient);
-      if (genericSensor) {
-        try { genericSensor.stop(); } catch (e) {}
+      window.removeEventListener('devicemotion', handleDeviceMotionEvent);
+      window.removeEventListener('deviceorientation', handleDeviceOrientationEvent);
+    };
+  }, [handleDeviceMotionEvent, handleDeviceOrientationEvent]);
+
+  // Keep connection alive on screen unlock / tab switch
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && socketRef.current) {
+        if (!socketRef.current.connected) {
+          socketRef.current.init();
+        } else {
+          socketRef.current.emit('join_controller', { playerName: '' });
+        }
       }
     };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
-
-  // iOS Permission Unlock
-  const unlockIOSPermissions = async () => {
-    try {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        const motionRes = await DeviceMotionEvent.requestPermission();
-        if (motionRes === 'granted') {
-          window.addEventListener('devicemotion', (e) => {
-            const a = e.acceleration;
-            if (a && (a.x !== null || a.y !== null || a.z !== null)) {
-              onRawAccel(a.x || 0, a.y || 0, a.z || 0);
-            }
-          }, { passive: true });
-        }
-      }
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        const orientRes = await DeviceOrientationEvent.requestPermission();
-        if (orientRes === 'granted') {
-          window.addEventListener('deviceorientation', (e) => {
-            onRawOrient(e.gamma, e.beta);
-          }, { passive: true });
-        }
-      }
-      setNeedsIOSPermission(false);
-      setSensorActive(true);
-      if (socketRef.current) socketRef.current.emit('sensor_status', { active: true });
-    } catch (e) {
-      console.warn('iOS sensor permission denied:', e);
-    }
-  };
 
   // Boost Trigger
   const handleBoost = () => {
+    if (needsIOSPermission) {
+      unlockIOSPermissions();
+    }
+
     if (boostCharges > 0 && status === 'playing') {
       setIsBoosting(true);
       if (navigator.vibrate) {
         try { navigator.vibrate([60, 30, 80, 30, 150]); } catch (e) {}
       }
       const s = socketRef.current;
-      if (s && s.connected) {
+      if (s) {
         s.emit('trigger_boost');
       }
       setTimeout(() => setIsBoosting(false), 500);
@@ -305,7 +279,7 @@ export default function MobileController({ socket, gameState }) {
       {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-[#20060c] via-[#0d0205] to-[#050102]" />
-        <div className={`absolute inset-0 bg-[#ff1f43]/20 transition-opacity duration-150 ${
+        <div className={`absolute inset-0 bg-[#ff1f43]/25 transition-opacity duration-100 ${
           shakeIntensity > 0 || touchActive ? 'opacity-100' : 'opacity-0'
         }`} />
         <div className="absolute inset-0 scanlines opacity-40" />
@@ -342,14 +316,14 @@ export default function MobileController({ socket, gameState }) {
       {needsIOSPermission && (
         <div 
           onClick={unlockIOSPermissions}
-          className="relative z-20 my-2 bg-[#2b0a11] border-2 border-[#ff1f43] p-3.5 rounded-xl shadow-neon-red flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform animate-pulse"
+          className="relative z-20 my-2 bg-gradient-to-r from-[#3b0d18] via-[#591423] to-[#3b0d18] border-2 border-[#ff1f43] p-4 rounded-xl shadow-neon-red flex flex-col items-center text-center cursor-pointer active:scale-95 transition-transform animate-bounce"
         >
-          <Smartphone size={28} className="text-[#ff4d6d] mb-1" />
-          <h3 className="font-orbitron font-bold text-xs text-white uppercase">
-            TAP HERE TO ENABLE MOTION SHAKE
+          <Smartphone size={32} className="text-white mb-1 drop-shadow-[0_0_8px_#ff1f43]" />
+          <h3 className="font-orbitron font-black text-sm text-white uppercase tracking-wider">
+            TAP HERE TO ENABLE MOTION SENSORS ⚡
           </h3>
-          <p className="text-[11px] text-[#ffb3c0] mt-0.5">
-            Required once by iPhone Safari to activate sensors.
+          <p className="text-[11px] text-[#ffccd5] mt-1 font-semibold">
+            Tap once to allow iPhone Safari shake permissions
           </p>
         </div>
       )}
@@ -365,7 +339,9 @@ export default function MobileController({ socket, gameState }) {
 
         <div className="flex items-center gap-1.5 text-gray-300">
           <Activity size={12} className={sensorActive ? 'text-green-400 animate-pulse' : 'text-yellow-500'} />
-          <span>Sensors: {sensorActive ? 'Active ⚡' : 'Listening...'}</span>
+          <span className={sensorActive ? 'text-green-300 font-bold' : 'text-yellow-400'}>
+            {sensorActive ? 'Sensors Active ⚡' : 'Listening...'}
+          </span>
         </div>
       </div>
 
@@ -423,16 +399,16 @@ export default function MobileController({ socket, gameState }) {
               className="relative w-36 h-36 flex items-center justify-center cursor-pointer active:scale-95 transition-transform my-1"
             >
               <div className={`absolute inset-0 rounded-full border-2 border-[#ff1f43] transition-transform duration-150 ${
-                shakeIntensity > 0 || touchActive ? 'scale-110 opacity-100 shadow-[0_0_25px_#ff1f43]' : 'scale-100 opacity-40'
+                shakeIntensity > 0 || touchActive ? 'scale-115 opacity-100 shadow-[0_0_30px_#ff1f43]' : 'scale-100 opacity-40'
               }`} />
               <div className={`absolute inset-3 rounded-full border border-[#ff4d6d]/40 transition-transform duration-100 ${
-                shakeIntensity > 0 || touchActive ? 'scale-105' : 'scale-95'
+                shakeIntensity > 0 || touchActive ? 'scale-110' : 'scale-95'
               }`} />
 
               <div className={`w-24 h-24 rounded-full bg-gradient-to-b from-[#380e16] to-[#1a0408] border-2 border-[#801b2a] flex flex-col items-center justify-center transition-all ${
-                shakeIntensity > 0 || touchActive ? 'scale-105 border-[#ff1f43] shadow-[0_0_20px_#ff1f43]' : ''
+                shakeIntensity > 0 || touchActive ? 'scale-110 border-[#ff1f43] shadow-[0_0_25px_#ff1f43] bg-[#5c1322]' : ''
               }`}>
-                <RotateCw size={24} className={`text-[#ff4d6d] ${shakeIntensity > 0 || touchActive ? 'animate-spin' : ''}`} />
+                <RotateCw size={24} className={`text-[#ff4d6d] ${shakeIntensity > 0 || touchActive ? 'animate-spin text-white' : ''}`} />
                 <span className="font-orbitron font-bold text-xs uppercase text-white tracking-widest mt-1">
                   SHAKE!
                 </span>
@@ -442,10 +418,18 @@ export default function MobileController({ socket, gameState }) {
               </div>
             </div>
 
+            {/* Live Shake Pulse Feedback Banner */}
+            {Date.now() - lastShakeTimestamp < 300 && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-[#ff1f43]/30 border border-[#ff1f43] rounded-full text-[10px] font-orbitron font-bold text-white uppercase tracking-wider animate-pulse">
+                <Zap size={11} className="text-[#ff1f43]" />
+                <span>SURGE CONTRIBUTING! +ENERGY</span>
+              </div>
+            )}
+
             {/* Instructions */}
             <div className="text-center px-4">
               <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
-                Shake your phone firmly!
+                Shake your phone vigorously!
               </p>
               <p className="text-[11px] text-[#ff99aa]">
                 All {connectedCount} connected phones combine power to hit 100%!

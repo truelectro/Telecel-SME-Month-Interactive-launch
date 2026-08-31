@@ -138,7 +138,7 @@ const EVENT_CONFIG = {
   MAX_CAPACITY: 200,
   ROUND_TIME_SECONDS: 90,
   DECAY_RATE_PER_SEC: 1.8,       // Measured decay if crowd slows down
-  SHAKE_VOLTAGE_BASE: 0.10,      // Calibrated lower sensitivity for mass audience
+  SHAKE_VOLTAGE_BASE: 0.18,      // Calibrated sensitivity for crowd audience
   COMBO_DECAY_TIME_MS: 2000,
   BOOST_AMOUNT: 8.0,
   INITIAL_BOOST_CHARGES: 5,
@@ -338,6 +338,19 @@ io.on('connection', (socket) => {
 
   // Physical shake impulse received (calibrated for mass crowd scaling)
   socket.on('shake_pulse', ({ intensity = 1.0 }) => {
+    if (!gameState.players[socket.id]) {
+      participantCounter += 1;
+      gameState.players[socket.id] = {
+        id: socket.id,
+        number: participantCounter,
+        name: `Operative #${participantCounter}`,
+        shakes: 0,
+        lastShakeTime: 0,
+        intensity: 0,
+        sensorActive: true,
+      };
+      gameState.connectedCount = Object.keys(gameState.players).length;
+    }
     const player = gameState.players[socket.id];
     const now = Date.now();
 
