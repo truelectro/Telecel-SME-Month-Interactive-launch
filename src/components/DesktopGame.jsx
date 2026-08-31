@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import { 
@@ -50,32 +50,85 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const MOTIVATIONAL_PROMPTS = [
-    'KEEP SHAKING! ⚡',
-    "DON'T STOP! ⚡",
-    'SURGE THE VOLTAGE! 🔥',
-    'MORE POWER! ⚡',
-    'FASTER! ACCELERATE! 🚀',
-    'ALMOST AT 100%! 💥',
-    'MAXIMUM EFFORT! ⚡',
-    'FEEL THE SURGE! ⚡',
-  ];
+  // Voltage-Tiered Motivational Directives (Tailored to current voltage level)
+  const getVoltageTierMessage = useCallback((v) => {
+    if (v < 25) {
+      const msgs = [
+        { title: "START SHAKING! ⚡", sub: "Generate initial collective power" },
+        { title: "UNLEASH THE ENERGY! 🔥", sub: "Shake phones together to build momentum" },
+        { title: "ALL OPERATIVES ENGAGE! ⚡", sub: "Raise the launch voltage" },
+        { title: "SHAKE TO CHARGE! 🚀", sub: "Every device contributes power" },
+      ];
+      return msgs[Math.floor(Math.random() * msgs.length)];
+    } else if (v < 55) {
+      const msgs = [
+        { title: "KEEP SHAKING! POWER RISING! 🚀", sub: "Steady surge climbing" },
+        { title: "MAINTAIN THE RHYTHM! ⚡", sub: "Multipliers activating across devices" },
+        { title: "HALFWAY THERE! MORE POWER! 🔥", sub: "Collective surge compounding" },
+        { title: "MOMENTUM BUILDING! ⚡", sub: "Voltage passing intermediate threshold" },
+      ];
+      return msgs[Math.floor(Math.random() * msgs.length)];
+    } else if (v < 80) {
+      const msgs = [
+        { title: "OVERCHARGE ACCELERATING! ⚡", sub: "Approaching critical energy capacity" },
+        { title: "FASTER! FEEL THE SURGE! 🚀", sub: "High voltage detected" },
+        { title: "INTENSE POWER DETECTED! 🔥", sub: "Reactor coils charging rapidly" },
+        { title: "SURGE MULTIPLYING! ⚡", sub: "Power grid operating at high intensity" },
+      ];
+      return msgs[Math.floor(Math.random() * msgs.length)];
+    } else {
+      const msgs = [
+        { title: "ALMOST AT 100%! 💥", sub: "Final push to initiate the launch!" },
+        { title: "MAXIMUM OVERDRIVE! ⚡", sub: "Do not stop! Overcharge in progress!" },
+        { title: "CRITICAL ACTIVATION IMMINENT! 🔥", sub: "Push to 100% now!" },
+        { title: "HOLD NOTHING BACK! 💥", sub: "Launch sequence ready to trigger!" },
+      ];
+      return msgs[Math.floor(Math.random() * msgs.length)];
+    }
+  }, []);
 
-  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
-  const [promptPulse, setPromptPulse] = useState(false);
+  const [overlayMessage, setOverlayMessage] = useState(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const [isBooting, setIsBooting] = useState(false);
+  const prevStatusRef = useRef(status);
 
-  // Automatically cycle motivational prompts randomly every 2.4s during active gameplay
+  // Hi-Tech screen element entrance animation trigger when game starts
   useEffect(() => {
-    if (status !== 'playing') return;
-
-    const interval = setInterval(() => {
-      setCurrentPromptIndex((prev) => (prev + Math.floor(Math.random() * (MOTIVATIONAL_PROMPTS.length - 1) + 1)) % MOTIVATIONAL_PROMPTS.length);
-      setPromptPulse(true);
-      setTimeout(() => setPromptPulse(false), 500);
-    }, 2400);
-
-    return () => clearInterval(interval);
+    if (prevStatusRef.current === 'lobby' && status === 'playing') {
+      setIsBooting(true);
+      const timer = setTimeout(() => setIsBooting(false), 1400);
+      return () => clearTimeout(timer);
+    }
+    prevStatusRef.current = status;
   }, [status]);
+
+  // Periodic Voltage-Tiered Motivational Fullscreen Overlay
+  useEffect(() => {
+    if (status !== 'playing') {
+      setOverlayVisible(false);
+      return;
+    }
+
+    const showMessage = () => {
+      const msg = getVoltageTierMessage(voltage);
+      setOverlayMessage(msg);
+      setOverlayVisible(true);
+      setTimeout(() => {
+        setOverlayVisible(false);
+      }, 1900);
+    };
+
+    // Initial popup shortly after game starts
+    const initTimer = setTimeout(showMessage, 900);
+
+    // Periodic popups tailored to current voltage every 4.2s
+    const interval = setInterval(showMessage, 4200);
+
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(interval);
+    };
+  }, [status, voltage, getVoltageTierMessage]);
 
   // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
   const roomCode = serverInfo?.roomCode || 'telecel-launch';
@@ -224,7 +277,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* ==================================================== */}
       {/* 1. TOP HEADER                                       */}
       {/* ==================================================== */}
-      <header className="relative z-20 flex items-center justify-between px-4 py-2">
+      <header className={`relative z-20 flex items-center justify-between px-4 py-2 ${
+        isBooting || status === 'playing' ? 'animate-cyber-down' : ''
+      }`}>
         {/* Left: VOLTAGE SURGE Metallic Red Title */}
         <div className="flex flex-col">
           <div className="flex items-baseline gap-2">
@@ -298,7 +353,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* LEFT COLUMN: Objectives, Score, Best, Multiplier   */}
         {/* -------------------------------------------------- */}
-        <div className="col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-2 md:order-1">
+        <div className={`col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-2 md:order-1 ${
+          isBooting || status === 'playing' ? 'animate-cyber-left' : ''
+        }`}>
           {/* OBJECTIVE CARD */}
           <div className="hud-panel p-3.5 sci-fi-cut">
             <span className="text-[11px] font-bold tracking-widest text-[#ff4d6d] uppercase block mb-1">
@@ -349,7 +406,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         {/* -------------------------------------------------- */}
         {/* CENTER COLUMN: Central High-Voltage Reactor Core   */}
         {/* -------------------------------------------------- */}
-        <div className="col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-1">
+        <div className={`col-span-12 md:col-span-6 flex flex-col items-center justify-center relative order-1 md:order-2 h-full py-1 ${
+          isBooting || status === 'playing' ? 'animate-cyber-core' : ''
+        }`}>
           
           {/* Main Heavy Reactor Assembly (Larger & Taller) */}
           <div className="relative w-full max-w-[460px] md:max-w-[500px] lg:max-w-[540px] h-[540px] md:h-[640px] lg:h-[720px] max-h-[82vh] flex items-center justify-center">
@@ -429,9 +488,11 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         </div>
 
         {/* -------------------------------------------------- */}
-        {/* RIGHT COLUMN: How to Play Cards & BOOST Button     */}
+        {/* RIGHT COLUMN: How to Play Cards & Status           */}
         {/* -------------------------------------------------- */}
-        <div className="col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-3">
+        <div className={`col-span-12 md:col-span-3 flex flex-col gap-3 md:gap-4 order-3 ${
+          isBooting || status === 'playing' ? 'animate-cyber-right' : ''
+        }`}>
           
           {/* HOW TO PLAY CARDS */}
           <div className="hud-panel p-4 sci-fi-cut flex flex-col gap-3">
@@ -473,31 +534,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
           </div>
 
-          {/* AUDIENCE MOTIVATION / KEEP SHAKING DIRECTIVE CARD */}
-          <div className="hud-panel p-5 sci-fi-cut flex flex-col items-center justify-center text-center relative overflow-hidden border-2 border-[#801b2a] shadow-neon-red min-h-[140px]">
-            {/* Background Ambient Glow */}
-            <div className={`absolute inset-0 bg-gradient-to-b from-[#ff1f43]/25 via-[#ff1f43]/10 to-transparent transition-opacity duration-300 pointer-events-none ${
-              promptPulse || shakeFlash ? 'opacity-100' : 'opacity-40'
-            }`} />
-
-            <span className="text-[11px] font-bold tracking-[0.25em] text-[#ff8095] uppercase block mb-1.5 z-10">
-              AUDIENCE DIRECTIVE
-            </span>
-
-            {/* Glowing Dynamic Prompt */}
-            <div className={`font-orbitron font-black text-2xl md:text-3xl tracking-wider uppercase text-glow-red transition-all duration-300 z-10 ${
-              promptPulse || shakeFlash ? 'scale-110 brightness-150 text-white' : 'text-[#ffccd5]'
-            }`}>
-              {status === 'playing' ? MOTIVATIONAL_PROMPTS[currentPromptIndex] : 'READY TO SURGE'}
-            </div>
-
-            <p className="text-xs text-[#ff99aa] mt-2 z-10">
-              {status === 'playing'
-                ? 'Everyone shake continuously to surge power to 100%!'
-                : 'Scan QR code with your phone to join'}
-            </p>
-          </div>
-
           {/* REAL-TIME SYSTEM CORE STATUS CARD */}
           <div className="hud-panel p-3.5 sci-fi-cut flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -520,6 +556,38 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         </div>
 
       </main>
+
+      {/* ==================================================== */}
+      {/* CINEMATIC VOLTAGE-TIERED MOTIVATIONAL OVERLAY        */}
+      {/* ==================================================== */}
+      {status === 'playing' && overlayMessage && (
+        <div 
+          className={`fixed inset-0 z-40 pointer-events-none flex items-center justify-center transition-all duration-700 ${
+            overlayVisible 
+              ? 'opacity-100 scale-100 blur-0' 
+              : 'opacity-0 scale-90 blur-sm'
+          }`}
+        >
+          <div className="relative max-w-4xl mx-4 px-6 py-4 flex flex-col items-center justify-center text-center">
+            {/* Ambient Radial Energy Core */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#ff1f43]/25 to-transparent blur-2xl rounded-full" />
+            <div className="absolute inset-x-0 h-0.5 top-0 bg-gradient-to-r from-transparent via-[#ff1f43] to-transparent shadow-[0_0_20px_#ff1f43]" />
+            <div className="absolute inset-x-0 h-0.5 bottom-0 bg-gradient-to-r from-transparent via-[#ff1f43] to-transparent shadow-[0_0_20px_#ff1f43]" />
+
+            {/* Hi-Tech HUD Framing Box */}
+            <div className="relative z-10 bg-[#160307]/85 backdrop-blur-md px-8 md:px-12 py-5 md:py-6 rounded-2xl border-2 border-[#ff1f43]/70 shadow-[0_0_50px_rgba(255,31,67,0.5)] sci-fi-cut">
+              <div className="font-orbitron font-black text-3xl md:text-5xl lg:text-6xl text-white tracking-widest uppercase text-glow-red drop-shadow-[0_0_25px_#ff1f43]">
+                {overlayMessage.title}
+              </div>
+              {overlayMessage.sub && (
+                <p className="font-rajdhani font-bold text-sm md:text-xl text-[#ffccd5] tracking-[0.25em] uppercase mt-2 drop-shadow-[0_0_8px_#ff1f43]">
+                  {overlayMessage.sub}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ==================================================== */}
       {/* 3. LOBBY & PAIRING QR CODE MODAL OVERLAY             */}
