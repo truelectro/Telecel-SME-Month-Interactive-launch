@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 /**
  * Pure Fullscreen Video Player for Stage Presentation
- * Zero UI elements - 100% full-screen video playback with bulletproof auto-play and graceful fallbacks
+ * Zero UI elements - 100% full-screen video playback with persistent audio volume across auto-play & manual skips
  */
 export default function StageVideoPlayer({
   currentVideoIndex = 1,
@@ -16,86 +16,133 @@ export default function StageVideoPlayer({
   const videoRef = useRef(null);
   const retryCountRef = useRef(0);
   const activeVideo = currentVideoIndex === 1 ? video1 : video2;
-  const [videoUrl, setVideoUrl] = useState(activeVideo?.url);
+  const currentUrlRef = useRef(activeVideo?.url);
 
-  // Sync active video URL
-  useEffect(() => {
-    retryCountRef.current = 0;
-    setVideoUrl(activeVideo?.url);
-  }, [currentVideoIndex, activeVideo?.url]);
-
-  // Robust play function with unmuted -> muted fallback for all browser policies
-  const attemptPlay = () => {
+  // Play unmuted with 100% volume
+  const playVideoUnmuted = useCallback((srcUrl) => {
     const video = videoRef.current;
     if (!video) return;
 
-    video.currentTime = 0;
-    video.load();
-
-    // First attempt: unmuted playback
+    // Preserve persistent unmuted state
     video.muted = false;
-    const playPromise = video.play();
+    video.volume = 1.0;
+    video.defaultMuted = false;
 
-    if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        console.warn('Unmuted autoplay blocked by browser policy, attempting muted start:', err);
-        // Fallback: start muted so video NEVER fails to appear
-        if (videoRef.current) {
-          videoRef.current.muted = true;
-          videoRef.current.play().catch((e) => {
-            console.error('Playback error:', e);
-          });
-        }
-      });
+    if (srcUrl && video.src !== srcUrl) {
+      video.src = srcUrl;
     }
-  };
 
+    video.currentTime = 0;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          // Double-check volume after playback begins
+          if (videoRef.current) {
+            videoRef.current.muted = false;
+            videoRef.current.volume = 1.0;
+          }
+        })
+        .catch((err) => {
+          console.warn('Initial unmuted play blocked, attempting fallback:', err);
+          // If strictly blocked before user interaction, start muted and unmute immediately on interaction
+          if (videoRef.current) {
+            videoRef.current.muted = true;
+            videoRef.current.play().then(() => {
+              // Try unmuting immediately
+              setTimeout(() => {
+                if (videoRef.current) {
+                  videoRef.current.muted = false;
+                  videoRef.current.volume = 1.0;
+                }
+              }, 100);
+            }).catch((e) => {
+              console.error('Playback error:', e);
+            });
+          }
+        });
+    }
+  }, []);
+
+  // Update and play when video index or URL changes
   useEffect(() => {
-    attemptPlay();
+    retryCountRef.current = 0;
+    currentUrlRef.current = activeVideo?.url;
 
-    // Unmute as soon as any click or keypress occurs
-    const handleUnmuteGesture = () => {
-      if (videoRef.current && videoRef.current.muted) {
-        videoRef.current.muted = false;
+    if (activeVideo?.url) {
+      playVideoUnmuted(activeVideo.url);
+    }
+  }, [currentVideoIndex, activeVideo?.url, playVideoUnmuted]);
+
+  // Unmute on ANY user interaction anywhere on the window
+  useEffect(() => {
+    const handleGlobalUserGesture = () => {
+      const video = videoRef.current;
+      if (video) {
+        video.muted = false;
+        video.volume = 1.0;
+        if (video.paused) {
+          video.play().catch(() => {});
+        }
       }
     };
 
-    window.addEventListener('click', handleUnmuteGesture, { passive: true });
-    window.addEventListener('keydown', handleUnmuteGesture, { passive: true });
-    window.addEventListener('touchstart', handleUnmuteGesture, { passive: true });
+    window.addEventListener('click', handleGlobalUserGesture, { passive: true });
+    window.addEventListener('keydown', handleGlobalUserGesture, { passive: true });
+    window.addEventListener('touchstart', handleGlobalUserGesture, { passive: true });
+    window.addEventListener('pointerdown', handleGlobalUserGesture, { passive: true });
 
     return () => {
-      window.removeEventListener('click', handleUnmuteGesture);
-      window.removeEventListener('keydown', handleUnmuteGesture);
-      window.removeEventListener('touchstart', handleUnmuteGesture);
+      window.removeEventListener('click', handleGlobalUserGesture);
+      window.removeEventListener('keydown', handleGlobalUserGesture);
+      window.removeEventListener('touchstart', handleGlobalUserGesture);
+      window.removeEventListener('pointerdown', handleGlobalUserGesture);
     };
-  }, [currentVideoIndex, videoUrl]);
+  }, []);
 
   // Invisible keyboard controls for stage technicians
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+      const video = videoRef.current;
+      if (video) {
+        // Any technician keypress ensures sound is unmuted
+        video.muted = false;
+        video.volume = 1.0;
+      }
+
       if (e.code === 'Space' || e.code === 'KeyK') {
         e.preventDefault();
-        if (videoRef.current) {
-          if (videoRef.current.paused) {
-            videoRef.current.muted = false;
-            videoRef.current.play().catch(() => {});
+        if (video) {
+          if (video.paused) {
+            video.muted = false;
+            video.volume = 1.0;
+            video.play().catch(() => {});
           } else {
-            videoRef.current.pause();
+            video.pause();
           }
         }
       } else if (e.code === 'KeyN' || e.code === 'ArrowRight' || e.code === 'BracketRight') {
         e.preventDefault();
+        if (video) {
+          video.muted = false;
+          video.volume = 1.0;
+        }
         onAdvanceToNext?.();
       } else if (e.code === 'KeyP' || e.code === 'ArrowLeft' || e.code === 'BracketLeft') {
         e.preventDefault();
+        if (video) {
+          video.muted = false;
+          video.volume = 1.0;
+        }
         onBackToPrev?.();
       } else if (e.code === 'KeyM') {
         e.preventDefault();
-        if (videoRef.current) {
-          videoRef.current.muted = !videoRef.current.muted;
+        if (video) {
+          video.muted = !video.muted;
+          if (!video.muted) video.volume = 1.0;
         }
       } else if (e.code === 'Escape' || e.code === 'KeyS') {
         e.preventDefault();
@@ -107,16 +154,16 @@ export default function StageVideoPlayer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onAdvanceToNext, onBackToPrev, onSkipAll]);
 
-  // Click on screen to play/pause or unmute
+  // Click on screen to toggle play/pause or unmute
   const handleClick = () => {
-    if (videoRef.current) {
-      if (videoRef.current.muted) {
-        videoRef.current.muted = false;
-      }
-      if (videoRef.current.paused) {
-        videoRef.current.play().catch(() => {});
+    const video = videoRef.current;
+    if (video) {
+      video.muted = false;
+      video.volume = 1.0;
+      if (video.paused) {
+        video.play().catch(() => {});
       } else {
-        videoRef.current.pause();
+        video.pause();
       }
     }
   };
@@ -127,7 +174,9 @@ export default function StageVideoPlayer({
       retryCountRef.current += 1;
       console.log(`Retrying video playback (${retryCountRef.current}/2)...`);
       setTimeout(() => {
-        attemptPlay();
+        if (activeVideo?.url) {
+          playVideoUnmuted(activeVideo.url);
+        }
       }, 500);
     } else {
       console.warn('Video failed after retries, advancing to next stage...');
@@ -142,10 +191,10 @@ export default function StageVideoPlayer({
       onClick={handleClick}
       className="fixed inset-0 z-[90] w-screen h-screen bg-black overflow-hidden flex items-center justify-center p-0 m-0 select-none animate-fade-in cursor-none"
     >
+      {/* Single persistent video element to preserve browser unmuted activation state */}
       <video
         ref={videoRef}
-        key={videoUrl}
-        src={videoUrl}
+        src={activeVideo?.url}
         autoPlay
         playsInline
         webkit-playsinline="true"
@@ -155,9 +204,7 @@ export default function StageVideoPlayer({
           onVideoEnded?.(currentVideoIndex);
         }}
         onError={handleVideoError}
-      >
-        <source src={videoUrl} type="video/mp4" />
-      </video>
+      />
     </div>
   );
 }
