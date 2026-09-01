@@ -280,11 +280,12 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       const opName = name || playerName || (operativeNumber ? `Operative #${operativeNumber}` : 'Audience Operative');
       const now = Date.now();
 
-      // Ensure operative is in roster list
+      // Ensure operative is in roster list if not already present
       if (opName && !opName.startsWith('Audience Operative')) {
         setJoinedOperatives((prev) => {
-          if (prev.some((p) => p.name === opName)) return prev;
-          return [...prev, { id: `${now}-${Math.random()}`, name: opName, time: now }];
+          if (operativeNumber && prev.some((p) => p.number === operativeNumber)) return prev;
+          if (prev.length >= 100) return prev;
+          return [...prev, { id: `${now}-${Math.random()}`, name: opName, number: operativeNumber, time: now }];
         });
       }
 
@@ -313,11 +314,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     const onParticipantJoined = (data) => {
       const name = data?.name || data?.playerName || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
+      const operativeNumber = data?.operativeNumber;
+      const uniqueId = operativeNumber ? `op-${operativeNumber}-${Date.now()}` : `${Date.now()}-${Math.random()}`;
+
+      // Allow multiple attendees with identical names to each join and appear individually
       setJoinedOperatives((prev) => {
-        if (prev.some((p) => p.name === name)) return prev;
-        return [...prev, { id: `${Date.now()}-${Math.random()}`, name, time: Date.now() }];
+        if (operativeNumber && prev.some((p) => p.number === operativeNumber)) return prev;
+        return [...prev, { id: uniqueId, name, number: operativeNumber, time: Date.now() }];
       });
-      setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
+      setRecentOperativeNames((prev) => [name, ...prev].slice(0, 10));
       const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE ROSTER`, type: 'join' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
