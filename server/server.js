@@ -163,9 +163,9 @@ app.get('*', (req, res) => {
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '3.2'),       // Smooth, balanced decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.65'),     // Strong responsive per-shake power
-  COMBO_DECAY_TIME_MS: 650,
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.5'),       // Hardened high-energy decay
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.45'),     // Hardened per-shake power
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -218,11 +218,11 @@ setInterval(() => {
   const totalOperatives = Object.keys(gameState.players).length;
   gameState.connectedCount = totalOperatives;
 
-  // Real-time active vs idle participant tracking (window: 2500ms)
+  // Real-time active vs idle participant tracking (window: 1800ms)
   let activeShakers = 0;
   for (const id in gameState.players) {
     const p = gameState.players[id];
-    if (p.lastShakeTime && (now - p.lastShakeTime < 2500)) {
+    if (p.lastShakeTime && (now - p.lastShakeTime < 1800)) {
       activeShakers += 1;
     }
   }
@@ -230,25 +230,26 @@ setInterval(() => {
   const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 650ms)
+    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 400ms)
     const timeSinceShake = now - gameState.lastActiveShakeTime;
     let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
     
     if (gameState.voltage > 85) {
-      currentDecay *= 1.6; // High-voltage climax drain
+      currentDecay *= 2.0; // Climax tension drain (9.0%/s)
     } else if (gameState.voltage > 70) {
-      currentDecay *= 1.3;
+      currentDecay *= 1.5;
     } else if (gameState.voltage > 45) {
-      currentDecay *= 1.15;
+      currentDecay *= 1.25;
     }
 
-    // IDLE PARTICIPANT RESISTANCE PENALTY (Active only with 3+ attendees):
-    if (totalOperatives >= 3 && idleCount > 0) {
-      const idlePenalty = 1.0 + ((1.0 - activeRatio) * 0.5); // Gentle +50% max penalty
+    // IDLE PARTICIPANT RESISTANCE PENALTY:
+    // When attendees stop shaking, their idle devices create a parasitic circuit load
+    if (totalOperatives >= 2 && idleCount > 0) {
+      const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.2); // Up to +120% faster decay
       currentDecay *= idlePenalty;
     }
 
-    if (timeSinceShake > 650) {
+    if (timeSinceShake > 400) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
@@ -442,27 +443,27 @@ io.on('connection', (socket) => {
         const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
         let resistanceFactor = 1.0;
         if (currentVolt > 85) {
-          resistanceFactor = 0.40; // 40% throughput
+          resistanceFactor = 0.25; // 25% throughput (climax wall)
         } else if (currentVolt > 65) {
-          resistanceFactor = 0.60; // 60% throughput
+          resistanceFactor = 0.45; // 45% throughput
         } else if (currentVolt > 40) {
-          resistanceFactor = 0.80; // 80% throughput
+          resistanceFactor = 0.65; // 65% throughput
         }
 
-        // Generation Efficiency Drag from Inactive Phones (applies with 3+ players)
+        // Generation Efficiency Drag from Inactive Phones (applies with 2+ players)
         let participationFactor = 1.0;
-        if (totalPlayers >= 3) {
+        if (totalPlayers >= 2) {
           let activeNow = 0;
           for (const pid in gameState.players) {
-            if (gameState.players[pid].lastShakeTime && (now - gameState.players[pid].lastShakeTime < 2500)) {
+            if (gameState.players[pid].lastShakeTime && (now - gameState.players[pid].lastShakeTime < 1800)) {
               activeNow += 1;
             }
           }
-          const ratio = Math.max(0.4, activeNow / totalPlayers);
-          participationFactor = Math.pow(ratio, 0.4);
+          const ratio = Math.max(0.3, activeNow / totalPlayers);
+          participationFactor = Math.pow(ratio, 0.45);
         }
 
-        const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(totalPlayers, 0.78);
+        const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(totalPlayers, 0.82);
         const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
         
         gameState.voltage = Math.min(100, gameState.voltage + voltageGain);

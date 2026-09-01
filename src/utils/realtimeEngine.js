@@ -27,9 +27,9 @@ const ICE_SERVERS = [
 const EVENT_CONFIG = {
   MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 3.2,       // Smooth, balanced decay
-  SHAKE_VOLTAGE_BASE: 0.65,     // Strong responsive per-shake power
-  COMBO_DECAY_TIME_MS: 650,
+  DECAY_RATE_PER_SEC: 4.5,       // Hardened high-energy decay
+  SHAKE_VOLTAGE_BASE: 0.45,     // Hardened per-shake power
+  COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
 };
@@ -93,11 +93,11 @@ class BrowserHostEngine {
       const totalOperatives = Object.keys(this.gameState.players).length;
       this.gameState.connectedCount = totalOperatives;
 
-      // Real-time active vs idle participant tracking (window: 2500ms)
+      // Real-time active vs idle participant tracking (window: 1800ms)
       let activeShakers = 0;
       for (const id in this.gameState.players) {
         const p = this.gameState.players[id];
-        if (p.lastShakeTime && (now - p.lastShakeTime < 2500)) {
+        if (p.lastShakeTime && (now - p.lastShakeTime < 1800)) {
           activeShakers += 1;
         }
       }
@@ -110,20 +110,20 @@ class BrowserHostEngine {
         let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
 
         if (this.gameState.voltage > 85) {
-          currentDecay *= 1.6; // High-voltage climax drain
+          currentDecay *= 2.0; // Climax tension drain (9.0%/s)
         } else if (this.gameState.voltage > 70) {
-          currentDecay *= 1.3;
+          currentDecay *= 1.5;
         } else if (this.gameState.voltage > 45) {
-          currentDecay *= 1.15;
+          currentDecay *= 1.25;
         }
 
-        // IDLE PARTICIPANT RESISTANCE PENALTY (Active with 3+ attendees):
-        if (totalOperatives >= 3 && idleCount > 0) {
-          const idlePenalty = 1.0 + ((1.0 - activeRatio) * 0.5);
+        // IDLE PARTICIPANT RESISTANCE PENALTY:
+        if (totalOperatives >= 2 && idleCount > 0) {
+          const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.2);
           currentDecay *= idlePenalty;
         }
 
-        if (timeSinceShake > 650) {
+        if (timeSinceShake > 400) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
@@ -361,27 +361,27 @@ class BrowserHostEngine {
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
       let resistanceFactor = 1.0;
       if (currentVolt > 85) {
-        resistanceFactor = 0.40; // 40% throughput
+        resistanceFactor = 0.25; // 25% throughput (climax wall)
       } else if (currentVolt > 65) {
-        resistanceFactor = 0.60; // 60% throughput
+        resistanceFactor = 0.45; // 45% throughput
       } else if (currentVolt > 40) {
-        resistanceFactor = 0.80; // 80% throughput
+        resistanceFactor = 0.65; // 65% throughput
       }
 
-      // Generation Efficiency Drag from Inactive Phones (applies with 3+ players)
+      // Generation Efficiency Drag from Inactive Phones (applies with 2+ players)
       let participationFactor = 1.0;
-      if (totalPlayers >= 3) {
+      if (totalPlayers >= 2) {
         let activeNow = 0;
         for (const pid in this.gameState.players) {
-          if (this.gameState.players[pid].lastShakeTime && (now - this.gameState.players[pid].lastShakeTime < 2500)) {
+          if (this.gameState.players[pid].lastShakeTime && (now - this.gameState.players[pid].lastShakeTime < 1800)) {
             activeNow += 1;
           }
         }
-        const ratio = Math.max(0.4, activeNow / totalPlayers);
-        participationFactor = Math.pow(ratio, 0.4);
+        const ratio = Math.max(0.3, activeNow / totalPlayers);
+        participationFactor = Math.pow(ratio, 0.45);
       }
 
-      const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(totalPlayers, 0.78);
+      const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(totalPlayers, 0.82);
       const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 
