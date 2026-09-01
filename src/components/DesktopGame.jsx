@@ -16,11 +16,18 @@ import {
   QrCode,
   Play,
   Radio,
-  Flame
+  Flame,
+  Video,
+  Settings,
+  Sparkles,
+  Film
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
 import LaunchLogo from './LaunchLogo';
+import StageVideoPlayer from './StageVideoPlayer';
+import VideoSettingsModal from './VideoSettingsModal';
 import { audioEngine } from '../utils/audioEngine';
+import { getVideoConfig } from '../utils/videoService';
 
 const SIMULATED_NAMES = [
   'Kwame Mensah', 'Ama Serwaa', 'Kofi Boateng', 'Akua Osei', 'Yaw Appiah',
@@ -32,6 +39,9 @@ const SIMULATED_NAMES = [
 export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [isMuted, setIsMuted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showVideoSettings, setShowVideoSettings] = useState(false);
+  const [videoConfig, setVideoConfig] = useState(getVideoConfig);
+  const [victoryPhase, setVictoryPhase] = useState('confetti'); // 'confetti' | 'video1' | 'video2' | 'outro'
   const [boostAnimating, setBoostAnimating] = useState(false);
   const [shakeFlash, setShakeFlash] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
@@ -183,14 +193,29 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   // On Vercel / HTTPS or when tunnel is active or when LAN IP is resolved, QR code is immediately ready
   const tunnelReady = isHttps || !!serverInfo?.tunnelUrl || !!serverInfo?.lanIp;
 
-  // Trigger sound engine updates on voltage changes
+  // Listen for real-time video configuration updates
   useEffect(() => {
-    audioEngine.updateVoltageHum(voltage, status === 'playing');
-  }, [voltage, status]);
+    const handleConfigUpdated = () => {
+      setVideoConfig(getVideoConfig());
+    };
+    window.addEventListener('video_config_updated', handleConfigUpdated);
+    return () => window.removeEventListener('video_config_updated', handleConfigUpdated);
+  }, []);
 
-  // Handle victory audio & spectacular celebratory confetti explosion
+  // Trigger sound engine updates on voltage changes (Muted during video playback)
+  useEffect(() => {
+    const isVideoPlaying = status === 'victory' && (victoryPhase === 'video1' || victoryPhase === 'video2');
+    if (isVideoPlaying) {
+      audioEngine.stopDramaticTrack();
+    } else {
+      audioEngine.updateVoltageHum(voltage, status === 'playing');
+    }
+  }, [voltage, status, victoryPhase]);
+
+  // Handle victory audio, spectacular celebratory confetti explosion, and 2-video sequential finale
   useEffect(() => {
     if (status === 'victory') {
+      setVictoryPhase('confetti');
       audioEngine.playVictory();
 
       // Multi-stage celebratory confetti explosion
@@ -253,11 +278,22 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         } catch (e) {}
       }, 250);
 
-      return () => clearInterval(interval);
+      // 3. Immediately after confetti finishes (5.5s), auto-transition to Video 1
+      const videoTransitionTimer = setTimeout(() => {
+        setVictoryPhase('video1');
+        if (socket) socket.emit('set_victory_phase', { phase: 'video1' });
+      }, duration);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(videoTransitionTimer);
+      };
     } else if (status === 'gameover') {
       audioEngine.playGameOver();
+    } else if (status === 'lobby') {
+      setVictoryPhase('confetti');
     }
-  }, [status]);
+  }, [status, socket]);
 
   // Listen for socket sound effect events and audience interactive toasts
   useEffect(() => {
@@ -394,7 +430,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     const onGameReset = () => {
       setCountdownValue(null);
+      setVictoryPhase('confetti');
       audioEngine.resetAudio();
+    };
+
+    const onVictoryPhaseChanged = ({ phase }) => {
+      if (phase) {
+        setVictoryPhase(phase);
+      }
     };
 
     socket.on('surge_pulse', onSurgePulse);
@@ -406,6 +449,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     socket.on('countdown_tick', onCountdownTick);
     socket.on('game_started', onGameStarted);
     socket.on('game_reset', onGameReset);
+    socket.on('victory_phase_changed', onVictoryPhaseChanged);
 
     return () => {
       socket.off('surge_pulse', onSurgePulse);
@@ -417,6 +461,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       socket.off('countdown_tick', onCountdownTick);
       socket.off('game_started', onGameStarted);
       socket.off('game_reset', onGameReset);
+      socket.off('victory_phase_changed', onVictoryPhaseChanged);
     };
   }, [socket]);
 
@@ -538,8 +583,31 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [socket, status, difficulty]);
 
+  // Auto-enter Fullscreen on first user interaction right from the lobby
+  useEffect(() => {
+    const handleFirstInteraction = () => {
+      audioEngine.ensureRunning();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', handleFirstInteraction, { passive: true });
+    window.addEventListener('keydown', handleFirstInteraction, { passive: true });
+    window.addEventListener('touchstart', handleFirstInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+  }, []);
+
   const handleSelectDifficulty = (level) => {
     audioEngine.ensureRunning();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
     try { audioEngine.playCountdownBeep(2); } catch (e) {}
     if (socket) {
       socket.emit('set_difficulty', { difficulty: level });
@@ -548,6 +616,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
   const handleStartGame = () => {
     audioEngine.ensureRunning();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
     if (socket) socket.emit('start_game');
   };
 
@@ -637,6 +708,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
             {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+
+          {/* Video / AV Settings */}
+          <button
+            onClick={() => setShowVideoSettings(true)}
+            title="AV & Supabase Video Settings"
+            aria-label="Video Settings"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+          >
+            <Video size={16} />
           </button>
 
           {/* Help Button */}
@@ -1132,7 +1213,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       {/* 3. FULL-SCREEN IMMERSIVE LOBBY & PAIRING SCREEN     */}
       {/* ==================================================== */}
       {status === 'lobby' && (
-        <div className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#070204] flex flex-col justify-between p-3 sm:p-4 md:p-5 overflow-hidden select-none animate-fade-in font-rajdhani">
+        <div 
+          onClick={() => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            }
+          }}
+          className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#070204] flex flex-col justify-between p-3 sm:p-4 md:p-5 overflow-hidden select-none animate-fade-in font-rajdhani"
+        >
           
           {/* Ambient Background Radial Glows & Grid Atmospherics */}
           <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
@@ -1415,58 +1503,141 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       )}
 
       {/* ==================================================== */}
-      {/* 4. FULL-SCREEN IMMERSIVE LAUNCH REVEAL              */}
+      {/* 4. FULL-SCREEN IMMERSIVE LAUNCH REVEAL & 2-VIDEO FINALE */}
       {/* ==================================================== */}
       {status === 'victory' && (
-        <div 
-          className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#100204] flex flex-col items-center justify-between p-2.5 sm:p-4 md:p-6 overflow-hidden select-none animate-fade-in"
-        >
-          {/* Fullscreen Seamless Radial Red Background Field (Edge-to-Edge) */}
-          <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-            {/* Deep Rich Radial Red Gradient spanning the entire display */}
-            <div 
-              className="absolute inset-0 w-full h-full"
-              style={{
-                background: 'radial-gradient(ellipse 130% 95% at 50% 50%, #7a1222 0%, #460914 45%, #220409 75%, #0f0103 100%)'
-              }}
-            />
-            {/* Ambient Animated Red Energy Shockwaves */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160vw] h-[160vh] rounded-full bg-[#ff1f43]/15 blur-[100px] animate-pulse" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vh] rounded-full bg-[#ff4d6d]/20 blur-[80px]" />
-            <div className="absolute inset-0 scanlines opacity-15" />
-          </div>
-
-          {/* Fullscreen Outer Sci-Fi Border */}
-          <div className="absolute inset-1.5 sm:inset-3 md:inset-4 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
-            <div className="absolute top-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-            <div className="absolute bottom-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
-          </div>
-
-          {/* Top Welcome Badge */}
-          <div className="relative z-20 mt-1 sm:mt-2 shrink-0">
-            <div className="inline-flex items-center px-6 sm:px-8 py-1.5 sm:py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.8)] backdrop-blur-md">
-              <span className="font-orbitron font-black text-xs md:text-sm tracking-[0.35em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
-                WELCOME TO
-              </span>
+        victoryPhase === 'video1' || victoryPhase === 'video2' ? (
+          <StageVideoPlayer
+            currentVideoIndex={victoryPhase === 'video1' ? 1 : 2}
+            video1={videoConfig.video1}
+            video2={videoConfig.video2}
+            onVideoEnded={(endedIdx) => {
+              if (endedIdx === 1) {
+                setVictoryPhase('video2');
+                if (socket) socket.emit('set_victory_phase', { phase: 'video2' });
+              } else {
+                setVictoryPhase('outro');
+                if (socket) socket.emit('set_victory_phase', { phase: 'outro' });
+              }
+            }}
+            onAdvanceToNext={() => {
+              if (victoryPhase === 'video1') {
+                setVictoryPhase('video2');
+                if (socket) socket.emit('set_victory_phase', { phase: 'video2' });
+              } else {
+                setVictoryPhase('outro');
+                if (socket) socket.emit('set_victory_phase', { phase: 'outro' });
+              }
+            }}
+            onBackToPrev={() => {
+              if (victoryPhase === 'video2') {
+                setVictoryPhase('video1');
+                if (socket) socket.emit('set_victory_phase', { phase: 'video1' });
+              }
+            }}
+            onSkipAll={() => {
+              setVictoryPhase('outro');
+              if (socket) socket.emit('set_victory_phase', { phase: 'outro' });
+            }}
+            onReplayCurrent={() => {}}
+          />
+        ) : (
+          <div 
+            className="fixed inset-0 z-50 w-screen h-screen max-h-screen bg-[#100204] flex flex-col items-center justify-between p-2.5 sm:p-4 md:p-6 overflow-hidden select-none animate-fade-in"
+          >
+            {/* Fullscreen Seamless Radial Red Background Field (Edge-to-Edge) */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+              {/* Deep Rich Radial Red Gradient spanning the entire display */}
+              <div 
+                className="absolute inset-0 w-full h-full"
+                style={{
+                  background: 'radial-gradient(ellipse 130% 95% at 50% 50%, #7a1222 0%, #460914 45%, #220409 75%, #0f0103 100%)'
+                }}
+              />
+              {/* Ambient Animated Red Energy Shockwaves */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160vw] h-[160vh] rounded-full bg-[#ff1f43]/15 blur-[100px] animate-pulse" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[90vh] rounded-full bg-[#ff4d6d]/20 blur-[80px]" />
+              <div className="absolute inset-0 scanlines opacity-15" />
             </div>
-          </div>
 
-          {/* Center: Hero Animated Launch Logo (Edge-to-Edge Stage Flow) */}
-          <div className="relative z-20 flex-1 min-h-0 flex items-center justify-center w-full px-4 my-auto">
-            <LaunchLogo className="w-full h-auto max-w-[520px] sm:max-w-[640px] md:max-w-[760px] lg:max-w-[840px] max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] object-contain" animate={true} />
-          </div>
+            {/* Fullscreen Outer Sci-Fi Border */}
+            <div className="absolute inset-1.5 sm:inset-3 md:inset-4 border-2 border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut shadow-[0_0_40px_rgba(255,31,67,0.25)]">
+              <div className="absolute top-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+              <div className="absolute top-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+              <div className="absolute bottom-2 left-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+              <div className="absolute bottom-2 right-2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#ff1f43] shadow-[0_0_12px_#ff1f43]" />
+            </div>
 
-          {/* Bottom Activation Status Tagline */}
-          <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2.5 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
-            <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
-              TELECEL SME MONTH • ACTIVATED
-            </span>
-            <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
+            {/* Top Welcome Badge */}
+            <div className="relative z-20 mt-1 sm:mt-2 shrink-0">
+              <div className="inline-flex items-center px-6 sm:px-8 py-1.5 sm:py-2 bg-[#2b080f]/90 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.8)] backdrop-blur-md">
+                <span className="font-orbitron font-black text-xs md:text-sm tracking-[0.35em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
+                  {victoryPhase === 'outro' ? 'TELECEL SME MONTH • LAUNCHED' : 'WELCOME TO'}
+                </span>
+              </div>
+            </div>
+
+            {/* Center: Hero Animated Launch Logo (Edge-to-Edge Stage Flow) */}
+            <div className="relative z-20 flex-1 min-h-0 flex items-center justify-center w-full px-4 my-auto">
+              <LaunchLogo className="w-full h-auto max-w-[520px] sm:max-w-[640px] md:max-w-[760px] lg:max-w-[840px] max-h-[50vh] sm:max-h-[54vh] md:max-h-[58vh] object-contain" animate={true} />
+            </div>
+
+            {/* Bottom Activation Status Tagline & Action Controls */}
+            {victoryPhase === 'confetti' ? (
+              <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
+                <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
+                  TELECEL SME MONTH • ACTIVATED
+                </span>
+                <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
+              </div>
+            ) : (
+              /* OUTRO REPLAY & SESSION CONTROLS */
+              <div className="relative z-20 mb-2 sm:mb-3 md:mb-4 text-center flex flex-col items-center justify-center gap-3 shrink-0">
+                <div className="flex items-center justify-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
+                  <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
+                    TELECEL SME MONTH • ACTIVATED
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                  <button
+                    onClick={() => {
+                      setVictoryPhase('video1');
+                      if (socket) socket.emit('set_victory_phase', { phase: 'video1' });
+                    }}
+                    className="px-4 py-2 bg-[#20050c]/95 border border-[#ff1f43] hover:border-white rounded-xl text-xs font-orbitron font-bold text-white uppercase tracking-wider shadow-[0_0_15px_rgba(255,31,67,0.4)] flex items-center gap-2 cursor-pointer transition-all hover:bg-[#3d0d17]"
+                  >
+                    <Film size={14} className="text-[#ff1f43]" />
+                    <span>REPLAY VIDEO 1</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setVictoryPhase('video2');
+                      if (socket) socket.emit('set_victory_phase', { phase: 'video2' });
+                    }}
+                    className="px-4 py-2 bg-[#20050c]/95 border border-[#ff1f43] hover:border-white rounded-xl text-xs font-orbitron font-bold text-white uppercase tracking-wider shadow-[0_0_15px_rgba(255,31,67,0.4)] flex items-center gap-2 cursor-pointer transition-all hover:bg-[#3d0d17]"
+                  >
+                    <Film size={14} className="text-[#ff1f43]" />
+                    <span>REPLAY VIDEO 2</span>
+                  </button>
+
+                  <button
+                    onClick={handleResetGame}
+                    className="px-4 py-2 bg-[#120407] border border-[#521520] hover:border-gray-400 rounded-xl text-xs font-orbitron font-bold text-gray-300 hover:text-white uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all"
+                  >
+                    <RotateCcw size={14} />
+                    <span>NEW ACTIVATION</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
-        </div>
+        )
       )}
 
       {/* ==================================================== */}
@@ -1573,6 +1744,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
         </div>
       )}
+
+      {/* ==================================================== */}
+      {/* 8. AV & SUPABASE VIDEO SETTINGS MODAL                */}
+      {/* ==================================================== */}
+      <VideoSettingsModal
+        isOpen={showVideoSettings}
+        onClose={() => setShowVideoSettings(false)}
+      />
 
     </div>
   );

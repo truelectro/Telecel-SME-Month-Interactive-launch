@@ -228,6 +228,7 @@ let participantCounter = 0;
 
 let gameState = {
   status: 'lobby', // 'lobby' | 'countdown' | 'playing' | 'victory' | 'gameover'
+  victoryPhase: 'confetti', // 'confetti' | 'video1' | 'video2' | 'outro'
   difficulty: 'medium', // 'easy' | 'medium' | 'hard'
   voltage: 0.0,
   score: 0,
@@ -247,6 +248,7 @@ let gameState = {
 
 function resetGame(newStatus = 'lobby') {
   gameState.status = newStatus;
+  gameState.victoryPhase = 'confetti';
   gameState.voltage = 0.0;
   gameState.score = 0;
   gameState.multiplier = 1;
@@ -315,10 +317,12 @@ setInterval(() => {
     if (gameState.voltage >= 100) {
       gameState.voltage = 100;
       gameState.status = 'victory';
+      gameState.victoryPhase = 'confetti';
       gameState.score += Math.round(10000 * gameState.multiplier);
       io.emit('game_victory', { 
         score: gameState.score, 
         participantCount: gameState.connectedCount,
+        victoryPhase: 'confetti',
       });
     }
   }
@@ -343,6 +347,7 @@ setInterval(() => {
   // Broadcast state update (30Hz throttled for network efficiency)
   io.emit('game_state_update', {
     status: gameState.status,
+    victoryPhase: gameState.victoryPhase,
     difficulty: gameState.difficulty,
     voltage: Number(gameState.voltage.toFixed(2)),
     score: gameState.score,
@@ -658,11 +663,27 @@ io.on('connection', (socket) => {
       io.emit('game_reset');
       io.emit('game_state_update', {
         status: 'lobby',
+        victoryPhase: 'confetti',
         voltage: 0,
         connectedCount: gameState.connectedCount,
       });
     } catch (err) {
       console.warn('reset_game notice:', err);
+    }
+  });
+
+  // Stage display updates victory video phase ('confetti' | 'video1' | 'video2' | 'outro')
+  socket.on('set_victory_phase', (payload = {}) => {
+    try {
+      const phase = payload?.phase;
+      if (['confetti', 'video1', 'video2', 'outro'].includes(phase)) {
+        gameState.victoryPhase = phase;
+        io.emit('victory_phase_changed', { phase });
+        io.emit('game_state_update', { victoryPhase: phase });
+        console.log(`🎬 Victory phase updated: ${phase}`);
+      }
+    } catch (err) {
+      console.warn('set_victory_phase notice:', err);
     }
   });
 

@@ -6,7 +6,9 @@ import {
   Users, 
   Radio,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Video,
+  Film
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
 import { audioEngine } from '../utils/audioEngine';
@@ -31,6 +33,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const [lastShakeTimestamp, setLastShakeTimestamp] = useState(0);
   const [gameStartOverlay, setGameStartOverlay] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
+  const [victoryPhase, setVictoryPhase] = useState(gameState?.victoryPhase || 'confetti');
 
   const {
     status = 'lobby',
@@ -240,6 +243,10 @@ export default function MobileController({ socket, gameState, isConnected: propC
       }
     };
 
+    const onVictoryPhaseChanged = ({ phase }) => {
+      if (phase) setVictoryPhase(phase);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('controller_assigned', onAssigned);
@@ -250,6 +257,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
     socket.on('game_started', onGameStarted);
     socket.on('game_reset', onGameReset);
     socket.on('boost_activated', onBoostActivated);
+    socket.on('victory_phase_changed', onVictoryPhaseChanged);
 
     return () => {
       socket.off('connect', onConnect);
@@ -262,6 +270,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
       socket.off('game_started', onGameStarted);
       socket.off('game_reset', onGameReset);
       socket.off('boost_activated', onBoostActivated);
+      socket.off('victory_phase_changed', onVictoryPhaseChanged);
     };
   }, [socket, sensorActive]);
 
@@ -593,6 +602,83 @@ export default function MobileController({ socket, gameState, isConnected: propC
   // FULLSCREEN CINEMATIC VICTORY / LAUNCH REVEAL (MOBILE)
   // ====================================================
   if (status === 'victory') {
+    // Synchronized Stage Video Presentation Mode on Mobile
+    if (victoryPhase === 'video1' || victoryPhase === 'video2') {
+      return (
+        <div 
+          onTouchStart={() => audioEngine.ensureRunning()}
+          onPointerDown={() => audioEngine.ensureRunning()}
+          style={{ 
+            paddingTop: 'max(env(safe-area-inset-top), 14px)', 
+            paddingBottom: 'max(env(safe-area-inset-bottom), 14px)' 
+          }}
+          className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#25060d] via-[#100206] to-[#040102] z-50 animate-fade-in"
+        >
+          {/* Background Ambient Glow */}
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180vw] h-[180vh] rounded-full bg-[#ff1f43]/20 blur-[100px] animate-pulse" />
+            <div className="absolute inset-0 scanlines opacity-10" />
+          </div>
+
+          {/* Outer Border */}
+          <div className="absolute inset-2 border border-[#ff1f43]/40 pointer-events-none z-10 sci-fi-cut">
+            <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+            <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+            <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+            <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+          </div>
+
+          {/* Header */}
+          <div className="relative z-20 shrink-0 text-center pt-2">
+            <div className="inline-flex items-center gap-2 px-4 py-1 bg-[#2b080f]/90 border border-[#ff1f43] rounded-full shadow-[0_0_20px_rgba(255,31,67,0.7)]">
+              <span className="w-2 h-2 rounded-full bg-[#ff1f43] animate-ping" />
+              <span className="font-orbitron font-bold text-xs tracking-widest text-white uppercase">
+                STAGE AV BROADCAST
+              </span>
+            </div>
+          </div>
+
+          {/* Center Stage Video Notice & Audio Waves */}
+          <div className="relative z-20 flex-1 flex flex-col items-center justify-center text-center px-4 my-auto gap-4 max-w-xs">
+            <div className="w-20 h-20 rounded-full bg-[#3d0d17] border-2 border-[#ff1f43] flex items-center justify-center shadow-[0_0_40px_rgba(255,31,67,0.8)] animate-pulse">
+              <Video size={36} className="text-white" />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="font-orbitron font-black text-xl sm:text-2xl text-white uppercase tracking-wider text-glow-red">
+                {victoryPhase === 'video1' ? 'LAUNCH VIDEO 1' : 'SPOTLIGHT VIDEO 2'}
+              </span>
+              <span className="text-xs text-[#ffccd5] font-semibold tracking-wide uppercase">
+                STREAMING LIVE ON MAIN STAGE DISPLAY
+              </span>
+            </div>
+
+            {/* Audio Visualizer Waveforms */}
+            <div className="flex items-center justify-center gap-1.5 h-10 py-1">
+              <span className="w-1.5 h-6 bg-[#ff1f43] rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-9 bg-white rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-7 bg-[#ff4d6d] rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+              <span className="w-1.5 h-10 bg-[#ff1f43] rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
+              <span className="w-1.5 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
+              <span className="w-1.5 h-8 bg-[#ff4d6d] rounded-full animate-pulse" style={{ animationDelay: '350ms' }} />
+            </div>
+
+            <p className="text-[11px] text-[#ff8095] text-center leading-relaxed">
+              Direct your attention to the main projector screen for the official launch presentation!
+            </p>
+          </div>
+
+          {/* Bottom Status */}
+          <div className="relative z-20 text-center flex items-center justify-center gap-2 shrink-0 pb-2">
+            <span className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]" />
+            <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ff99aa] uppercase tracking-wider">
+              {playerName ? `${playerName.toUpperCase()} • SYNCHRONIZED` : 'GRID SYNCHRONIZED'}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div 
         onTouchStart={() => audioEngine.ensureRunning()}
@@ -601,7 +687,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
           paddingTop: 'max(env(safe-area-inset-top), 14px)', 
           paddingBottom: 'max(env(safe-area-inset-bottom), 14px)' 
         }}
-        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#660a18] via-[#26050b] to-[#540715] z-50"
+        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#660a18] via-[#26050b] to-[#540715] z-50 animate-fade-in"
       >
         {/* Fullscreen Edge-to-Edge Radial Energy Backdrop & Side Ambient Lighting */}
         <div className="absolute inset-0 pointer-events-none z-0">
@@ -623,7 +709,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
         <div className="relative z-20 shrink-0 text-center pt-1">
           <div className="inline-flex items-center px-6 sm:px-8 py-1.5 bg-[#2b080f]/95 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.85)] backdrop-blur-md">
             <span className="font-orbitron font-black text-xs sm:text-sm tracking-[0.3em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
-              WELCOME TO
+              {victoryPhase === 'outro' ? 'TELECEL SME MONTH • LAUNCHED' : 'WELCOME TO'}
             </span>
           </div>
         </div>
