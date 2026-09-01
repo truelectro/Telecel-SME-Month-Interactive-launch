@@ -605,12 +605,13 @@ export default function MobileController({ socket, gameState, isConnected: propC
           paddingTop: 'max(env(safe-area-inset-top), 14px)', 
           paddingBottom: 'max(env(safe-area-inset-bottom), 14px)' 
         }}
-        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#22040b] via-[#090103] to-[#22040b] z-50 animate-fade-in"
+        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#660a18] via-[#26050b] to-[#540715] z-50 animate-fade-in"
       >
-        {/* Fullscreen Edge-to-Edge Radial Energy Backdrop */}
+        {/* Fullscreen Edge-to-Edge Radial Energy Backdrop & Side Ambient Lighting */}
         <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180vw] h-[180vh] rounded-full bg-[#ff1f43]/25 blur-[90px] animate-pulse" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110vw] h-[110vh] rounded-full bg-[#ff4d6d]/30 blur-[70px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220vw] h-[220vh] rounded-full bg-[#ff1f43]/30 blur-[100px] animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#ff1f43]/35 via-transparent to-[#ff1f43]/35 pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140vw] h-[140vh] rounded-full bg-[#ff4d6d]/35 blur-[80px]" />
           <div className="absolute inset-0 scanlines opacity-15" />
         </div>
 
