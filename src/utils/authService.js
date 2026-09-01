@@ -4,8 +4,8 @@
 
 const AUTH_STORAGE_KEY = 'telecel_stage_auth_token';
 
-// Accepted default passwords (used when no custom password is set in .env)
-const DEFAULT_PASSWORDS = ['telecel2024', 'telecellaunch'];
+// Primary default passwords (works out of the box on both local & deployed versions)
+const DEFAULT_PASSWORDS = ['getthesurge', 'telecel2024', 'telecellaunch'];
 
 /**
  * Get configured master passwords
@@ -14,11 +14,12 @@ export function getConfiguredPasswords() {
   const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
   const customPass = env.VITE_LAUNCH_PASSWORD || env.VITE_APP_PASSWORD || env.VITE_AUTH_PASSWORD;
 
+  const validPasswords = [...DEFAULT_PASSWORDS];
   if (customPass && customPass.trim()) {
-    return [customPass.trim()];
+    validPasswords.unshift(customPass.trim());
   }
 
-  return DEFAULT_PASSWORDS;
+  return validPasswords;
 }
 
 /**
