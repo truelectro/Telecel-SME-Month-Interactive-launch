@@ -209,6 +209,8 @@ function resetGame(newStatus = 'lobby') {
   }
 }
 
+let lastPruneTime = Date.now();
+
 // 60Hz Physics & Activation Loop
 setInterval(() => {
   const now = Date.now();
@@ -275,16 +277,19 @@ setInterval(() => {
   }
 
   // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 60s
-  for (const socketId in gameState.players) {
-    const p = gameState.players[socketId];
-    if (p.lastSeen && (now - p.lastSeen > 60000)) {
-      delete gameState.players[socketId];
-      gameState.connectedCount = Object.keys(gameState.players).length;
-      io.emit('participant_left', {
-        operativeNumber: p.number,
-        connectedCount: gameState.connectedCount,
-        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-      });
+  if (now - lastPruneTime > 3000) {
+    lastPruneTime = now;
+    for (const socketId in gameState.players) {
+      const p = gameState.players[socketId];
+      if (p.lastSeen && (now - p.lastSeen > 60000)) {
+        delete gameState.players[socketId];
+        gameState.connectedCount = Object.keys(gameState.players).length;
+        io.emit('participant_left', {
+          operativeNumber: p.number,
+          connectedCount: gameState.connectedCount,
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        });
+      }
     }
   }
 

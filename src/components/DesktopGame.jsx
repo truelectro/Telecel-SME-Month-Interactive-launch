@@ -6,18 +6,13 @@ import {
   HelpCircle, 
   Volume2, 
   VolumeX, 
-  Settings, 
   Maximize2, 
   RotateCcw, 
   Smartphone, 
   Users, 
   ShieldAlert, 
   Activity,
-  CheckCircle2,
-  Copy,
-  ExternalLink,
   Keyboard,
-  Flame,
   QrCode,
   Play,
   Radio
@@ -36,9 +31,6 @@ const SIMULATED_NAMES = [
 export default function DesktopGame({ socket, gameState, serverInfo }) {
   const [isMuted, setIsMuted] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [useHttpsQR, setUseHttpsQR] = useState(true);
   const [boostAnimating, setBoostAnimating] = useState(false);
   const [shakeFlash, setShakeFlash] = useState(false);
   const [showLocalFallback, setShowLocalFallback] = useState(false);
@@ -63,9 +55,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     status = 'lobby',
     voltage = 0,
     score = 0,
-    highScore = 50000,
-    multiplier = 1,
-    multiplierProgress = 0,
   } = gameState || {};
 
   // Auto-enable local QR fallback after 4 seconds if tunnel hasn't connected
@@ -168,7 +157,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
   // Room code and controller URL resolution (supports Vercel, cloud, tunnel, and local)
   const roomCode = serverInfo?.roomCode || 'telecel-launch';
   const isHttps = typeof window !== 'undefined' && (window.location.protocol === 'https:' || window.location.hostname.includes('vercel.app') || window.location.hostname !== 'localhost');
-  const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
   
   // Construct mobile controller QR link with guaranteed roomCode parameter
   let baseControllerUrl = serverInfo?.tunnelUrl;
@@ -482,12 +470,6 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     audioEngine.ensureRunning();
     const muted = audioEngine.toggleMute();
     setIsMuted(muted);
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(controllerUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const toggleFullscreen = () => {

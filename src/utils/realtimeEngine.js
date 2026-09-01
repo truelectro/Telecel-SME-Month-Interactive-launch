@@ -423,7 +423,14 @@ class BrowserHostEngine {
   }
 
   destroy() {
-    if (this.interval) clearInterval(this.interval);
+    if (this.physicsInterval) {
+      clearInterval(this.physicsInterval);
+      this.physicsInterval = null;
+    }
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
   }
 }
 

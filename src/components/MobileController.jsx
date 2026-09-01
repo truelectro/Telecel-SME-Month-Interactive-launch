@@ -2,14 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Zap, 
   Smartphone, 
-  Flame, 
   Activity, 
   Users, 
-  ShieldAlert, 
   Radio,
-  CheckCircle2,
   AlertCircle,
-  UserCheck,
   ArrowRight
 } from 'lucide-react';
 import LaunchLogo from './LaunchLogo';
@@ -39,7 +35,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
   const {
     status = 'lobby',
     voltage = 0,
-    multiplier = 1,
     connectedCount = 1,
   } = gameState || {};
 

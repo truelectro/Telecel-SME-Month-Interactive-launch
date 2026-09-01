@@ -11,11 +11,21 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSurging = false }) {
   const canvasRef = useRef(null);
   const voltageRef = useRef(voltage);
+  const isOverloadedRef = useRef(isOverloaded);
+  const isSurgingRef = useRef(isSurging);
   const smoothVoltageRef = useRef(voltage);
 
   useEffect(() => {
     voltageRef.current = voltage;
   }, [voltage]);
+
+  useEffect(() => {
+    isOverloadedRef.current = isOverloaded;
+  }, [isOverloaded]);
+
+  useEffect(() => {
+    isSurgingRef.current = isSurging;
+  }, [isSurging]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -265,7 +275,7 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
       ctx.stroke();
 
       // Overcharge / Boost flash pulse
-      if (isSurging || isOverloaded) {
+      if (isSurgingRef.current || isOverloadedRef.current) {
         ctx.strokeStyle = '#ff3355';
         ctx.shadowColor = '#ff1f43';
         ctx.shadowBlur = 30;
@@ -285,7 +295,7 @@ export default function ReactorCanvas({ voltage = 0, isOverloaded = false, isSur
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [voltage, isOverloaded, isSurging]);
+  }, []);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
