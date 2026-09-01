@@ -1254,7 +1254,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           <div className="relative z-20 mb-1 sm:mb-2 md:mb-3 text-center flex items-center justify-center gap-2.5 shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
             <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm text-[#ff99aa] uppercase tracking-[0.25em] sm:tracking-[0.3em] drop-shadow-[0_0_8px_#ff1f43]">
-              TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
+              TELECEL SME MONTH • ACTIVATED
             </span>
             <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
           </div>

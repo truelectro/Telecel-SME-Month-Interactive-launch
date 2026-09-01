@@ -644,7 +644,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
         <div className="relative z-20 text-center flex items-center justify-center gap-2 shrink-0 pb-1.5">
           <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
           <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ff99aa] uppercase tracking-[0.2em] drop-shadow-[0_0_8px_#ff1f43]">
-            TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
+            TELECEL SME MONTH • ACTIVATED
           </span>
           <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
         </div>
