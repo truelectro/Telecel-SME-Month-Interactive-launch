@@ -594,6 +594,64 @@ export default function MobileController({ socket, gameState, isConnected: propC
   }
 
   // ====================================================
+  // FULLSCREEN CINEMATIC VICTORY / LAUNCH REVEAL (MOBILE)
+  // ====================================================
+  if (status === 'victory') {
+    return (
+      <div 
+        onTouchStart={() => audioEngine.ensureRunning()}
+        onPointerDown={() => audioEngine.ensureRunning()}
+        style={{ 
+          paddingTop: 'max(env(safe-area-inset-top), 14px)', 
+          paddingBottom: 'max(env(safe-area-inset-bottom), 14px)' 
+        }}
+        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#22040b] via-[#090103] to-[#22040b] z-50 animate-fade-in"
+      >
+        {/* Fullscreen Edge-to-Edge Radial Energy Backdrop */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[180vw] h-[180vh] rounded-full bg-[#ff1f43]/25 blur-[90px] animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110vw] h-[110vh] rounded-full bg-[#ff4d6d]/30 blur-[70px]" />
+          <div className="absolute inset-0 scanlines opacity-15" />
+        </div>
+
+        {/* Outer Corner Sci-Fi Accents */}
+        <div className="absolute inset-2 border border-[#ff1f43]/30 pointer-events-none z-10 sci-fi-cut">
+          <div className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+          <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+          <div className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+          <div className="absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43]" />
+        </div>
+
+        {/* Top Welcome Badge */}
+        <div className="relative z-20 shrink-0 text-center animate-fade-in pt-1">
+          <div className="inline-flex items-center px-6 sm:px-8 py-1.5 bg-[#2b080f]/95 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.85)] backdrop-blur-md">
+            <span className="font-orbitron font-black text-xs sm:text-sm tracking-[0.3em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
+              WELCOME TO
+            </span>
+          </div>
+        </div>
+
+        {/* Center: Full-Bleed Edge-to-Edge Hero Launch Logo */}
+        <div className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center px-1 my-auto animate-logo-surge">
+          <LaunchLogo 
+            className="w-full h-auto max-w-[96vw] max-h-[66vh] object-contain drop-shadow-[0_0_40px_rgba(255,31,67,0.95)]" 
+            animate={true} 
+          />
+        </div>
+
+        {/* Bottom Activation Status Tagline */}
+        <div className="relative z-20 text-center flex items-center justify-center gap-2 shrink-0 animate-fade-in pb-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0 animate-ping" />
+          <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ff99aa] uppercase tracking-[0.2em] drop-shadow-[0_0_8px_#ff1f43]">
+            TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
+          </span>
+          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0 animate-ping" />
+        </div>
+      </div>
+    );
+  }
+
+  // ====================================================
   // SCREEN 2: MAIN CONTROLLER (LOBBY & ACTIVE PLAYING)
   // ====================================================
   return (
@@ -740,28 +798,8 @@ export default function MobileController({ socket, gameState, isConnected: propC
           )}
         </div>
 
-        {status === 'victory' ? (
-          /* Victory / Launch Revealed Logo Screen */
-          <div className="flex flex-col items-center text-center p-2 animate-logo-surge w-full my-auto">
-            <div className="inline-flex items-center px-4 py-0.5 bg-[#330c14] border border-[#ff1f43] rounded-full mb-2 shadow-[0_0_15px_#ff1f43]">
-              <span className="font-orbitron font-black text-[10px] tracking-[0.2em] text-white uppercase">
-                WELCOME TO
-              </span>
-            </div>
-
-            <div className="w-full max-w-[240px] my-1.5">
-              <LaunchLogo className="w-full h-auto" animate={true} />
-            </div>
-
-            <p className="font-orbitron font-bold text-xs text-[#ff99aa] uppercase tracking-widest mt-1">
-              LAUNCH INITIATION SUCCESSFUL!
-            </p>
-          </div>
-        ) : (
-          /* Main Interactive Display: Distinct Lobby vs Playing */
-          <>
-            {/* Voltage Header Display */}
-            <div className="flex flex-col items-center text-center shrink-0">
+        {/* Voltage Header Display */}
+        <div className="flex flex-col items-center text-center shrink-0">
               <span className={`text-[9px] sm:text-[10px] font-bold tracking-widest uppercase ${
                 isPlaying ? 'text-[#ff4d6d]' : 'text-[#8c3240]'
               }`}>
@@ -883,9 +921,6 @@ export default function MobileController({ socket, gameState, isConnected: propC
                 </>
               )}
             </div>
-          </>
-        )}
-
       </main>
 
       {/* ==================================================== */}
