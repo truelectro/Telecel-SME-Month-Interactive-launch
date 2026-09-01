@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function LaunchLogo({ className = "w-full max-w-[640px] max-h-[58vh] h-auto", animate = true }) {
   return (
-    <div className={`relative w-full flex items-center justify-center ${animate ? 'animate-logo-surge' : ''}`}>
+    <div className={`relative flex items-center justify-center ${animate ? 'animate-logo-surge' : ''}`}>
       {/* Dynamic Full-Bleed Energy Shockwave Backdrop (Stable, Non-Flickering Glow) */}
       {animate && (
         <>

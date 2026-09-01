@@ -114,12 +114,12 @@ export default function AuthLockScreen({ onUnlock }) {
       {/* Center Auth Card */}
       <div className="relative z-20 flex-1 flex flex-col items-center justify-center w-full max-w-md my-auto px-4">
         {/* Logo */}
-        <div className="w-full max-w-[280px] max-h-[90px] mb-6 flex items-center justify-center">
-          <LaunchLogo className="w-full h-auto object-contain" animate={false} />
+        <div className="w-full max-w-[190px] sm:max-w-[210px] h-[95px] sm:h-[105px] mb-4 flex items-center justify-center shrink-0">
+          <LaunchLogo className="w-auto h-full max-h-[95px] sm:max-h-[105px] object-contain drop-shadow-[0_0_25px_rgba(255,31,67,0.8)]" animate={false} />
         </div>
 
         {/* Lock Card Panel */}
-        <div className={`w-full hud-panel p-6 sm:p-8 sci-fi-cut border-2 transition-all duration-300 ${
+        <div className={`w-full hud-panel p-5 sm:p-7 sci-fi-cut border-2 transition-all duration-300 ${
           isSuccess 
             ? 'border-green-500 shadow-[0_0_35px_rgba(34,197,94,0.6)] bg-[#051a0d]/90'
             : error 
