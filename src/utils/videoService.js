@@ -4,17 +4,17 @@
 
 const STORAGE_KEY = 'telecel_launch_video_config';
 
-// High-reliability default demo video fallbacks (used when no custom Supabase URLs are set)
-const DEFAULT_DEMO_VIDEOS = {
+// Verified Supabase Public Storage URLs for Telecel SME Month Launch
+export const DEFAULT_LAUNCH_VIDEOS = {
   video1: {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    title: 'TELECEL SME MONTH • LAUNCH VIDEO (VIDEO 1)',
-    source: 'Default Tech Showcase 1',
+    url: 'https://qrfoifqbcgojvpwtlpon.supabase.co/storage/v1/object/public/SME%20Month%20Videos/vid%201_L.mp4',
+    title: 'TELECEL SME MONTH • LAUNCH VIDEO',
+    source: 'Supabase Public Storage',
   },
   video2: {
-    url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    title: 'TELECEL SME SOLUTIONS • SPOTLIGHT (VIDEO 2)',
-    source: 'Default Tech Showcase 2',
+    url: 'https://qrfoifqbcgojvpwtlpon.supabase.co/storage/v1/object/public/SME%20Month%20Videos/Vid%202_L.mp4',
+    title: 'TELECEL SME SOLUTIONS • SPOTLIGHT',
+    source: 'Supabase Public Storage',
   },
 };
 
@@ -61,7 +61,7 @@ export function buildSupabasePublicUrl(supabaseUrl, bucket, filePath) {
 }
 
 /**
- * Get current video configuration (merging localStorage, env vars, and defaults)
+ * Get current video configuration (merging localStorage, env vars, and verified defaults)
  */
 export function getVideoConfig() {
   let localData = {};
@@ -76,27 +76,27 @@ export function getVideoConfig() {
     }
   }
 
-  // Environment variables
+  // Environment variables (if deployed with env vars)
   const env = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env : {};
 
-  const supabaseUrl = localData.supabaseUrl ?? env.VITE_SUPABASE_URL ?? '';
-  const supabaseAnonKey = localData.supabaseAnonKey ?? env.VITE_SUPABASE_ANON_KEY ?? '';
-  const bucket = localData.bucket ?? env.VITE_SUPABASE_BUCKET ?? 'SME Month Videos';
-  const video1Path = localData.video1Path ?? env.VITE_SUPABASE_VIDEO_1_PATH ?? 'vid 1_L.mp4';
-  const video2Path = localData.video2Path ?? env.VITE_SUPABASE_VIDEO_2_PATH ?? 'Vid 2_L.mp4';
+  const supabaseUrl = localData.supabaseUrl || env.VITE_SUPABASE_URL || 'https://qrfoifqbcgojvpwtlpon.supabase.co';
+  const supabaseAnonKey = localData.supabaseAnonKey || env.VITE_SUPABASE_ANON_KEY || '';
+  const bucket = localData.bucket || env.VITE_SUPABASE_BUCKET || 'SME Month Videos';
+  const video1Path = localData.video1Path || env.VITE_SUPABASE_VIDEO_1_PATH || 'vid 1_L.mp4';
+  const video2Path = localData.video2Path || env.VITE_SUPABASE_VIDEO_2_PATH || 'Vid 2_L.mp4';
 
-  const directVideo1Url = localData.video1Url ?? env.VITE_VIDEO_1_URL ?? '';
-  const directVideo2Url = localData.video2Url ?? env.VITE_VIDEO_2_URL ?? '';
+  const directVideo1Url = localData.video1Url || env.VITE_VIDEO_1_URL || '';
+  const directVideo2Url = localData.video2Url || env.VITE_VIDEO_2_URL || '';
 
-  const video1Title = localData.video1Title || env.VITE_VIDEO_1_TITLE || 'TELECEL SME MONTH • LAUNCH VIDEO';
-  const video2Title = localData.video2Title || env.VITE_VIDEO_2_TITLE || 'TELECEL SME SOLUTIONS • SPOTLIGHT';
+  const video1Title = localData.video1Title || env.VITE_VIDEO_1_TITLE || DEFAULT_LAUNCH_VIDEOS.video1.title;
+  const video2Title = localData.video2Title || env.VITE_VIDEO_2_TITLE || DEFAULT_LAUNCH_VIDEOS.video2.title;
 
   // Resolve Video 1 URL
   let resolvedVideo1Url = '';
   let video1Source = '';
   if (directVideo1Url.trim()) {
     resolvedVideo1Url = directVideo1Url.trim();
-    video1Source = 'Direct Supabase / CDN URL';
+    video1Source = 'Direct Supabase URL';
   } else if (video1Path.trim().startsWith('http://') || video1Path.trim().startsWith('https://')) {
     resolvedVideo1Url = video1Path.trim();
     video1Source = 'Supabase Storage Direct URL';
@@ -104,8 +104,8 @@ export function getVideoConfig() {
     resolvedVideo1Url = buildSupabasePublicUrl(supabaseUrl, bucket, video1Path);
     video1Source = 'Supabase Storage Bucket';
   } else {
-    resolvedVideo1Url = DEFAULT_DEMO_VIDEOS.video1.url;
-    video1Source = 'Default Fallback Demo';
+    resolvedVideo1Url = DEFAULT_LAUNCH_VIDEOS.video1.url;
+    video1Source = 'Default Supabase Storage';
   }
 
   // Resolve Video 2 URL
@@ -113,7 +113,7 @@ export function getVideoConfig() {
   let video2Source = '';
   if (directVideo2Url.trim()) {
     resolvedVideo2Url = directVideo2Url.trim();
-    video2Source = 'Direct Supabase / CDN URL';
+    video2Source = 'Direct Supabase URL';
   } else if (video2Path.trim().startsWith('http://') || video2Path.trim().startsWith('https://')) {
     resolvedVideo2Url = video2Path.trim();
     video2Source = 'Supabase Storage Direct URL';
@@ -121,8 +121,8 @@ export function getVideoConfig() {
     resolvedVideo2Url = buildSupabasePublicUrl(supabaseUrl, bucket, video2Path);
     video2Source = 'Supabase Storage Bucket';
   } else {
-    resolvedVideo2Url = DEFAULT_DEMO_VIDEOS.video2.url;
-    video2Source = 'Default Fallback Demo';
+    resolvedVideo2Url = DEFAULT_LAUNCH_VIDEOS.video2.url;
+    video2Source = 'Default Supabase Storage';
   }
 
   return {
@@ -134,16 +134,16 @@ export function getVideoConfig() {
     directVideo1Url,
     directVideo2Url,
     video1: {
-      url: resolvedVideo1Url,
+      url: resolvedVideo1Url || DEFAULT_LAUNCH_VIDEOS.video1.url,
       title: video1Title,
       source: video1Source,
-      isCustom: video1Source !== 'Default Fallback Demo',
+      isCustom: true,
     },
     video2: {
-      url: resolvedVideo2Url,
+      url: resolvedVideo2Url || DEFAULT_LAUNCH_VIDEOS.video2.url,
       title: video2Title,
       source: video2Source,
-      isCustom: video2Source !== 'Default Fallback Demo',
+      isCustom: true,
     },
   };
 }

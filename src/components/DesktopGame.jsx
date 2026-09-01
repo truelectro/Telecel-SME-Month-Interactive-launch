@@ -1753,6 +1753,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
         onClose={() => setShowVideoSettings(false)}
       />
 
+      {/* Background Preloader for Finale Videos (zero latency playback) */}
+      <div className="hidden" aria-hidden="true">
+        {videoConfig?.video1?.url && (
+          <video preload="auto" muted playsInline src={videoConfig.video1.url} />
+        )}
+        {videoConfig?.video2?.url && (
+          <video preload="auto" muted playsInline src={videoConfig.video2.url} />
+        )}
+      </div>
+
     </div>
   );
 }
