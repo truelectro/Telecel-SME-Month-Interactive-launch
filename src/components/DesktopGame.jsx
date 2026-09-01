@@ -20,7 +20,8 @@ import {
   Video,
   Settings,
   Sparkles,
-  Film
+  Film,
+  Lock
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
 import LaunchLogo from './LaunchLogo';
@@ -28,6 +29,7 @@ import StageVideoPlayer from './StageVideoPlayer';
 import VideoSettingsModal from './VideoSettingsModal';
 import { audioEngine } from '../utils/audioEngine';
 import { getVideoConfig } from '../utils/videoService';
+import { logout } from '../utils/authService';
 
 const SIMULATED_NAMES = [
   'Kwame Mensah', 'Ama Serwaa', 'Kofi Boateng', 'Akua Osei', 'Yaw Appiah',
@@ -746,6 +748,16 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             className="w-8 h-8 sm:w-9 sm:h-9 hidden sm:flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
           >
             <Maximize2 size={16} />
+          </button>
+
+          {/* Security Lock Platform */}
+          <button
+            onClick={() => logout()}
+            title="Lock Platform (Require Passcode)"
+            aria-label="Lock Platform"
+            className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-[#25080e]/80 border border-[#521520] hover:border-[#ff2a4b] hover:bg-[#3d0d17] transition-all sci-fi-cut-sm text-[#ff8095] hover:text-white"
+          >
+            <Lock size={16} />
           </button>
         </div>
       </header>

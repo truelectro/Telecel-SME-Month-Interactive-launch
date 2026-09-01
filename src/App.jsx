@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import DesktopGame from './components/DesktopGame';
 import MobileController from './components/MobileController';
+import AuthLockScreen from './components/AuthLockScreen';
 import ErrorBoundary from './components/ErrorBoundary';
 import { RealtimeNetwork } from './utils/realtimeEngine';
+import { isAuthorized } from './utils/authService';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => isAuthorized());
   const [network, setNetwork] = useState(null);
   const [gameState, setGameState] = useState({
     status: 'lobby',
@@ -23,6 +26,15 @@ export default function App() {
 
   // Check if current page is the controller route
   const isController = window.location.pathname.startsWith('/controller');
+
+  // Listen for live auth status updates (unlock or logout)
+  useEffect(() => {
+    const handleAuthChange = (e) => {
+      setIsAuthenticated(!!e.detail?.authorized);
+    };
+    window.addEventListener('telecel_auth_changed', handleAuthChange);
+    return () => window.removeEventListener('telecel_auth_changed', handleAuthChange);
+  }, []);
 
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
@@ -131,6 +143,11 @@ export default function App() {
       net.destroy();
     };
   }, [isController]);
+
+  // If on desktop screen and not authenticated, render the lock screen
+  if (!isController && !isAuthenticated) {
+    return <AuthLockScreen onUnlock={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="w-full min-h-screen h-full bg-[#070204]">
