@@ -215,7 +215,19 @@ setInterval(() => {
   const dt = (now - gameState.lastTickTime) / 1000;
   gameState.lastTickTime = now;
 
-  gameState.connectedCount = Object.keys(gameState.players).length;
+  const totalOperatives = Object.keys(gameState.players).length;
+  gameState.connectedCount = totalOperatives;
+
+  // Real-time active vs idle participant tracking (window: 1400ms)
+  let activeShakers = 0;
+  for (const id in gameState.players) {
+    const p = gameState.players[id];
+    if (p.lastShakeTime && (now - p.lastShakeTime < 1400)) {
+      activeShakers += 1;
+    }
+  }
+  const idleCount = Math.max(0, totalOperatives - activeShakers);
+  const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
 
   if (gameState.status === 'playing') {
     // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 320ms)
@@ -228,6 +240,14 @@ setInterval(() => {
       currentDecay *= 1.65;
     } else if (gameState.voltage > 45) {
       currentDecay *= 1.3;
+    }
+
+    // IDLE PARTICIPANT RESISTANCE PENALTY:
+    // When 1 or more connected attendees stop shaking, their idle devices create a parasitic circuit load,
+    // accelerating voltage drain and making it harder for the active shakers!
+    if (totalOperatives > 1 && idleCount > 0) {
+      const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.6); // Up to +160% faster decay if people stop shaking!
+      currentDecay *= idlePenalty;
     }
 
     if (timeSinceShake > 320) {
@@ -280,6 +300,9 @@ setInterval(() => {
     boostCharges: gameState.boostCharges,
     timeRemaining: Math.ceil(gameState.timeRemaining),
     connectedCount: gameState.connectedCount,
+    activeShakers,
+    idleCount,
+    activeRatio: Number(activeRatio.toFixed(2)),
     maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
     recentJoins: gameState.recentJoins.slice(-5),
   });
@@ -414,22 +437,21 @@ io.on('connection', (socket) => {
       if (gameState.status === 'playing') {
         gameState.lastActiveShakeTime = now;
 
-        // Dynamic crowd scaling (works smoothly for 1 phone and scales to 250 phones)
-        const activeCount = Math.max(1, Object.keys(gameState.players).length);
-        const clampedIntensity = Math.min(2.2, Math.max(0.6, intensity));
-        
-        // Progressive electromagnetic resistance curve
-        const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
-        let resistanceFactor = 1.0;
-        if (currentVolt > 85) {
-          resistanceFactor = 0.20; // 20% throughput (climax wall)
-        } else if (currentVolt > 65) {
-          resistanceFactor = 0.40; // 40% throughput
-        } else if (currentVolt > 40) {
-          resistanceFactor = 0.60; // 60% throughput
+        // Generation Efficiency Drag from Inactive Phones:
+        // Active shakers must pull the dead weight of idle phones on the power grid
+        let participationFactor = 1.0;
+        if (activeCount > 1) {
+          let activeNow = 0;
+          for (const pid in gameState.players) {
+            if (gameState.players[pid].lastShakeTime && (now - gameState.players[pid].lastShakeTime < 1400)) {
+              activeNow += 1;
+            }
+          }
+          const ratio = Math.max(0.25, activeNow / activeCount);
+          participationFactor = Math.pow(ratio, 0.45); // Power output drops if people stop shaking
         }
 
-        const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.85);
+        const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(activeCount, 0.85);
         const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
         
         gameState.voltage = Math.min(100, gameState.voltage + voltageGain);

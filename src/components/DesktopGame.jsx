@@ -905,25 +905,37 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* AUDIENCE MOTIVATION / KEEP SHAKING DIRECTIVE CARD */}
-          <div className="hud-panel p-2.5 sm:p-3.5 sci-fi-cut flex flex-col items-center justify-center text-center relative overflow-hidden border-2 border-[#801b2a] shadow-neon-red">
+          <div className={`hud-panel p-2.5 sm:p-3.5 sci-fi-cut flex flex-col items-center justify-center text-center relative overflow-hidden border-2 transition-all duration-300 ${
+            status === 'playing' && gameState.idleCount > 0 && gameState.connectedCount > 1
+              ? 'border-yellow-500/80 shadow-[0_0_25px_rgba(234,179,8,0.4)]'
+              : 'border-[#801b2a] shadow-neon-red'
+          }`}>
             {/* Background Ambient Glow */}
-            <div className={`absolute inset-0 bg-gradient-to-b from-[#ff1f43]/25 via-[#ff1f43]/10 to-transparent transition-opacity duration-300 pointer-events-none ${
-              shakeFlash ? 'opacity-100' : 'opacity-40'
+            <div className={`absolute inset-0 bg-gradient-to-b transition-opacity duration-300 pointer-events-none ${
+              status === 'playing' && gameState.idleCount > 0 && gameState.connectedCount > 1
+                ? 'from-yellow-500/20 via-yellow-500/5 to-transparent opacity-80'
+                : 'from-[#ff1f43]/25 via-[#ff1f43]/10 to-transparent'
             }`} />
 
             {/* Glowing Dynamic Prompt (SHAKE PHONES) */}
-            <div className={`font-orbitron font-black text-base sm:text-lg md:text-xl tracking-wider uppercase text-glow-red transition-all duration-300 z-10 ${
-              shakeFlash ? 'scale-105 brightness-150 text-white' : 'text-[#ffccd5]'
+            <div className={`font-orbitron font-black text-base sm:text-lg md:text-xl tracking-wider uppercase transition-all duration-300 z-10 ${
+              status === 'playing' && gameState.idleCount > 0 && gameState.connectedCount > 1
+                ? 'text-yellow-300 drop-shadow-[0_0_12px_#eab308] animate-pulse'
+                : (shakeFlash ? 'scale-105 brightness-150 text-white text-glow-red' : 'text-[#ffccd5] text-glow-red')
             }`}>
               {status === 'playing' 
-                ? (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES!')) 
+                ? (gameState.idleCount > 0 && gameState.connectedCount > 1 
+                    ? `⚠️ ${gameState.idleCount} IDLE DETECTED! ⚡` 
+                    : (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES!'))) 
                 : 'READY TO SURGE'}
             </div>
 
-            <p className="text-[10px] sm:text-[11px] text-[#ff99aa] mt-1 z-10">
+            <p className="text-[10px] sm:text-[11px] mt-1 z-10 font-bold">
               {status === 'playing'
-                ? 'Everyone shake continuously to surge power to 100%!'
-                : 'Scan QR code with your phone to join'}
+                ? (gameState.idleCount > 0 && gameState.connectedCount > 1
+                    ? <span className="text-yellow-200 uppercase tracking-wide animate-pulse">SOMEONE STOPPED! VOLTAGE DRAINING ACCELERATED!</span>
+                    : <span className="text-[#ff99aa]">Everyone shake continuously to surge power to 100%!</span>)
+                : <span className="text-[#ff99aa]">Scan QR code with your phone to join</span>}
             </p>
           </div>
 

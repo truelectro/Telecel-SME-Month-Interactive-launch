@@ -90,7 +90,19 @@ class BrowserHostEngine {
       const dt = (now - this.gameState.lastTickTime) / 1000;
       this.gameState.lastTickTime = now;
 
-      this.gameState.connectedCount = Object.keys(this.gameState.players).length;
+      const totalOperatives = Object.keys(this.gameState.players).length;
+      this.gameState.connectedCount = totalOperatives;
+
+      // Real-time active vs idle participant tracking (window: 1400ms)
+      let activeShakers = 0;
+      for (const id in this.gameState.players) {
+        const p = this.gameState.players[id];
+        if (p.lastShakeTime && (now - p.lastShakeTime < 1400)) {
+          activeShakers += 1;
+        }
+      }
+      const idleCount = Math.max(0, totalOperatives - activeShakers);
+      const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
 
       if (this.gameState.status === 'playing') {
         // Dynamic Progressive Voltage Decay (Increases with voltage for dramatic climax tension)
@@ -103,6 +115,12 @@ class BrowserHostEngine {
           currentDecay *= 1.65;
         } else if (this.gameState.voltage > 45) {
           currentDecay *= 1.3;
+        }
+
+        // IDLE PARTICIPANT RESISTANCE PENALTY:
+        if (totalOperatives > 1 && idleCount > 0) {
+          const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.6);
+          currentDecay *= idlePenalty;
         }
 
         if (timeSinceShake > 320) {
@@ -162,6 +180,9 @@ class BrowserHostEngine {
         boostCharges: this.gameState.boostCharges,
         timeRemaining: Math.ceil(this.gameState.timeRemaining),
         connectedCount: this.gameState.connectedCount,
+        activeShakers,
+        idleCount,
+        activeRatio: Number(activeRatio.toFixed(2)),
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
         recentJoins: this.gameState.recentJoins.slice(-5),
       };
@@ -334,19 +355,20 @@ class BrowserHostEngine {
       }
 
       const activeCount = Math.max(1, Object.keys(this.gameState.players).length);
-      const clampedIntensity = Math.min(2.2, Math.max(0.6, intensity));
-
-      const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
-      let resistanceFactor = 1.0;
-      if (currentVolt > 85) {
-        resistanceFactor = 0.20; // 20% throughput (climax wall)
-      } else if (currentVolt > 65) {
-        resistanceFactor = 0.40; // 40% throughput
-      } else if (currentVolt > 40) {
-        resistanceFactor = 0.60; // 60% throughput
+      // Generation Efficiency Drag from Inactive Phones
+      let participationFactor = 1.0;
+      if (activeCount > 1) {
+        let activeNow = 0;
+        for (const pid in this.gameState.players) {
+          if (this.gameState.players[pid].lastShakeTime && (now - this.gameState.players[pid].lastShakeTime < 1400)) {
+            activeNow += 1;
+          }
+        }
+        const ratio = Math.max(0.25, activeNow / activeCount);
+        participationFactor = Math.pow(ratio, 0.45);
       }
 
-      const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.85);
+      const basePerShake = (EVENT_CONFIG.SHAKE_VOLTAGE_BASE * participationFactor) / Math.pow(activeCount, 0.85);
       const voltageGain = basePerShake * clampedIntensity * resistanceFactor;
       this.gameState.voltage = Math.min(100, this.gameState.voltage + voltageGain);
 

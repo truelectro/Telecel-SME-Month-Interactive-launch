@@ -903,14 +903,25 @@ export default function MobileController({ socket, gameState, isConnected: propC
             {/* User Instructions (Fixed Height to Prevent Layout Shift) */}
             <div className="h-10 flex flex-col items-center justify-center text-center px-3 max-w-xs shrink-0">
               {isPlaying ? (
-                <>
-                  <p className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wide drop-shadow-[0_0_6px_#ff1f43]">
-                    SHAKE YOUR PHONE RAPIDLY! 🔥
-                  </p>
-                  <p className="text-[10px] sm:text-[11px] text-[#ff99aa] leading-tight">
-                    All {connectedCount} connected phones push voltage to 100%!
-                  </p>
-                </>
+                gameState?.idleCount > 0 && connectedCount > 1 ? (
+                  <>
+                    <p className="text-[11px] sm:text-xs font-bold text-yellow-300 uppercase tracking-wide animate-pulse">
+                      ⚠️ {gameState.idleCount} IDLE PHONES! SHAKE HARDER! ⚡
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-yellow-200/90 leading-tight">
+                      Someone stopped shaking! Power drain is accelerated!
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-wide drop-shadow-[0_0_6px_#ff1f43]">
+                      SHAKE YOUR PHONE RAPIDLY! 🔥
+                    </p>
+                    <p className="text-[10px] sm:text-[11px] text-[#ff99aa] leading-tight">
+                      All {connectedCount} connected phones push voltage to 100%!
+                    </p>
+                  </>
+                )
               ) : (
                 <>
                   <p className="text-[11px] sm:text-xs font-bold text-gray-300 uppercase tracking-wide">
