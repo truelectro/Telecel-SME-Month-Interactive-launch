@@ -422,11 +422,11 @@ io.on('connection', (socket) => {
         const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
         let resistanceFactor = 1.0;
         if (currentVolt > 85) {
-          resistanceFactor = 0.42; // Strong climax resistance
+          resistanceFactor = 0.30; // 30% throughput (climax tension)
         } else if (currentVolt > 65) {
-          resistanceFactor = 0.65;
+          resistanceFactor = 0.50; // 50% throughput
         } else if (currentVolt > 40) {
-          resistanceFactor = 0.82;
+          resistanceFactor = 0.75; // 75% throughput
         }
 
         const basePerShake = EVENT_CONFIG.SHAKE_VOLTAGE_BASE / Math.pow(activeCount, 0.82);
