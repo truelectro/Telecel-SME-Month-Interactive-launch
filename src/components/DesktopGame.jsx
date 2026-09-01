@@ -1169,15 +1169,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
           </div>
 
           {/* Top: Telecel SME Month Logo & Headline */}
-          <div className="relative z-20 flex flex-col items-center text-center mt-0.5 sm:mt-1 shrink-0">
-            <div className="w-full max-w-[360px] sm:max-w-[440px] md:max-w-[500px] max-h-[11vh] sm:max-h-[13vh] flex items-center justify-center mb-0.5">
+          <div className="relative z-20 flex flex-col items-center text-center mt-1 sm:mt-2 shrink-0">
+            <div className="w-full max-w-[360px] sm:max-w-[440px] md:max-w-[500px] max-h-[11vh] sm:max-h-[13vh] flex items-center justify-center mb-3 sm:mb-5 md:mb-6">
               <LaunchLogo className="w-full h-auto max-w-full max-h-[11vh] sm:max-h-[13vh] object-contain drop-shadow-[0_0_25px_rgba(255,31,67,0.8)]" animate={false} />
             </div>
             
-            <h2 className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_20px_#ff1f43] mt-0.5">
+            <h2 className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_20px_#ff1f43]">
               SCAN TO JOIN THE SME SURGE
             </h2>
-            <p className="text-xs sm:text-sm text-[#ff99aa] max-w-xl mt-0.5 px-4 leading-tight font-medium">
+            <p className="text-xs sm:text-sm text-[#ff99aa] max-w-xl mt-1 sm:mt-1.5 px-4 leading-tight font-medium">
               Everyone scan with your smartphone! When the activation begins, shake phones together to surge to 100%!
             </p>
           </div>
