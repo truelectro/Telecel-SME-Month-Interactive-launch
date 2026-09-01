@@ -1251,8 +1251,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                       CONNECTED OPERATIVES
                     </span>
                   </div>
-                  <div className="px-3 py-1 rounded-full bg-[#3d0d17] border border-[#ff1f43] flex items-center gap-2 shrink-0 shadow-[0_0_12px_rgba(255,31,67,0.4)]">
-                    <span className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
+                  <div className="px-3 py-1 rounded-full bg-[#3d0d17] border border-[#ff1f43] flex items-center gap-1.5 shrink-0 shadow-[0_0_12px_rgba(255,31,67,0.4)]">
                     <span className="font-orbitron font-black text-xs sm:text-sm text-white">
                       {gameState.connectedCount || joinedOperatives.length}
                     </span>
