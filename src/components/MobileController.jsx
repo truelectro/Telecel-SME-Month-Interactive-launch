@@ -906,7 +906,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
                 gameState?.idleCount > 0 && connectedCount > 1 ? (
                   <>
                     <p className="text-[11px] sm:text-xs font-bold text-yellow-300 uppercase tracking-wide animate-pulse">
-                      ⚠️ {gameState.idleCount} IDLE PHONES! SHAKE HARDER! ⚡
+                      ⚠️ {gameState.idleCount} IDLE {gameState.idleCount === 1 ? 'PHONE' : 'PHONES'}! SHAKE HARDER! ⚡
                     </p>
                     <p className="text-[10px] sm:text-[11px] text-yellow-200/90 leading-tight">
                       Someone stopped shaking! Power drain is accelerated!

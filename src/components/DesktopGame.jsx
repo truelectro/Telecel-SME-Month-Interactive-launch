@@ -925,7 +925,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             }`}>
               {status === 'playing' 
                 ? (gameState.idleCount > 0 && gameState.connectedCount > 1 
-                    ? `⚠️ ${gameState.idleCount} IDLE DETECTED! ⚡` 
+                    ? `⚠️ ${gameState.idleCount} IDLE ${gameState.idleCount === 1 ? 'PHONE' : 'PHONES'} DETECTED! ⚡` 
                     : (voltage > 80 ? 'CRITICAL SURGE! 🔥' : (voltage > 50 ? 'MORE POWER! 🚀' : 'SHAKE PHONES!'))) 
                 : 'READY TO SURGE'}
             </div>
