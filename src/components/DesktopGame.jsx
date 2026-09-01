@@ -1156,33 +1156,33 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
           {/* Top: Telecel SME Month Logo & Headline */}
           <div className="relative z-20 flex flex-col items-center text-center mt-0.5 sm:mt-1 shrink-0">
-            <div className="w-full max-w-[400px] sm:max-w-[520px] md:max-w-[650px] lg:max-w-[760px] max-h-[15vh] sm:max-h-[18vh] md:max-h-[22vh] flex items-center justify-center mb-1 sm:mb-1.5">
-              <LaunchLogo className="w-full h-auto max-w-full max-h-[15vh] sm:max-h-[18vh] md:max-h-[22vh] object-contain" animate={false} />
+            <div className="w-full max-w-[340px] sm:max-w-[420px] md:max-w-[480px] max-h-[11vh] sm:max-h-[13vh] md:max-h-[15vh] flex items-center justify-center mb-0.5">
+              <LaunchLogo className="w-full h-auto max-w-full max-h-[11vh] sm:max-h-[13vh] md:max-h-[15vh] object-contain" animate={false} />
             </div>
             
-            <h2 className="font-orbitron font-black text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-0.5">
+            <h2 className="font-orbitron font-black text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-wider uppercase text-white drop-shadow-[0_0_18px_#ff1f43] mt-0.5">
               SCAN TO JOIN THE SME SURGE
             </h2>
-            <p className="text-[11px] sm:text-xs md:text-sm text-[#ff99aa] max-w-xl sm:max-w-2xl mt-0.5 sm:mt-1 px-4 leading-tight sm:leading-normal">
-              Everyone in the audience scan with your smartphone! When the activation begins, shake your phones together to surge the voltage to 100%!
+            <p className="text-[10px] sm:text-xs text-[#ff99aa] max-w-lg mt-0.5 px-4 leading-tight">
+              Everyone scan with your smartphone! When the activation begins, shake phones together to surge to 100%!
             </p>
           </div>
 
           {/* Center Stage: Split Hero Presentation Area (Matching Height QR Code + Connected Counter) */}
-          <div className="relative z-20 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center justify-items-center max-w-4xl lg:max-w-5xl mx-auto w-full my-auto px-2 sm:px-4">
+          <div className="relative z-20 flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 items-center justify-items-center max-w-3xl lg:max-w-4xl mx-auto w-full my-auto px-2 sm:px-4 py-1">
             
             {/* Left: Large High-Contrast Stage QR Code Box */}
-            <div className="flex items-center justify-center w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[390px] h-full max-h-[38vh] sm:max-h-[42vh] md:max-h-[46vh] min-h-[180px]">
+            <div className="flex items-center justify-center w-full max-w-[260px] sm:max-w-[290px] md:max-w-[320px] h-full max-h-[30vh] sm:max-h-[34vh] md:max-h-[36vh] min-h-[160px]">
               {tunnelReady || showLocalFallback ? (
-                <div className="relative w-full h-full p-3 sm:p-4 md:p-5 bg-white rounded-2xl sm:rounded-3xl shadow-[0_0_40px_rgba(255,31,67,0.75)] border-[3px] sm:border-4 border-[#ff1f43] flex items-center justify-center">
+                <div className="relative w-full h-full p-2.5 sm:p-3.5 bg-white rounded-2xl sm:rounded-3xl shadow-[0_0_35px_rgba(255,31,67,0.7)] border-[3px] sm:border-4 border-[#ff1f43] flex items-center justify-center">
                   <QRCodeSVG
                     value={controllerUrl}
-                    size={300}
+                    size={280}
                     level="H"
                     includeMargin={false}
                     className="w-full h-full max-h-[82%] max-w-[82%] object-contain"
                   />
-                  <div className="absolute -bottom-3 sm:-bottom-3.5 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[10px] sm:text-xs md:text-sm px-3 sm:px-4 py-0.5 sm:py-1 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_15px_#ff1f43] z-10">
+                  <div className="absolute -bottom-2.5 sm:-bottom-3 left-1/2 transform -translate-x-1/2 bg-[#120407] text-[#ff4d6d] font-orbitron font-bold text-[9px] sm:text-[10px] md:text-xs px-2.5 sm:px-3 py-0.5 border-2 border-[#ff1f43] rounded-full whitespace-nowrap shadow-[0_0_12px_#ff1f43] z-10">
                     {tunnelReady ? 'SCAN TO JOIN' : 'LOCAL WI-FI (FALLBACK)'}
                   </div>
                 </div>
@@ -1203,14 +1203,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </div>
 
             {/* Right: Live Audience Roster Box (Matching Height) */}
-            <div className="flex items-center justify-center w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] lg:max-w-[390px] h-full max-h-[38vh] sm:max-h-[42vh] md:max-h-[46vh] min-h-[180px]">
-              <div className="w-full h-full bg-gradient-to-b from-[#2a0a12]/95 via-[#180408]/95 to-[#0d0205]/95 border-2 border-[#ff1f43]/70 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-[0_0_40px_rgba(255,31,67,0.4)] flex flex-col justify-between sci-fi-cut relative overflow-hidden">
+            <div className="flex items-center justify-center w-full max-w-[260px] sm:max-w-[290px] md:max-w-[320px] h-full max-h-[30vh] sm:max-h-[34vh] md:max-h-[36vh] min-h-[160px]">
+              <div className="w-full h-full bg-gradient-to-b from-[#2a0a12]/95 via-[#180408]/95 to-[#0d0205]/95 border-2 border-[#ff1f43]/70 rounded-2xl sm:rounded-3xl p-2.5 sm:p-3.5 shadow-[0_0_35px_rgba(255,31,67,0.35)] flex flex-col justify-between sci-fi-cut relative overflow-hidden">
                 
                 {/* Header: Title & Live Count Badge */}
                 <div className="flex items-center justify-between pb-1.5 border-b border-[#4d131d] shrink-0">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <Users size={15} className="text-[#ff1f43] animate-pulse shrink-0" />
-                    <span className="font-orbitron font-bold text-xs sm:text-sm tracking-wider uppercase text-white drop-shadow-[0_0_8px_#ff1f43]">
+                    <Users size={14} className="text-[#ff1f43] animate-pulse shrink-0" />
+                    <span className="font-orbitron font-bold text-[11px] sm:text-xs md:text-sm tracking-wider uppercase text-white drop-shadow-[0_0_8px_#ff1f43]">
                       CONNECTED OPERATIVES
                     </span>
                   </div>
@@ -1225,15 +1225,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 {/* Real-Time Scrolling List of Joined Participants */}
                 <div 
                   ref={rosterListRef}
-                  className="flex-1 min-h-0 overflow-y-auto my-2 pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-[#ff1f43]/40 scrollbar-track-transparent select-none"
+                  className="flex-1 min-h-0 overflow-y-auto my-1.5 pr-1 space-y-1.5 scrollbar-thin scrollbar-thumb-[#ff1f43]/40 scrollbar-track-transparent select-none"
                 >
                   {joinedOperatives.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center p-3 text-center text-[#ff8095]/70 animate-pulse my-auto">
-                      <Smartphone size={24} className="text-[#ff1f43] mb-1.5 animate-bounce" />
-                      <span className="font-orbitron font-bold text-xs uppercase tracking-wider text-white">
+                      <Smartphone size={22} className="text-[#ff1f43] mb-1 animate-bounce" />
+                      <span className="font-orbitron font-bold text-[11px] uppercase tracking-wider text-white">
                         SCAN QR TO JOIN ROSTER
                       </span>
-                      <span className="text-[10px] text-[#ff8095]/80 mt-0.5">
+                      <span className="text-[9px] text-[#ff8095]/80 mt-0.5">
                         Your name will appear here in real-time!
                       </span>
                     </div>
@@ -1241,18 +1241,18 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     joinedOperatives.map((op, idx) => (
                       <div
                         key={op.id || idx}
-                        className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#24060c]/90 border border-[#ff1f43]/50 shadow-[0_0_10px_rgba(255,31,67,0.2)] animate-fade-in"
+                        className="flex items-center justify-between px-2 py-1 rounded-lg bg-[#24060c]/90 border border-[#ff1f43]/50 shadow-[0_0_10px_rgba(255,31,67,0.2)] animate-fade-in"
                       >
                         <div className="flex items-center gap-2 truncate min-w-0 pr-2">
-                          <div className="w-5 h-5 rounded-full bg-[#ff1f43]/20 border border-[#ff1f43] flex items-center justify-center shrink-0">
-                            <Smartphone size={11} className="text-[#ff1f43]" />
+                          <div className="w-4 h-4 rounded-full bg-[#ff1f43]/20 border border-[#ff1f43] flex items-center justify-center shrink-0">
+                            <Smartphone size={10} className="text-[#ff1f43]" />
                           </div>
-                          <span className="font-orbitron font-bold text-xs sm:text-sm text-white truncate drop-shadow-[0_0_6px_#ff1f43]">
+                          <span className="font-orbitron font-bold text-xs text-white truncate drop-shadow-[0_0_6px_#ff1f43]">
                             {op.name}
                           </span>
                         </div>
-                        <span className="font-orbitron text-[9px] text-green-400 font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        <span className="font-orbitron text-[8.5px] text-green-400 font-semibold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
                           READY
                         </span>
                       </div>
@@ -1261,14 +1261,14 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 </div>
 
                 {/* Footer Status Pill */}
-                <div className="pt-1.5 border-t border-[#4d131d] flex items-center justify-between text-[10px] text-[#ff8095] shrink-0">
+                <div className="pt-1 border-t border-[#4d131d] flex items-center justify-between text-[9.5px] text-[#ff8095] shrink-0">
                   <span className="truncate font-semibold flex items-center gap-1">
-                    <Radio size={11} className="text-[#ff1f43] animate-pulse shrink-0" />
+                    <Radio size={10} className="text-[#ff1f43] animate-pulse shrink-0" />
                     {(gameState.connectedCount || joinedOperatives.length) > 0 
-                      ? `${gameState.connectedCount || joinedOperatives.length} operative${(gameState.connectedCount || joinedOperatives.length) > 1 ? 's' : ''} ready to surge` 
+                      ? `${gameState.connectedCount || joinedOperatives.length} operative${(gameState.connectedCount || joinedOperatives.length) > 1 ? 's' : ''} ready` 
                       : 'Waiting for attendees...'}
                   </span>
-                  <span className="font-orbitron text-[9px] text-[#ffccd5] shrink-0 uppercase">
+                  <span className="font-orbitron text-[8.5px] text-[#ffccd5] shrink-0 uppercase">
                     STAGE SYNCED
                   </span>
                 </div>
@@ -1278,30 +1278,30 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
           </div>
 
-          {/* Bottom: Difficulty Level Selector & Start Launch Sequence CTA */}
-          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto mb-0.5 sm:mb-1 shrink-0 gap-1.5 sm:gap-2">
+          {/* Bottom Command Console: Difficulty Selector + Start Launch Sequence CTA */}
+          <div className="relative z-20 flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 md:gap-6 w-full max-w-2xl sm:max-w-3xl md:max-w-4xl mx-auto mb-1 sm:mb-2 shrink-0 px-2">
             
-            {/* Sci-Fi Difficulty Selector */}
-            <div className="w-full bg-[#180408]/90 border border-[#521520] p-1.5 sm:p-2 rounded-xl sci-fi-cut flex flex-col items-center shadow-[0_0_20px_rgba(0,0,0,0.6)]">
-              <div className="flex items-center justify-between w-full px-1.5 mb-1">
-                <span className="font-orbitron text-[9px] sm:text-[10px] tracking-[0.2em] font-bold text-[#ff8095] uppercase flex items-center gap-1.5">
+            {/* Left: Sci-Fi Difficulty Selector */}
+            <div className="w-full sm:w-[48%] bg-[#180408]/90 border border-[#521520] px-2.5 py-1.5 sm:py-2 rounded-xl sci-fi-cut flex flex-col justify-between shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+              <div className="flex items-center justify-between w-full px-1 mb-1">
+                <span className="font-orbitron text-[9px] sm:text-[10px] tracking-[0.15em] font-bold text-[#ff8095] uppercase flex items-center gap-1">
                   <Flame size={12} className="text-[#ff1f43] animate-pulse" />
-                  ACTIVATION DIFFICULTY
+                  DIFFICULTY
                 </span>
-                <span className="font-orbitron text-[9px] sm:text-[10px] text-gray-400 font-medium uppercase">
-                  {difficulty === 'easy' ? 'Casual • Low Decay' : (difficulty === 'hard' ? 'Extreme • High Drain' : 'Standard • High Tension')}
+                <span className="font-orbitron text-[8.5px] sm:text-[9px] text-gray-300 font-semibold uppercase">
+                  {difficulty === 'easy' ? 'Casual' : (difficulty === 'hard' ? 'Extreme Drain' : 'Standard')}
                 </span>
               </div>
 
               {/* 3 Difficulty Segment Buttons */}
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
+              <div className="grid grid-cols-3 gap-1.5 w-full">
                 {/* EASY */}
                 <button
                   type="button"
                   onClick={() => handleSelectDifficulty('easy')}
-                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                  className={`py-1 px-1 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[9px] sm:text-[10px] tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
                     difficulty === 'easy'
-                      ? 'bg-gradient-to-r from-[#0d3319] via-[#15803d] to-[#0d3319] border-green-400 text-white shadow-[0_0_15px_rgba(74,222,128,0.5)] scale-[1.02]'
+                      ? 'bg-gradient-to-r from-[#0d3319] via-[#15803d] to-[#0d3319] border-green-400 text-white shadow-[0_0_12px_rgba(74,222,128,0.5)] scale-[1.02]'
                       : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
                   }`}
                 >
@@ -1309,8 +1309,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'easy' ? 'bg-green-400 animate-ping' : 'bg-gray-600'}`} />
                     <span>EASY</span>
                   </div>
-                  <span className="text-[8px] sm:text-[9px] text-green-200/70 font-mono font-normal tracking-tight">
-                    Low Resistance
+                  <span className="text-[7.5px] sm:text-[8px] text-green-200/70 font-mono font-normal">
+                    Low Decay
                   </span>
                 </button>
 
@@ -1318,9 +1318,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 <button
                   type="button"
                   onClick={() => handleSelectDifficulty('medium')}
-                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                  className={`py-1 px-1 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[9px] sm:text-[10px] tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
                     difficulty === 'medium'
-                      ? 'bg-gradient-to-r from-[#5a2e0a] via-[#d97706] to-[#5a2e0a] border-amber-400 text-white shadow-[0_0_18px_rgba(251,191,36,0.6)] scale-[1.02]'
+                      ? 'bg-gradient-to-r from-[#5a2e0a] via-[#d97706] to-[#5a2e0a] border-amber-400 text-white shadow-[0_0_15px_rgba(251,191,36,0.6)] scale-[1.02]'
                       : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
                   }`}
                 >
@@ -1328,7 +1328,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'medium' ? 'bg-amber-400 animate-ping' : 'bg-gray-600'}`} />
                     <span>MEDIUM</span>
                   </div>
-                  <span className="text-[8px] sm:text-[9px] text-amber-200/70 font-mono font-normal tracking-tight">
+                  <span className="text-[7.5px] sm:text-[8px] text-amber-200/70 font-mono font-normal">
                     Steep Climax
                   </span>
                 </button>
@@ -1337,9 +1337,9 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 <button
                   type="button"
                   onClick={() => handleSelectDifficulty('hard')}
-                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                  className={`py-1 px-1 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[9px] sm:text-[10px] tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
                     difficulty === 'hard'
-                      ? 'bg-gradient-to-r from-[#6b0f1e] via-[#ff1f43] to-[#6b0f1e] border-red-400 text-white shadow-[0_0_20px_rgba(255,31,67,0.8)] scale-[1.02] animate-pulse'
+                      ? 'bg-gradient-to-r from-[#6b0f1e] via-[#ff1f43] to-[#6b0f1e] border-red-400 text-white shadow-[0_0_18px_rgba(255,31,67,0.8)] scale-[1.02] animate-pulse'
                       : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
                   }`}
                 >
@@ -1347,24 +1347,27 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                     <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'hard' ? 'bg-red-400 animate-ping' : 'bg-gray-600'}`} />
                     <span>HARD 🔥</span>
                   </div>
-                  <span className="text-[8px] sm:text-[9px] text-red-200/70 font-mono font-normal tracking-tight">
+                  <span className="text-[7.5px] sm:text-[8px] text-red-200/70 font-mono font-normal">
                     Heavy Drain
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Launch CTA Button */}
-            <button
-              onClick={handleStartGame}
-              className="w-full py-2.5 sm:py-3.5 md:py-4 px-6 sm:px-8 sci-fi-cut font-orbitron font-black text-sm sm:text-lg md:text-xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-2.5 sm:gap-3"
-            >
-              <Play size={18} className="text-white fill-white shrink-0" />
-              <span>START LAUNCH ACTIVATION</span>
-            </button>
-            <span className="text-[10px] sm:text-xs text-[#a03d4c] font-mono">
-              [Spacebar] or [S] Start • [1/2/3] Difficulty (Easy/Med/Hard)
-            </span>
+            {/* Right: Launch CTA Button */}
+            <div className="w-full sm:w-[48%] flex flex-col items-center justify-center">
+              <button
+                onClick={handleStartGame}
+                className="w-full py-2.5 sm:py-3 px-4 sm:px-6 sci-fi-cut font-orbitron font-black text-xs sm:text-sm md:text-base tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/70 cursor-pointer transition-all flex items-center justify-center gap-2"
+              >
+                <Play size={16} className="text-white fill-white shrink-0" />
+                <span>START LAUNCH ACTIVATION</span>
+              </button>
+              <span className="text-[9px] sm:text-[10px] text-[#a03d4c] mt-1 font-mono">
+                [Space] or [S] Start • [1/2/3] Set Difficulty
+              </span>
+            </div>
+
           </div>
 
         </div>
