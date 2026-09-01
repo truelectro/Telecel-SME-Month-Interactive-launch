@@ -34,6 +34,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
 
   const {
     status = 'lobby',
+    difficulty = 'medium',
     voltage = 0,
     connectedCount = 1,
   } = gameState || {};
@@ -747,7 +748,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
             <span className={`text-[9px] sm:text-[10px] uppercase font-semibold tracking-wider ${
               isPlaying ? 'text-[#ff4d6d] animate-pulse' : 'text-[#8c2d3c]'
             }`}>
-              {isPlaying ? 'OVERCHARGE ACTIVE' : 'LOBBY STANDBY'}
+              {isPlaying ? `OVERCHARGE • ${difficulty.toUpperCase()}` : `STANDBY • ${difficulty.toUpperCase()}`}
             </span>
           </div>
         </div>

@@ -96,6 +96,12 @@ export default function App() {
       }));
     });
 
+    net.on('difficulty_changed', ({ difficulty }) => {
+      if (difficulty) {
+        setGameState((prev) => ({ ...prev, difficulty }));
+      }
+    });
+
     net.on('game_state_update', (updatedState) => {
       setIsConnected(true);
       setGameState((prev) => ({ ...prev, ...updatedState }));

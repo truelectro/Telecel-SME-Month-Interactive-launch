@@ -27,11 +27,65 @@ const ICE_SERVERS = [
 const EVENT_CONFIG = {
   MAX_CAPACITY: 250,
   ROUND_TIME_SECONDS: 90,
-  DECAY_RATE_PER_SEC: 4.5,       // Hardened high-energy decay
-  SHAKE_VOLTAGE_BASE: 0.45,     // Hardened per-shake power
+  DECAY_RATE_PER_SEC: 4.8,
+  SHAKE_VOLTAGE_BASE: 0.45,
   COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
+};
+
+const DIFFICULTY_PROFILES = {
+  easy: {
+    label: 'EASY',
+    decayBase: 3.5,
+    decayGraceMs: 450,
+    getDecayMultiplier(voltage) {
+      if (voltage > 85) return 1.6;
+      if (voltage > 65) return 1.3;
+      if (voltage > 45) return 1.15;
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 85) return 0.40;
+      if (voltage > 65) return 0.65;
+      if (voltage > 45) return 0.85;
+      return 1.0;
+    },
+  },
+  medium: {
+    label: 'MEDIUM',
+    decayBase: 4.8,
+    decayGraceMs: 380,
+    getDecayMultiplier(voltage) {
+      if (voltage > 85) return 2.6; // 12.5%/s drain
+      if (voltage > 65) return 1.8; // 8.6%/s drain
+      if (voltage > 40) return 1.35; // 6.5%/s drain
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 85) return 0.16; // 84% resistance wall in climax!
+      if (voltage > 65) return 0.35; // 65% resistance in mid-high
+      if (voltage > 40) return 0.55; // 45% resistance in mid
+      return 1.0;
+    },
+  },
+  hard: {
+    label: 'HARD',
+    decayBase: 5.5,
+    decayGraceMs: 320,
+    getDecayMultiplier(voltage) {
+      if (voltage > 80) return 3.4; // 18.7%/s brutal climax drain!
+      if (voltage > 60) return 2.2; // 12.1%/s high drain
+      if (voltage > 35) return 1.5; // 8.25%/s mid drain
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 80) return 0.10; // 90% resistance wall! Peak group sync required!
+      if (voltage > 60) return 0.22; // 78% resistance in mid-high
+      if (voltage > 35) return 0.42; // 58% resistance in mid
+      return 1.0;
+    },
+  },
 };
 
 /**
@@ -46,6 +100,7 @@ class BrowserHostEngine {
 
     this.gameState = {
       status: 'lobby',
+      difficulty: 'medium', // 'easy' | 'medium' | 'hard'
       voltage: 0.0,
       score: 0,
       highScore: 50000,
@@ -105,25 +160,17 @@ class BrowserHostEngine {
       const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
 
       if (this.gameState.status === 'playing') {
-        // Dynamic Progressive Voltage Decay (Increases with voltage for dramatic climax tension)
+        const diffProfile = DIFFICULTY_PROFILES[this.gameState.difficulty] || DIFFICULTY_PROFILES.medium;
         const timeSinceShake = now - this.gameState.lastActiveShakeTime;
-        let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
-
-        if (this.gameState.voltage > 85) {
-          currentDecay *= 2.0; // Climax tension drain (9.0%/s)
-        } else if (this.gameState.voltage > 70) {
-          currentDecay *= 1.5;
-        } else if (this.gameState.voltage > 45) {
-          currentDecay *= 1.25;
-        }
+        let currentDecay = diffProfile.decayBase * diffProfile.getDecayMultiplier(this.gameState.voltage);
 
         // IDLE PARTICIPANT RESISTANCE PENALTY:
         if (totalOperatives >= 2 && idleCount > 0) {
-          const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.2);
+          const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.3);
           currentDecay *= idlePenalty;
         }
 
-        if (timeSinceShake > 400) {
+        if (timeSinceShake > diffProfile.decayGraceMs) {
           this.gameState.voltage = Math.max(0, this.gameState.voltage - (currentDecay * dt));
         }
 
@@ -164,6 +211,7 @@ class BrowserHostEngine {
           this.broadcast('game_state_update', {
             connectedCount: this.gameState.connectedCount,
             status: this.gameState.status,
+            difficulty: this.gameState.difficulty,
             voltage: Number(this.gameState.voltage.toFixed(2)),
           });
         }
@@ -172,6 +220,7 @@ class BrowserHostEngine {
       // Broadcast state update (30Hz)
       const payload = {
         status: this.gameState.status,
+        difficulty: this.gameState.difficulty,
         voltage: Number(this.gameState.voltage.toFixed(2)),
         score: this.gameState.score,
         highScore: this.gameState.highScore,
@@ -390,16 +439,10 @@ class BrowserHostEngine {
       const totalPlayers = Math.max(1, Object.keys(this.gameState.players).length);
       const clampedIntensity = Math.min(2.2, Math.max(0.6, intensity));
 
-      // Progressive electromagnetic resistance curve
+      // Progressive electromagnetic resistance curve based on chosen difficulty
+      const diffProfile = DIFFICULTY_PROFILES[this.gameState.difficulty] || DIFFICULTY_PROFILES.medium;
       const currentVolt = Math.min(100, Math.max(0, this.gameState.voltage));
-      let resistanceFactor = 1.0;
-      if (currentVolt > 85) {
-        resistanceFactor = 0.25; // 25% throughput (climax wall)
-      } else if (currentVolt > 65) {
-        resistanceFactor = 0.45; // 45% throughput
-      } else if (currentVolt > 40) {
-        resistanceFactor = 0.65; // 65% throughput
-      }
+      const resistanceFactor = diffProfile.getResistanceFactor(currentVolt);
 
       // Generation Efficiency Drag from Inactive Phones (applies with 2+ players)
       let participationFactor = 1.0;
@@ -423,6 +466,19 @@ class BrowserHostEngine {
         name: player?.name || 'Operative',
         intensity: clampedIntensity,
         voltage: this.gameState.voltage,
+      });
+    }
+  }
+
+  handleSetDifficulty(difficulty) {
+    if (['easy', 'medium', 'hard'].includes(difficulty)) {
+      this.gameState.difficulty = difficulty;
+      this.broadcast('difficulty_changed', { difficulty });
+      this.broadcast('game_state_update', {
+        difficulty,
+        status: this.gameState.status,
+        voltage: Number(this.gameState.voltage.toFixed(2)),
+        connectedCount: this.gameState.connectedCount,
       });
     }
   }
@@ -538,6 +594,8 @@ export class RealtimeNetwork {
       this.hostEngine.handleStartGame();
     } else if (event === 'reset_game') {
       this.hostEngine.handleResetGame();
+    } else if (event === 'set_difficulty') {
+      this.hostEngine.handleSetDifficulty(data?.difficulty || 'medium');
     }
   }
 
@@ -655,7 +713,7 @@ export class RealtimeNetwork {
         'participant_joined', 'participant_updated', 'participant_left', 'surge_pulse',
         'boost_activated', 'multiplier_up', 'game_victory',
         'game_over', 'game_started', 'game_reset', 'tunnel_ready',
-        'countdown_started', 'countdown_tick'
+        'countdown_started', 'countdown_tick', 'difficulty_changed'
       ];
 
       events.forEach(evt => {
@@ -804,6 +862,8 @@ export class RealtimeNetwork {
           this.hostEngine.handleShakePulse(connId, data?.intensity, data?.playerName || '');
         } else if (event === 'trigger_boost') {
           this.hostEngine.handleTriggerBoost();
+        } else if (event === 'set_difficulty') {
+          this.hostEngine.handleSetDifficulty(data?.difficulty || 'medium');
         } else if (event === 'sensor_status') {
           if (this.hostEngine.gameState.players[connId]) {
             this.hostEngine.gameState.players[connId].sensorActive = data?.active;

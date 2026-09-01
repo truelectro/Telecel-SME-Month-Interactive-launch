@@ -158,22 +158,77 @@ app.get('*', (req, res) => {
 });
 
 // ----------------------------------------------------
-// LAUNCH EVENT ACTIVATION ENGINE (CONFIGURABLE CAPACITY)
+// LAUNCH EVENT ACTIVATION ENGINE (CONFIGURABLE CAPACITY & DIFFICULTY)
 // ----------------------------------------------------
 const EVENT_CONFIG = {
   MAX_CAPACITY: parseInt(process.env.MAX_CAPACITY || '250', 10),
   ROUND_TIME_SECONDS: parseInt(process.env.ROUND_TIME_SECONDS || '90', 10),
-  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.5'),       // Hardened high-energy decay
-  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.45'),     // Hardened per-shake power
+  DECAY_RATE_PER_SEC: parseFloat(process.env.DECAY_RATE_PER_SEC || '4.8'),
+  SHAKE_VOLTAGE_BASE: parseFloat(process.env.SHAKE_VOLTAGE_BASE || '0.45'),
   COMBO_DECAY_TIME_MS: 400,
   BOOST_AMOUNT: 3.5,
   INITIAL_BOOST_CHARGES: 3,
+};
+
+const DIFFICULTY_PROFILES = {
+  easy: {
+    label: 'EASY',
+    decayBase: 3.5,
+    decayGraceMs: 450,
+    getDecayMultiplier(voltage) {
+      if (voltage > 85) return 1.6;
+      if (voltage > 65) return 1.3;
+      if (voltage > 45) return 1.15;
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 85) return 0.40;
+      if (voltage > 65) return 0.65;
+      if (voltage > 45) return 0.85;
+      return 1.0;
+    },
+  },
+  medium: {
+    label: 'MEDIUM',
+    decayBase: 4.8,
+    decayGraceMs: 380,
+    getDecayMultiplier(voltage) {
+      if (voltage > 85) return 2.6; // 12.5%/s drain
+      if (voltage > 65) return 1.8; // 8.6%/s drain
+      if (voltage > 40) return 1.35; // 6.5%/s drain
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 85) return 0.16; // 84% resistance wall in climax!
+      if (voltage > 65) return 0.35; // 65% resistance in mid-high
+      if (voltage > 40) return 0.55; // 45% resistance in mid
+      return 1.0;
+    },
+  },
+  hard: {
+    label: 'HARD',
+    decayBase: 5.5,
+    decayGraceMs: 320,
+    getDecayMultiplier(voltage) {
+      if (voltage > 80) return 3.4; // 18.7%/s brutal climax drain!
+      if (voltage > 60) return 2.2; // 12.1%/s high drain
+      if (voltage > 35) return 1.5; // 8.25%/s mid drain
+      return 1.0;
+    },
+    getResistanceFactor(voltage) {
+      if (voltage > 80) return 0.10; // 90% resistance wall! Peak group sync required!
+      if (voltage > 60) return 0.22; // 78% resistance in mid-high
+      if (voltage > 35) return 0.42; // 58% resistance in mid
+      return 1.0;
+    },
+  },
 };
 
 let participantCounter = 0;
 
 let gameState = {
   status: 'lobby', // 'lobby' | 'countdown' | 'playing' | 'victory' | 'gameover'
+  difficulty: 'medium', // 'easy' | 'medium' | 'hard'
   voltage: 0.0,
   score: 0,
   highScore: 50000,
@@ -232,26 +287,18 @@ setInterval(() => {
   const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
 
   if (gameState.status === 'playing') {
-    // 1. Progressive Voltage Decay (Drains if audience stops shaking for > 400ms)
+    const diffProfile = DIFFICULTY_PROFILES[gameState.difficulty] || DIFFICULTY_PROFILES.medium;
     const timeSinceShake = now - gameState.lastActiveShakeTime;
-    let currentDecay = EVENT_CONFIG.DECAY_RATE_PER_SEC;
-    
-    if (gameState.voltage > 85) {
-      currentDecay *= 2.0; // Climax tension drain (9.0%/s)
-    } else if (gameState.voltage > 70) {
-      currentDecay *= 1.5;
-    } else if (gameState.voltage > 45) {
-      currentDecay *= 1.25;
-    }
+    let currentDecay = diffProfile.decayBase * diffProfile.getDecayMultiplier(gameState.voltage);
 
     // IDLE PARTICIPANT RESISTANCE PENALTY:
     // When attendees stop shaking, their idle devices create a parasitic circuit load
     if (totalOperatives >= 2 && idleCount > 0) {
-      const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.2); // Up to +120% faster decay
+      const idlePenalty = 1.0 + ((1.0 - activeRatio) * 1.3); // Up to +130% faster decay
       currentDecay *= idlePenalty;
     }
 
-    if (timeSinceShake > 400) {
+    if (timeSinceShake > diffProfile.decayGraceMs) {
       gameState.voltage = Math.max(0, gameState.voltage - (currentDecay * dt));
     }
 
@@ -296,6 +343,7 @@ setInterval(() => {
   // Broadcast state update (30Hz throttled for network efficiency)
   io.emit('game_state_update', {
     status: gameState.status,
+    difficulty: gameState.difficulty,
     voltage: Number(gameState.voltage.toFixed(2)),
     score: gameState.score,
     highScore: gameState.highScore,
@@ -478,16 +526,10 @@ io.on('connection', (socket) => {
         const totalPlayers = Math.max(1, Object.keys(gameState.players).length);
         const clampedIntensity = Math.min(2.2, Math.max(0.6, intensity));
 
-        // Progressive electromagnetic resistance curve
+        // Progressive electromagnetic resistance curve based on chosen difficulty
+        const diffProfile = DIFFICULTY_PROFILES[gameState.difficulty] || DIFFICULTY_PROFILES.medium;
         const currentVolt = Math.min(100, Math.max(0, gameState.voltage));
-        let resistanceFactor = 1.0;
-        if (currentVolt > 85) {
-          resistanceFactor = 0.25; // 25% throughput (climax wall)
-        } else if (currentVolt > 65) {
-          resistanceFactor = 0.45; // 45% throughput
-        } else if (currentVolt > 40) {
-          resistanceFactor = 0.65; // 65% throughput
-        }
+        const resistanceFactor = diffProfile.getResistanceFactor(currentVolt);
 
         // Generation Efficiency Drag from Inactive Phones (applies with 2+ players)
         let participationFactor = 1.0;
@@ -517,6 +559,26 @@ io.on('connection', (socket) => {
       }
     } catch (err) {
       console.warn('shake_pulse notice:', err);
+    }
+  });
+
+  // Difficulty change trigger from lobby
+  socket.on('set_difficulty', (payload = {}) => {
+    try {
+      const diff = payload?.difficulty;
+      if (['easy', 'medium', 'hard'].includes(diff)) {
+        gameState.difficulty = diff;
+        io.emit('difficulty_changed', { difficulty: diff });
+        io.emit('game_state_update', {
+          difficulty: diff,
+          status: gameState.status,
+          voltage: Number(gameState.voltage.toFixed(2)),
+          connectedCount: gameState.connectedCount,
+        });
+        console.log(`🎮 Activation difficulty set to: ${diff.toUpperCase()}`);
+      }
+    } catch (err) {
+      console.warn('set_difficulty notice:', err);
     }
   });
 

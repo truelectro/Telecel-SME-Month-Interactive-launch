@@ -15,7 +15,8 @@ import {
   Keyboard,
   QrCode,
   Play,
-  Radio
+  Radio,
+  Flame
 } from 'lucide-react';
 import ReactorCanvas from './ReactorCanvas';
 import LaunchLogo from './LaunchLogo';
@@ -53,6 +54,7 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
   const {
     status = 'lobby',
+    difficulty = 'medium',
     voltage = 0,
     score = 0,
   } = gameState || {};
@@ -502,6 +504,27 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       } else if (e.code === 'KeyS' && status === 'lobby') {
         e.preventDefault();
         handleStartGame();
+      } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+        if (status === 'lobby') {
+          e.preventDefault();
+          handleSelectDifficulty('easy');
+        }
+      } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+        if (status === 'lobby') {
+          e.preventDefault();
+          handleSelectDifficulty('medium');
+        }
+      } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+        if (status === 'lobby') {
+          e.preventDefault();
+          handleSelectDifficulty('hard');
+        }
+      } else if (e.code === 'KeyD') {
+        if (status === 'lobby') {
+          e.preventDefault();
+          const next = difficulty === 'easy' ? 'medium' : (difficulty === 'medium' ? 'hard' : 'easy');
+          handleSelectDifficulty(next);
+        }
       } else if (e.code === 'KeyR') {
         e.preventDefault();
         handleResetGame();
@@ -513,7 +536,15 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [socket, status]);
+  }, [socket, status, difficulty]);
+
+  const handleSelectDifficulty = (level) => {
+    audioEngine.ensureRunning();
+    try { audioEngine.playCountdownBeep(2); } catch (e) {}
+    if (socket) {
+      socket.emit('set_difficulty', { difficulty: level });
+    }
+  };
 
   const handleStartGame = () => {
     audioEngine.ensureRunning();
@@ -981,23 +1012,27 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
             </p>
           </div>
 
-          {/* REAL-TIME SYSTEM CORE STATUS CARD */}
+          {/* REAL-TIME SYSTEM CORE STATUS / DIFFICULTY CARD */}
           <div className="hud-panel p-2.5 sm:p-3 sci-fi-cut flex items-center justify-between">
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Activity size={15} className="text-[#ff1f43] animate-pulse" />
+              <Flame size={15} className="text-[#ff1f43] animate-pulse" />
               <span className="font-orbitron font-bold text-[11px] sm:text-xs text-gray-200 uppercase tracking-wider">
-                CORE STATUS
+                DIFFICULTY
               </span>
             </div>
-            <span className="font-orbitron font-black text-xs sm:text-sm text-[#ff4d6d] tracking-widest uppercase">
-              {status === 'playing' ? (voltage > 75 ? 'MAX OVERCHARGE' : 'POWER RISING') : 'LOBBY STANDBY'}
+            <span className={`font-orbitron font-black text-xs sm:text-sm tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${
+              difficulty === 'easy' 
+                ? 'text-green-400 border-green-500/50 bg-green-950/40' 
+                : (difficulty === 'hard' ? 'text-red-400 border-red-500/50 bg-red-950/40 shadow-[0_0_8px_#ff1f43]' : 'text-amber-400 border-amber-500/50 bg-amber-950/40')
+            }`}>
+              {difficulty.toUpperCase()}
             </span>
           </div>
 
           {/* Quick Keyboard Hint */}
           <div className="text-[10px] text-center text-[#7a2c39] flex items-center justify-center gap-1 mt-0.5">
             <Keyboard size={12} />
-            <span>Shortcuts: [S] Start • [Space] Shake • [C] 150 Crowd Sim • [R] Reset</span>
+            <span>Shortcuts: [S] Start • [1/2/3/D] Difficulty • [Space] Shake • [C] Crowd Sim • [R] Reset</span>
           </div>
 
         </div>
@@ -1243,8 +1278,83 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
           </div>
 
-          {/* Bottom: Start Launch Sequence CTA */}
-          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto mb-0.5 sm:mb-1 shrink-0">
+          {/* Bottom: Difficulty Level Selector & Start Launch Sequence CTA */}
+          <div className="relative z-20 flex flex-col items-center justify-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto mb-0.5 sm:mb-1 shrink-0 gap-1.5 sm:gap-2">
+            
+            {/* Sci-Fi Difficulty Selector */}
+            <div className="w-full bg-[#180408]/90 border border-[#521520] p-1.5 sm:p-2 rounded-xl sci-fi-cut flex flex-col items-center shadow-[0_0_20px_rgba(0,0,0,0.6)]">
+              <div className="flex items-center justify-between w-full px-1.5 mb-1">
+                <span className="font-orbitron text-[9px] sm:text-[10px] tracking-[0.2em] font-bold text-[#ff8095] uppercase flex items-center gap-1.5">
+                  <Flame size={12} className="text-[#ff1f43] animate-pulse" />
+                  ACTIVATION DIFFICULTY
+                </span>
+                <span className="font-orbitron text-[9px] sm:text-[10px] text-gray-400 font-medium uppercase">
+                  {difficulty === 'easy' ? 'Casual • Low Decay' : (difficulty === 'hard' ? 'Extreme • High Drain' : 'Standard • High Tension')}
+                </span>
+              </div>
+
+              {/* 3 Difficulty Segment Buttons */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
+                {/* EASY */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectDifficulty('easy')}
+                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                    difficulty === 'easy'
+                      ? 'bg-gradient-to-r from-[#0d3319] via-[#15803d] to-[#0d3319] border-green-400 text-white shadow-[0_0_15px_rgba(74,222,128,0.5)] scale-[1.02]'
+                      : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'easy' ? 'bg-green-400 animate-ping' : 'bg-gray-600'}`} />
+                    <span>EASY</span>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] text-green-200/70 font-mono font-normal tracking-tight">
+                    Low Resistance
+                  </span>
+                </button>
+
+                {/* MEDIUM (DEFAULT) */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectDifficulty('medium')}
+                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                    difficulty === 'medium'
+                      ? 'bg-gradient-to-r from-[#5a2e0a] via-[#d97706] to-[#5a2e0a] border-amber-400 text-white shadow-[0_0_18px_rgba(251,191,36,0.6)] scale-[1.02]'
+                      : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'medium' ? 'bg-amber-400 animate-ping' : 'bg-gray-600'}`} />
+                    <span>MEDIUM</span>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] text-amber-200/70 font-mono font-normal tracking-tight">
+                    Steep Climax
+                  </span>
+                </button>
+
+                {/* HARD */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectDifficulty('hard')}
+                  className={`py-1.5 px-2 rounded-lg sci-fi-cut-sm font-orbitron font-black text-[10px] sm:text-xs tracking-wider uppercase transition-all flex flex-col items-center justify-center cursor-pointer border ${
+                    difficulty === 'hard'
+                      ? 'bg-gradient-to-r from-[#6b0f1e] via-[#ff1f43] to-[#6b0f1e] border-red-400 text-white shadow-[0_0_20px_rgba(255,31,67,0.8)] scale-[1.02] animate-pulse'
+                      : 'bg-[#120407]/80 border-[#3d1017] text-gray-400 hover:text-white hover:border-[#661a27] hover:bg-[#20080e]'
+                  }`}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${difficulty === 'hard' ? 'bg-red-400 animate-ping' : 'bg-gray-600'}`} />
+                    <span>HARD 🔥</span>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] text-red-200/70 font-mono font-normal tracking-tight">
+                    Heavy Drain
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Launch CTA Button */}
             <button
               onClick={handleStartGame}
               className="w-full py-2.5 sm:py-3.5 md:py-4 px-6 sm:px-8 sci-fi-cut font-orbitron font-black text-sm sm:text-lg md:text-xl tracking-widest uppercase bg-gradient-to-r from-[#941026] via-[#ff1f43] to-[#941026] hover:from-[#b01430] hover:via-[#ff3d5e] hover:to-[#b01430] active:scale-95 text-white shadow-neon-red-lg border-2 border-white/60 cursor-pointer transition-all flex items-center justify-center gap-2.5 sm:gap-3"
@@ -1252,8 +1362,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
               <Play size={18} className="text-white fill-white shrink-0" />
               <span>START LAUNCH ACTIVATION</span>
             </button>
-            <span className="text-[10px] sm:text-xs text-[#a03d4c] mt-1 font-mono">
-              [Spacebar] or [S] on keyboard to start
+            <span className="text-[10px] sm:text-xs text-[#a03d4c] font-mono">
+              [Spacebar] or [S] Start • [1/2/3] Difficulty (Easy/Med/Hard)
             </span>
           </div>
 
