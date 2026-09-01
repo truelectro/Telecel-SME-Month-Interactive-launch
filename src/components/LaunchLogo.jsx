@@ -3,10 +3,10 @@ import React from 'react';
 export default function LaunchLogo({ className = "w-full max-w-[640px] max-h-[58vh] h-auto", animate = true }) {
   return (
     <div className={`relative w-full flex items-center justify-center ${animate ? 'animate-logo-surge' : ''}`}>
-      {/* Dynamic Full-Bleed Energy Shockwave Backdrop */}
+      {/* Dynamic Full-Bleed Energy Shockwave Backdrop (Stable, Non-Flickering Glow) */}
       {animate && (
         <>
-          <div className="absolute w-[260%] h-[260%] rounded-full bg-gradient-to-r from-[#ff1f43]/40 via-[#d03b33]/30 to-[#ff4d6d]/40 blur-[90px] animate-pulse pointer-events-none" />
+          <div className="absolute w-[260%] h-[260%] rounded-full bg-gradient-to-r from-[#ff1f43]/40 via-[#d03b33]/30 to-[#ff4d6d]/40 blur-[90px] pointer-events-none" />
           <div className="absolute w-[160%] h-[160%] rounded-full bg-[#ff4d6d]/40 blur-[60px] pointer-events-none" />
         </>
       )}

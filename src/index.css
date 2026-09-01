@@ -92,31 +92,20 @@
   animation: atmospheric-flash 7s infinite ease-in-out;
 }
 
-/* Cinematic Logo Reveal Animation */
+/* Cinematic Logo Reveal Animation (Smooth & Flash-Free) */
 @keyframes logo-surge {
   0% {
     opacity: 0;
-    transform: scale(0.65) translateY(30px);
-    filter: brightness(3.5) drop-shadow(0 0 70px #ffffff);
-  }
-  35% {
-    opacity: 1;
-    transform: scale(1.08) translateY(-6px);
-    filter: brightness(2) drop-shadow(0 0 60px #ff1f43);
-  }
-  65% {
-    transform: scale(0.98) translateY(0);
-    filter: brightness(1.2) drop-shadow(0 0 45px #d03b33);
+    transform: scale(0.88) translateY(12px);
   }
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
-    filter: brightness(1) drop-shadow(0 0 35px #d03b33);
   }
 }
 
 .animate-logo-surge {
-  animation: logo-surge 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: logo-surge 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Hi-Tech Cyber Entry Animations */

@@ -605,11 +605,11 @@ export default function MobileController({ socket, gameState, isConnected: propC
           paddingTop: 'max(env(safe-area-inset-top), 14px)', 
           paddingBottom: 'max(env(safe-area-inset-bottom), 14px)' 
         }}
-        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#660a18] via-[#26050b] to-[#540715] z-50 animate-fade-in"
+        className="fixed inset-0 h-[100dvh] w-full text-white flex flex-col items-center justify-between p-3 sm:p-4 overflow-hidden select-none font-rajdhani touch-none bg-gradient-to-b from-[#660a18] via-[#26050b] to-[#540715] z-50"
       >
         {/* Fullscreen Edge-to-Edge Radial Energy Backdrop & Side Ambient Lighting */}
         <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220vw] h-[220vh] rounded-full bg-[#ff1f43]/30 blur-[100px] animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[220vw] h-[220vh] rounded-full bg-[#ff1f43]/30 blur-[100px]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#ff1f43]/35 via-transparent to-[#ff1f43]/35 pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140vw] h-[140vh] rounded-full bg-[#ff4d6d]/35 blur-[80px]" />
           <div className="absolute inset-0 scanlines opacity-15" />
@@ -624,7 +624,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
         </div>
 
         {/* Top Welcome Badge */}
-        <div className="relative z-20 shrink-0 text-center animate-fade-in pt-1">
+        <div className="relative z-20 shrink-0 text-center pt-1">
           <div className="inline-flex items-center px-6 sm:px-8 py-1.5 bg-[#2b080f]/95 border-2 border-[#ff1f43] rounded-full shadow-[0_0_30px_rgba(255,31,67,0.85)] backdrop-blur-md">
             <span className="font-orbitron font-black text-xs sm:text-sm tracking-[0.3em] text-white uppercase drop-shadow-[0_0_10px_#ffffff]">
               WELCOME TO
@@ -633,7 +633,7 @@ export default function MobileController({ socket, gameState, isConnected: propC
         </div>
 
         {/* Center: Full-Bleed Edge-to-Edge Hero Launch Logo */}
-        <div className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center px-1 my-auto animate-logo-surge">
+        <div className="relative z-20 flex-1 min-h-0 w-full flex items-center justify-center px-1 my-auto">
           <LaunchLogo 
             className="w-full h-auto max-w-[96vw] max-h-[66vh] object-contain drop-shadow-[0_0_40px_rgba(255,31,67,0.95)]" 
             animate={true} 
@@ -641,12 +641,12 @@ export default function MobileController({ socket, gameState, isConnected: propC
         </div>
 
         {/* Bottom Activation Status Tagline */}
-        <div className="relative z-20 text-center flex items-center justify-center gap-2 shrink-0 animate-fade-in pb-1.5">
-          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0 animate-ping" />
+        <div className="relative z-20 text-center flex items-center justify-center gap-2 shrink-0 pb-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
           <span className="font-orbitron font-bold text-[10px] sm:text-xs text-[#ff99aa] uppercase tracking-[0.2em] drop-shadow-[0_0_8px_#ff1f43]">
             TELECEL SME MONTH • OFFICIAL ACTIVATION COMPLETE
           </span>
-          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-[#ff1f43] shadow-[0_0_8px_#ff1f43] shrink-0" />
         </div>
       </div>
     );
