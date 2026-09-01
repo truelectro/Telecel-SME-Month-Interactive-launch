@@ -29,7 +29,7 @@ export default function AuthLockScreen({ onUnlock }) {
     }
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!password.trim() || isSubmitting) return;
 
@@ -38,33 +38,38 @@ export default function AuthLockScreen({ onUnlock }) {
 
     audioEngine.ensureRunning();
 
-    // Verify password
-    const success = authenticate(password);
+    try {
+      // Verify password securely
+      const success = await authenticate(password);
 
-    if (success) {
-      setIsSuccess(true);
-      try {
-        audioEngine.playBoostSurge();
-      } catch (err) {}
+      if (success) {
+        setIsSuccess(true);
+        try {
+          audioEngine.playBoostSurge();
+        } catch (err) {}
 
-      setTimeout(() => {
-        onUnlock?.();
-      }, 600);
-    } else {
+        setTimeout(() => {
+          onUnlock?.();
+        }, 600);
+      } else {
+        setError(true);
+        setIsSubmitting(false);
+        try {
+          audioEngine.playVoltageDrainWarning();
+        } catch (err) {}
+
+        // Reset error shake after animation
+        setTimeout(() => {
+          setError(false);
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.select();
+          }
+        }, 800);
+      }
+    } catch (err) {
       setError(true);
       setIsSubmitting(false);
-      try {
-        audioEngine.playVoltageDrainWarning();
-      } catch (err) {}
-
-      // Reset error shake after animation
-      setTimeout(() => {
-        setError(false);
-        if (inputRef.current) {
-          inputRef.current.focus();
-          inputRef.current.select();
-        }
-      }, 800);
     }
   };
 

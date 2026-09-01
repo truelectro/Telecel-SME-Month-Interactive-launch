@@ -147,6 +147,22 @@ app.get('/api/info', (req, res) => {
   });
 });
 
+// API route to verify admin password securely on the server
+app.post('/api/verify-auth', (req, res) => {
+  const { password } = req.body || {};
+  const serverPassword = process.env.LAUNCH_PASSWORD || process.env.VITE_LAUNCH_PASSWORD;
+
+  if (!serverPassword || !serverPassword.trim()) {
+    return res.status(401).json({ success: false, message: 'No server password configured' });
+  }
+
+  if (password && password.trim() === serverPassword.trim()) {
+    return res.json({ success: true, token: 'authenticated' });
+  }
+
+  return res.status(401).json({ success: false, message: 'Invalid password' });
+});
+
 // Fallback route for SPA
 app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, '../dist/index.html');
