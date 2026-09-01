@@ -185,6 +185,7 @@ class BrowserHostEngine {
         activeRatio: Number(activeRatio.toFixed(2)),
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
         recentJoins: this.gameState.recentJoins.slice(-5),
+        roster: Object.values(this.gameState.players).map((p) => ({ number: p.number, name: p.name })),
       };
 
       this.broadcast('game_state_update', payload);
@@ -192,10 +193,42 @@ class BrowserHostEngine {
   }
 
   handlePlayerJoin(senderId, playerName = '') {
+    const cleanName = playerName?.trim() || '';
+    const now = Date.now();
+    const existingPlayer = this.gameState.players[senderId];
+
+    if (existingPlayer) {
+      // Reconnection or name update on existing peer connection
+      const prevName = existingPlayer.name;
+      if (cleanName && cleanName !== prevName) {
+        existingPlayer.name = cleanName;
+        const rj = this.gameState.recentJoins.find((j) => j.number === existingPlayer.number);
+        if (rj) {
+          rj.name = cleanName;
+        }
+        this.broadcast('participant_updated', {
+          operativeNumber: existingPlayer.number,
+          name: cleanName,
+          connectedCount: this.gameState.connectedCount,
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        });
+      }
+      existingPlayer.lastSeen = now;
+
+      const assignedData = {
+        operativeNumber: existingPlayer.number,
+        player: existingPlayer,
+        connectedCount: this.gameState.connectedCount,
+        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+      };
+
+      this.sendToPeer(senderId, 'controller_assigned', assignedData);
+      return assignedData;
+    }
+
     this.participantCounter += 1;
     const operativeNumber = this.participantCounter;
-    const displayName = playerName?.trim() || `Operative #${operativeNumber}`;
-    const now = Date.now();
+    const displayName = cleanName || `Operative #${operativeNumber}`;
 
     this.gameState.players[senderId] = {
       id: senderId,
@@ -619,7 +652,7 @@ export class RealtimeNetwork {
       // Forward all socket events to local listeners
       const events = [
         'init_sync', 'game_state_update', 'controller_assigned',
-        'participant_joined', 'participant_left', 'surge_pulse',
+        'participant_joined', 'participant_updated', 'participant_left', 'surge_pulse',
         'boost_activated', 'multiplier_up', 'game_victory',
         'game_over', 'game_started', 'game_reset', 'tunnel_ready',
         'countdown_started', 'countdown_tick'

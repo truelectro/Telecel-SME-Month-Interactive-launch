@@ -309,6 +309,7 @@ setInterval(() => {
     activeRatio: Number(activeRatio.toFixed(2)),
     maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
     recentJoins: gameState.recentJoins.slice(-5),
+    roster: Object.values(gameState.players).map((p) => ({ number: p.number, name: p.name })),
   });
 }, 33);
 
@@ -327,6 +328,7 @@ io.on('connection', (socket) => {
         ...gameState,
         connectedCount: Object.keys(gameState.players).length,
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        roster: Object.values(gameState.players).map((p) => ({ number: p.number, name: p.name })),
       },
       lanIp: LAN_IP,
       httpPort: HTTP_PORT,
@@ -351,11 +353,43 @@ io.on('connection', (socket) => {
   socket.on('join_controller', (payload = {}) => {
     try {
       socket.join('mobile_controllers');
+      const playerName = typeof payload?.playerName === 'string' ? payload.playerName.trim() : '';
+      const now = Date.now();
+      const existingPlayer = gameState.players[socket.id];
+
+      if (existingPlayer) {
+        // Socket already registered - update name if provided and keep same operative number
+        const prevName = existingPlayer.name;
+        if (playerName && playerName !== prevName) {
+          existingPlayer.name = playerName;
+          // Update recentJoins entry with the new name
+          const rj = gameState.recentJoins.find((j) => j.number === existingPlayer.number);
+          if (rj) {
+            rj.name = playerName;
+          }
+          // Notify stage displays that this operative updated their name
+          io.emit('participant_updated', {
+            operativeNumber: existingPlayer.number,
+            name: playerName,
+            connectedCount: gameState.connectedCount,
+            maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+          });
+        }
+        existingPlayer.lastSeen = now;
+
+        socket.emit('controller_assigned', {
+          operativeNumber: existingPlayer.number,
+          player: existingPlayer,
+          connectedCount: gameState.connectedCount,
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+        });
+        return;
+      }
+
+      // Brand new socket connection
       participantCounter += 1;
       const operativeNumber = participantCounter;
-      const playerName = typeof payload?.playerName === 'string' ? payload.playerName.trim() : '';
       const displayName = playerName || `Operative #${operativeNumber}`;
-      const now = Date.now();
 
       gameState.players[socket.id] = {
         id: socket.id,

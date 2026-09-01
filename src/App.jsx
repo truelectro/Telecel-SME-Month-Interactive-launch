@@ -69,6 +69,13 @@ export default function App() {
       }
     });
 
+    net.on('participant_updated', (data) => {
+      setIsConnected(true);
+      if (data?.connectedCount !== undefined) {
+        setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));
+      }
+    });
+
     net.on('participant_left', (data) => {
       if (data?.connectedCount !== undefined) {
         setGameState((prev) => ({ ...prev, connectedCount: data.connectedCount }));

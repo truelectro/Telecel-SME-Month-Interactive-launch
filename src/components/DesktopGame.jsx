@@ -269,11 +269,19 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       const now = Date.now();
 
       // Ensure operative is in roster list if not already present
-      if (opName && !opName.startsWith('Audience Operative')) {
+      if (opName && !opName.startsWith('Audience Operative') && operativeNumber) {
         setJoinedOperatives((prev) => {
-          if (operativeNumber && prev.some((p) => p.number === operativeNumber)) return prev;
+          const idx = prev.findIndex((p) => p.number === operativeNumber);
+          if (idx !== -1) {
+            if (prev[idx].name !== opName) {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], name: opName };
+              return updated;
+            }
+            return prev;
+          }
           if (prev.length >= 100) return prev;
-          return [...prev, { id: `${now}-${Math.random()}`, name: opName, number: operativeNumber, time: now }];
+          return [...prev, { id: `op-${operativeNumber}`, name: opName, number: operativeNumber, time: now }];
         });
       }
 
@@ -303,19 +311,55 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     const onParticipantJoined = (data) => {
       const name = data?.name || data?.playerName || (data?.operativeNumber ? `Operative #${data.operativeNumber}` : 'New Operative');
       const operativeNumber = data?.operativeNumber;
-      const uniqueId = operativeNumber ? `op-${operativeNumber}-${Date.now()}` : `${Date.now()}-${Math.random()}`;
+      const uniqueId = operativeNumber ? `op-${operativeNumber}` : `${Date.now()}-${Math.random()}`;
 
-      // Allow multiple attendees with identical names to each join and appear individually
+      // Update name in-place if operative already joined, otherwise append
       setJoinedOperatives((prev) => {
-        if (operativeNumber && prev.some((p) => p.number === operativeNumber)) return prev;
+        if (operativeNumber) {
+          const idx = prev.findIndex((p) => p.number === operativeNumber);
+          if (idx !== -1) {
+            const updated = [...prev];
+            updated[idx] = { ...updated[idx], name };
+            return updated;
+          }
+        }
         return [...prev, { id: uniqueId, name, number: operativeNumber, time: Date.now() }];
       });
-      setRecentOperativeNames((prev) => [name, ...prev].slice(0, 10));
+      setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
       const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE ROSTER`, type: 'join' };
       setAudienceToasts((prev) => [...prev.slice(-2), toast]);
       setTimeout(() => {
         setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
       }, 3000);
+    };
+
+    const onParticipantUpdated = (data) => {
+      const name = data?.name || data?.playerName;
+      const operativeNumber = data?.operativeNumber;
+      if (!name || !operativeNumber) return;
+
+      setJoinedOperatives((prev) => {
+        const idx = prev.findIndex((p) => p.number === operativeNumber);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], name };
+          return updated;
+        }
+        return [...prev, { id: `op-${operativeNumber}`, name, number: operativeNumber, time: Date.now() }];
+      });
+      setRecentOperativeNames((prev) => [name, ...prev.filter((n) => n !== name)].slice(0, 10));
+      const toast = { id: Date.now() + Math.random(), text: `${name} JOINED THE ROSTER`, type: 'join' };
+      setAudienceToasts((prev) => [...prev.slice(-2), toast]);
+      setTimeout(() => {
+        setAudienceToasts((prev) => prev.filter((t) => t.id !== toast.id));
+      }, 3000);
+    };
+
+    const onParticipantLeft = (data) => {
+      const operativeNumber = data?.operativeNumber;
+      if (operativeNumber) {
+        setJoinedOperatives((prev) => prev.filter((p) => p.number !== operativeNumber));
+      }
     };
 
     const onBoostActivated = () => {
@@ -353,6 +397,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
 
     socket.on('surge_pulse', onSurgePulse);
     socket.on('participant_joined', onParticipantJoined);
+    socket.on('participant_updated', onParticipantUpdated);
+    socket.on('participant_left', onParticipantLeft);
     socket.on('boost_activated', onBoostActivated);
     socket.on('countdown_started', onCountdownStarted);
     socket.on('countdown_tick', onCountdownTick);
@@ -362,6 +408,8 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
     return () => {
       socket.off('surge_pulse', onSurgePulse);
       socket.off('participant_joined', onParticipantJoined);
+      socket.off('participant_updated', onParticipantUpdated);
+      socket.off('participant_left', onParticipantLeft);
       socket.off('boost_activated', onBoostActivated);
       socket.off('countdown_started', onCountdownStarted);
       socket.off('countdown_tick', onCountdownTick);
@@ -369,6 +417,18 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
       socket.off('game_reset', onGameReset);
     };
   }, [socket]);
+
+  // Sync roster with server authoritative gameState if available
+  useEffect(() => {
+    if (gameState?.roster && Array.isArray(gameState.roster) && !simulatingCrowd) {
+      setJoinedOperatives(gameState.roster.map((r) => ({
+        id: `op-${r.number}`,
+        name: r.name,
+        number: r.number,
+        time: Date.now(),
+      })));
+    }
+  }, [gameState?.roster, simulatingCrowd]);
 
   // Auto-scroll joined operatives roster container when new members join
   useEffect(() => {
