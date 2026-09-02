@@ -1504,9 +1504,28 @@ export default function DesktopGame({ socket, gameState, serverInfo }) {
                 <Play size={20} className="text-white fill-white shrink-0 group-hover:scale-110 transition-transform" />
                 <span>START LAUNCH ACTIVATION</span>
               </button>
-              <span className="text-[10px] sm:text-xs text-[#a03d4c] mt-1 font-mono tracking-wide">
-                [Spacebar] or [S] Start • [1/2/3] Set Difficulty • [C] 150 Crowd Sim
-              </span>
+
+              <div className="flex items-center justify-between w-full mt-1.5 px-1">
+                <span className="text-[10px] sm:text-xs text-[#a03d4c] font-mono tracking-wide">
+                  [Space/S] Start • [1/2/3] Difficulty
+                </span>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSimulatingCrowd((prev) => !prev);
+                  }}
+                  className={`px-3 py-1 rounded-full text-[10px] font-orbitron font-bold uppercase tracking-wider border transition-all flex items-center gap-1.5 cursor-pointer ${
+                    simulatingCrowd 
+                      ? 'bg-green-950/90 border-green-400 text-green-300 shadow-[0_0_15px_#22c55e] animate-pulse'
+                      : 'bg-[#20050c]/80 border-[#ff1f43]/50 text-[#ff8095] hover:bg-[#3d0d17] hover:text-white'
+                  }`}
+                >
+                  <Users size={12} className={simulatingCrowd ? 'text-green-400' : 'text-[#ff1f43]'} />
+                  <span>{simulatingCrowd ? '⚡ CROWD ACTIVE (100)' : 'SIMULATE 100 [KEY: C]'}</span>
+                </button>
+              </div>
             </div>
 
           </div>
