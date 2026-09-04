@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import http from 'http';
 import https from 'https';
 import { Server } from 'socket.io';
@@ -21,6 +22,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+// High-performance gzip/deflate compression for all HTTP responses
+app.use(compression());
+
 app.use(cors());
 app.use(express.json());
 
@@ -31,8 +36,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static frontend files when built
-app.use(express.static(path.join(__dirname, '../dist')));
+// Serve static frontend files when built with aggressive caching
+app.use(express.static(path.join(__dirname, '../dist'), {
+  maxAge: '1d',
+  etag: true,
+}));
 
 // Helper to get local LAN IPv4 address
 function getLocalLanIP() {
@@ -283,8 +291,67 @@ function resetGame(newStatus = 'lobby') {
 }
 
 let lastPruneTime = Date.now();
+let lastBroadcastTime = 0;
 
-// 60Hz Physics & Activation Loop
+// Centralized, room-segmented network broadcaster
+function broadcastGameState(customExtra = {}) {
+  const totalOperatives = Object.keys(gameState.players).length;
+  gameState.connectedCount = totalOperatives;
+
+  const now = Date.now();
+  let activeShakers = 0;
+  for (const id in gameState.players) {
+    const p = gameState.players[id];
+    if (p.lastShakeTime && (now - p.lastShakeTime < 1800)) {
+      activeShakers += 1;
+    }
+  }
+  const idleCount = Math.max(0, totalOperatives - activeShakers);
+  const activeRatio = totalOperatives > 0 ? (activeShakers / totalOperatives) : 1.0;
+
+  // Complete payload for Stage Display HUD (with full roster & recent joins)
+  const stagePayload = {
+    status: gameState.status,
+    victoryPhase: gameState.victoryPhase,
+    difficulty: gameState.difficulty,
+    voltage: Number(gameState.voltage.toFixed(2)),
+    score: gameState.score,
+    highScore: gameState.highScore,
+    multiplier: gameState.multiplier,
+    multiplierProgress: Math.round(gameState.multiplierProgress),
+    boostCharges: gameState.boostCharges,
+    timeRemaining: Math.ceil(gameState.timeRemaining),
+    connectedCount: gameState.connectedCount,
+    activeShakers,
+    idleCount,
+    activeRatio: Number(activeRatio.toFixed(2)),
+    maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+    recentJoins: gameState.recentJoins.slice(-5),
+    roster: Object.values(gameState.players).map((p) => ({ number: p.number, name: p.name })),
+    ...customExtra,
+  };
+
+  // Ultra-lightweight payload for Mobile Controllers (omits heavy roster and join arrays)
+  const mobilePayload = {
+    status: gameState.status,
+    victoryPhase: gameState.victoryPhase,
+    difficulty: gameState.difficulty,
+    voltage: Number(gameState.voltage.toFixed(2)),
+    timeRemaining: Math.ceil(gameState.timeRemaining),
+    connectedCount: gameState.connectedCount,
+    idleCount,
+    multiplier: gameState.multiplier,
+    boostCharges: gameState.boostCharges,
+    maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+    ...customExtra,
+  };
+
+  io.to('stage_display').emit('game_state_update', stagePayload);
+  io.to('mobile_controllers').emit('game_state_update', mobilePayload);
+  io.except(['stage_display', 'mobile_controllers']).emit('game_state_update', mobilePayload);
+}
+
+// 60Hz Physics & Activation Loop with Adaptive Network Broadcast Throttling
 setInterval(() => {
   const now = Date.now();
   const dt = (now - gameState.lastTickTime) / 1000;
@@ -340,46 +407,41 @@ setInterval(() => {
         participantCount: gameState.connectedCount,
         victoryPhase: 'confetti',
       });
+      broadcastGameState();
     }
   }
 
   // Periodic liveness check: prune any player who hasn't sent a heartbeat/message in > 60s
   if (now - lastPruneTime > 3000) {
     lastPruneTime = now;
+    let pruned = false;
     for (const socketId in gameState.players) {
       const p = gameState.players[socketId];
       if (p.lastSeen && (now - p.lastSeen > 60000)) {
         delete gameState.players[socketId];
-        gameState.connectedCount = Object.keys(gameState.players).length;
+        pruned = true;
         io.emit('participant_left', {
           operativeNumber: p.number,
-          connectedCount: gameState.connectedCount,
+          connectedCount: Object.keys(gameState.players).length,
           maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
         });
       }
     }
+    if (pruned) {
+      gameState.connectedCount = Object.keys(gameState.players).length;
+      broadcastGameState();
+    }
   }
 
-  // Broadcast state update (30Hz throttled for network efficiency)
-  io.emit('game_state_update', {
-    status: gameState.status,
-    victoryPhase: gameState.victoryPhase,
-    difficulty: gameState.difficulty,
-    voltage: Number(gameState.voltage.toFixed(2)),
-    score: gameState.score,
-    highScore: gameState.highScore,
-    multiplier: gameState.multiplier,
-    multiplierProgress: Math.round(gameState.multiplierProgress),
-    boostCharges: gameState.boostCharges,
-    timeRemaining: Math.ceil(gameState.timeRemaining),
-    connectedCount: gameState.connectedCount,
-    activeShakers,
-    idleCount,
-    activeRatio: Number(activeRatio.toFixed(2)),
-    maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-    recentJoins: gameState.recentJoins.slice(-5),
-    roster: Object.values(gameState.players).map((p) => ({ number: p.number, name: p.name })),
-  });
+  // Adaptive network broadcast throttling:
+  // - In 'playing' mode: 10Hz (every 100ms) - mobile UI lerp loop keeps animations 100% fluid
+  // - In 'countdown' mode: 2Hz (every 500ms)
+  // - In 'lobby' / 'victory' / idle: 1Hz (every 1000ms) heartbeat - drops idle network flood by 97%
+  const broadcastIntervalMs = gameState.status === 'playing' ? 100 : (gameState.status === 'countdown' ? 500 : 1000);
+  if (now - lastBroadcastTime >= broadcastIntervalMs) {
+    lastBroadcastTime = now;
+    broadcastGameState();
+  }
 }, 33);
 
 // ----------------------------------------------------
@@ -443,6 +505,7 @@ io.on('connection', (socket) => {
             connectedCount: gameState.connectedCount,
             maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
           });
+          broadcastGameState();
         }
         existingPlayer.lastSeen = now;
 
@@ -497,6 +560,7 @@ io.on('connection', (socket) => {
         connectedCount: gameState.connectedCount,
         maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
       });
+      broadcastGameState();
 
       console.log(`Operative #${operativeNumber} joined (${gameState.connectedCount}/${EVENT_CONFIG.MAX_CAPACITY})`);
     } catch (err) {
@@ -590,12 +654,7 @@ io.on('connection', (socket) => {
       if (['easy', 'medium', 'hard'].includes(diff)) {
         gameState.difficulty = diff;
         io.emit('difficulty_changed', { difficulty: diff });
-        io.emit('game_state_update', {
-          difficulty: diff,
-          status: gameState.status,
-          voltage: Number(gameState.voltage.toFixed(2)),
-          connectedCount: gameState.connectedCount,
-        });
+        broadcastGameState();
         console.log(`🎮 Activation difficulty set to: ${diff.toUpperCase()}`);
       }
     } catch (err) {
@@ -637,7 +696,7 @@ io.on('connection', (socket) => {
       gameState.lastActiveShakeTime = Date.now();
 
       io.emit('countdown_started', { count: 3 });
-      io.emit('game_state_update', { status: 'countdown', countdownValue: 3, voltage: 0 });
+      broadcastGameState();
 
       let currentCount = 3;
       countdownTimer = setInterval(() => {
@@ -646,7 +705,7 @@ io.on('connection', (socket) => {
           if (currentCount > 0) {
             gameState.countdownValue = currentCount;
             io.emit('countdown_tick', { count: currentCount });
-            io.emit('game_state_update', { status: 'countdown', countdownValue: currentCount });
+            broadcastGameState();
           } else {
             clearInterval(countdownTimer);
             countdownTimer = null;
@@ -654,11 +713,7 @@ io.on('connection', (socket) => {
             resetGame('playing');
             io.emit('countdown_tick', { count: 'LAUNCH!' });
             io.emit('game_started');
-            io.emit('game_state_update', {
-              status: 'playing',
-              voltage: 0,
-              connectedCount: gameState.connectedCount,
-            });
+            broadcastGameState();
           }
         } catch (timerErr) {
           console.warn('countdownTimer tick notice:', timerErr);
@@ -677,12 +732,7 @@ io.on('connection', (socket) => {
       }
       resetGame('lobby');
       io.emit('game_reset');
-      io.emit('game_state_update', {
-        status: 'lobby',
-        victoryPhase: 'confetti',
-        voltage: 0,
-        connectedCount: gameState.connectedCount,
-      });
+      broadcastGameState();
     } catch (err) {
       console.warn('reset_game notice:', err);
     }
@@ -695,7 +745,7 @@ io.on('connection', (socket) => {
       if (['confetti', 'video1', 'video2', 'outro'].includes(phase)) {
         gameState.victoryPhase = phase;
         io.emit('victory_phase_changed', { phase });
-        io.emit('game_state_update', { victoryPhase: phase });
+        broadcastGameState();
         console.log(`🎬 Victory phase updated: ${phase}`);
       }
     } catch (err) {
@@ -740,11 +790,7 @@ io.on('connection', (socket) => {
           connectedCount: gameState.connectedCount,
           maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
         });
-        io.emit('game_state_update', {
-          connectedCount: gameState.connectedCount,
-          status: gameState.status,
-          voltage: Number(gameState.voltage.toFixed(2)),
-        });
+        broadcastGameState();
       }
     } catch (err) {
       console.warn('leave_controller notice:', err);
@@ -763,11 +809,7 @@ io.on('connection', (socket) => {
           connectedCount: gameState.connectedCount,
           maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
         });
-        io.emit('game_state_update', {
-          connectedCount: gameState.connectedCount,
-          status: gameState.status,
-          voltage: Number(gameState.voltage.toFixed(2)),
-        });
+        broadcastGameState();
       }
       console.log(`Socket disconnected: ${socket.id} (Active: ${Object.keys(gameState.players).length})`);
     } catch (err) {

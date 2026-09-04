@@ -217,27 +217,31 @@ class BrowserHostEngine {
         }
       }
 
-      // Broadcast state update (30Hz)
-      const payload = {
-        status: this.gameState.status,
-        difficulty: this.gameState.difficulty,
-        voltage: Number(this.gameState.voltage.toFixed(2)),
-        score: this.gameState.score,
-        highScore: this.gameState.highScore,
-        multiplier: this.gameState.multiplier,
-        multiplierProgress: Math.round(this.gameState.multiplierProgress),
-        boostCharges: this.gameState.boostCharges,
-        timeRemaining: Math.ceil(this.gameState.timeRemaining),
-        connectedCount: this.gameState.connectedCount,
-        activeShakers,
-        idleCount,
-        activeRatio: Number(activeRatio.toFixed(2)),
-        maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
-        recentJoins: this.gameState.recentJoins.slice(-5),
-        roster: Object.values(this.gameState.players).map((p) => ({ number: p.number, name: p.name })),
-      };
+      // Adaptive broadcast rate: 10Hz when playing, 1Hz in lobby/idle
+      const broadcastIntervalMs = this.gameState.status === 'playing' ? 100 : (this.gameState.status === 'countdown' ? 500 : 1000);
+      if (now - (this.lastBroadcastTime || 0) >= broadcastIntervalMs) {
+        this.lastBroadcastTime = now;
+        const payload = {
+          status: this.gameState.status,
+          difficulty: this.gameState.difficulty,
+          voltage: Number(this.gameState.voltage.toFixed(2)),
+          score: this.gameState.score,
+          highScore: this.gameState.highScore,
+          multiplier: this.gameState.multiplier,
+          multiplierProgress: Math.round(this.gameState.multiplierProgress),
+          boostCharges: this.gameState.boostCharges,
+          timeRemaining: Math.ceil(this.gameState.timeRemaining),
+          connectedCount: this.gameState.connectedCount,
+          activeShakers,
+          idleCount,
+          activeRatio: Number(activeRatio.toFixed(2)),
+          maxCapacity: EVENT_CONFIG.MAX_CAPACITY,
+          recentJoins: this.gameState.recentJoins.slice(-5),
+          roster: Object.values(this.gameState.players).map((p) => ({ number: p.number, name: p.name })),
+        };
 
-      this.broadcast('game_state_update', payload);
+        this.broadcast('game_state_update', payload);
+      }
     }, 33);
   }
 
@@ -669,7 +673,7 @@ export class RealtimeNetwork {
 
     try {
       this.socket = io(url, {
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 400,

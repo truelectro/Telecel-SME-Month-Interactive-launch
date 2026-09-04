@@ -46,7 +46,7 @@ let isPlaying = false;
 function createOperative(index) {
   const name = GHANAIAN_NAMES[index % GHANAIAN_NAMES.length] + " (#" + (index + 1) + ")";
   const socket = io(SERVER_URL, {
-    transports: ["polling", "websocket"],
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionDelay: 1000,
     timeout: 8000,

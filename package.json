@@ -20,6 +20,7 @@
     "canvas-confetti": "^1.9.4",
     "cloudflared": "^0.7.3",
     "clsx": "^2.1.1",
+    "compression": "^1.8.1",
     "concurrently": "^9.1.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
@@ -37,6 +38,5 @@
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^3.4.17",
     "vite": "^6.2.0"
-  },
-  "devDependencies": {}
+  }
 }
